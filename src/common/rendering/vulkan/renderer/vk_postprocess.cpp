@@ -315,6 +315,7 @@ void VkPostprocess::AmbientOccludeScene(float m5)
 
 	VkPPRenderState renderstate(fb);
 	hw_postprocess.ssao.Render(&renderstate, m5, sceneWidth, sceneHeight);
+	hw_postprocess.outline.Render(&renderstate, sceneWidth, sceneHeight);
 
 	ImageTransitionScene(false);
 }

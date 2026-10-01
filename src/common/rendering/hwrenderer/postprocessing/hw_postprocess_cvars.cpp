@@ -65,6 +65,19 @@ CUSTOM_CVAR(Int, gl_ssao, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 		self = 0;
 }
 
+// Jupiter3D: screen space outlines
+CUSTOM_CVAR(Int, gl_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+{
+	if (self < 0 || self > 1)
+		self = 0;
+}
+
+CVAR(Float, gl_outline_width, 1.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// pixels at 1080p, scales with resolution
+CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth discontinuity sensitivity (lower = more lines)
+CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
+CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
 CUSTOM_CVAR(Int, gl_ssao_portals, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
 	if (self < 0)

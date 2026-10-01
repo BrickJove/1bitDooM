@@ -747,6 +747,56 @@ private:
 	PPTexture AmbientRandomTexture[NumAmbientRandomTextures];
 };
 
+/////////////////////////////////////////////////////////////////////////////
+// Jupiter3D: screen space geometry outlines (depth + normal buffer)
+
+struct OutlineUniforms
+{
+	float LinearizeDepthA;
+	float LinearizeDepthB;
+	float DepthThreshold;
+	float NormalThreshold;
+	float LineWidth;
+	float LineAlpha;
+	float LineR;
+	float LineG;
+	float LineB;
+	float Padding0, Padding1, Padding2;
+	FVector2 Scale;
+	FVector2 Offset;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "LinearizeDepthA", UniformType::Float, offsetof(OutlineUniforms, LinearizeDepthA) },
+			{ "LinearizeDepthB", UniformType::Float, offsetof(OutlineUniforms, LinearizeDepthB) },
+			{ "DepthThreshold", UniformType::Float, offsetof(OutlineUniforms, DepthThreshold) },
+			{ "NormalThreshold", UniformType::Float, offsetof(OutlineUniforms, NormalThreshold) },
+			{ "LineWidth", UniformType::Float, offsetof(OutlineUniforms, LineWidth) },
+			{ "LineAlpha", UniformType::Float, offsetof(OutlineUniforms, LineAlpha) },
+			{ "LineR", UniformType::Float, offsetof(OutlineUniforms, LineR) },
+			{ "LineG", UniformType::Float, offsetof(OutlineUniforms, LineG) },
+			{ "LineB", UniformType::Float, offsetof(OutlineUniforms, LineB) },
+			{ "Padding0", UniformType::Float, offsetof(OutlineUniforms, Padding0) },
+			{ "Padding1", UniformType::Float, offsetof(OutlineUniforms, Padding1) },
+			{ "Padding2", UniformType::Float, offsetof(OutlineUniforms, Padding2) },
+			{ "Scale", UniformType::Vec2, offsetof(OutlineUniforms, Scale) },
+			{ "Offset", UniformType::Vec2, offsetof(OutlineUniforms, Offset) }
+		};
+	}
+};
+
+class PPOutline
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+
+private:
+	PPShader Outline = { "shaders/pp/outline.fp", "", OutlineUniforms::Desc() };
+	PPShader OutlineMS = { "shaders/pp/outline.fp", "#define MULTISAMPLE\n", OutlineUniforms::Desc() };
+};
+
 struct PresentUniforms
 {
 	float InvGamma;
@@ -894,6 +944,7 @@ public:
 	PPColormap colormap;
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
+	PPOutline outline;
 	PPPresent present;
 	PPShadowMap shadowmap;
 	PPCustomShaders customShaders;

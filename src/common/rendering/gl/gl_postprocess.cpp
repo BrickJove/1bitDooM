@@ -86,6 +86,7 @@ void FGLRenderer::AmbientOccludeScene(float m5)
 
 	GLPPRenderState renderstate(mBuffers);
 	hw_postprocess.ssao.Render(&renderstate, m5, sceneWidth, sceneHeight);
+	hw_postprocess.outline.Render(&renderstate, sceneWidth, sceneHeight);
 }
 
 void FGLRenderer::BlurScene(float gameinfobluramount)

@@ -854,6 +854,46 @@ void PPAmbientOcclusion::Render(PPRenderState *renderstate, float m5, int sceneW
 
 /////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////////////////////
+// Jupiter3D: screen space geometry outlines
+
+void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	if (gl_outline == 0 || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	PalEntry color = PalEntry(gl_outline_color);
+
+	OutlineUniforms uniforms;
+	uniforms.LinearizeDepthA = 1.0f / screen->GetZFar() - 1.0f / screen->GetZNear();
+	uniforms.LinearizeDepthB = max(1.0f / screen->GetZNear(), 1.e-8f);
+	uniforms.DepthThreshold = max((float)gl_outline_depth, 0.001f);
+	float angle = gl_outline_normal;
+	uniforms.NormalThreshold = angle <= 0.0f ? -2.0f : (float)cos(clamp(angle, 1.0f, 179.0f) * (M_PI / 180.0));
+	uniforms.LineWidth = max(1.0f, floorf(gl_outline_width * sceneHeight / 1080.0f + 0.5f));
+	uniforms.LineAlpha = clamp((float)gl_outline_alpha, 0.0f, 1.0f);
+	uniforms.LineR = color.r / 255.0f;
+	uniforms.LineG = color.g / 255.0f;
+	uniforms.LineB = color.b / 255.0f;
+	uniforms.Padding0 = uniforms.Padding1 = uniforms.Padding2 = 0.0f;
+	uniforms.Scale = screen->SceneScale();
+	uniforms.Offset = screen->SceneOffset();
+
+	renderstate->PushGroup("outline");
+
+	renderstate->Clear();
+	renderstate->Shader = gl_multisample > 1 ? &OutlineMS : &Outline;
+	renderstate->Uniforms.Set(uniforms);
+	renderstate->Viewport = screen->mSceneViewport;
+	renderstate->SetInputSceneDepth(0);
+	renderstate->SetInputSceneNormal(1);
+	renderstate->SetOutputSceneColor();
+	renderstate->SetAlphaBlend();
+	renderstate->Draw();
+
+	renderstate->PopGroup();
+}
+
 PPPresent::PPPresent()
 {
 	static const float data[64] =
