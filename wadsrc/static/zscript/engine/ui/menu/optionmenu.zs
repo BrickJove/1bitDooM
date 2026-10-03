@@ -31,8 +31,9 @@ struct FOptionMenuSettings native version("2.4")
 	int mFontColorHighlight;
 	int mFontColorSelection;
 	int mLinespacing;
-	native Font mFont;
-	native TextureID mSelector;
+	// Not marked native on purpose: like the fields above, the layout follows the C++ struct in order.
+	Font mFont;
+	TextureID mSelector;
 }
 
 class OptionMenuDescriptor : MenuDescriptor native

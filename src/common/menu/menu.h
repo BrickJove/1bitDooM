@@ -136,7 +136,7 @@ struct FOptionMenuSettings
 	EColorRange mFontColorHighlight;
 	EColorRange mFontColorSelection;
 	int mLinespacing;
-	FFont* mFont = nullptr;			// optional replacement for the option menu font (GAMEINFO MenuFont)
+	FFont* mFont;						// optional replacement for the option menu font (GAMEINFO MenuFont)
 	FTextureID mSelector;			// optional replacement for the option menu selection arrow (GAMEINFO MenuSelector)
 };
 
