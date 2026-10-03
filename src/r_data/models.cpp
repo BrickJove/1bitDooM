@@ -71,12 +71,22 @@ static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle
 // Flat black drop shadows (video menu)
 CVAR(Bool, gl_model_shadow_monsters, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, gl_model_shadow_player, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, gl_model_shadow_skip_shootable, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for shootable actors
+CVAR(Bool, gl_model_shadow_skip_nonsolid, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for non-solid actors
 
 static bool WantsModelShadow(AActor* actor)
 {
-	if (actor->player != nullptr || (actor->flags & MF_MISSILE)) return false;
+	if (actor->flags & MF_MISSILE) return false;
 	if (!(actor->RenderStyle == DefaultRenderStyle())) return false;	// translucent / fuzzy / invisible actors cast no shadow
-	return (actor->flags3 & MF3_ISMONSTER) ? (bool)gl_model_shadow_monsters : (bool)gl_model_shadow_decor;
+	if (actor->player != nullptr) return gl_model_shadow_player;
+	if (actor->flags3 & MF3_ISMONSTER) return gl_model_shadow_monsters;
+
+	// decoration: everything else, optionally filtered
+	if (!gl_model_shadow_decor) return false;
+	if (gl_model_shadow_skip_shootable && (actor->flags & MF_SHOOTABLE)) return false;
+	if (gl_model_shadow_skip_nonsolid && !(actor->flags & MF_SOLID)) return false;
+	return true;
 }
 EXTERN_CVAR (Bool, r_drawvoxels)
 
@@ -111,7 +121,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	}
 	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 
-	if ((gl_model_shadow_monsters || gl_model_shadow_decor) && WantsModelShadow(actor))
+	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
 	{
 		// Squash the model onto the floor below the actor. The y scale is not exactly 0 so the normal matrix stays invertible.
 		VSMatrix flat;
