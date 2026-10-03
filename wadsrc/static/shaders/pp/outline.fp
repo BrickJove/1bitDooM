@@ -54,11 +54,19 @@ float NormalDot(vec3 nc, float ic, ivec2 p)
 	return dot(nc, normalize(n));
 }
 
-// Raw edge strength 0..1 at a pixel (before alpha / range fade), 0 for anything that
-// does not get lines. w = tap distance in pixels.
-float EdgeAt(ivec2 ipos, int w, out float rangeFade)
+void main()
 {
-	rangeFade = 1.0;
+	vec2 uv = Offset + TexCoord * Scale;
+
+#if defined(MULTISAMPLE)
+	gTexSize = textureSize(DepthTexture);
+#else
+	gTexSize = textureSize(DepthTexture, 0);
+#endif
+
+	ivec2 ipos = ivec2(uv * vec2(gTexSize));
+	int w = int(LineWidth);
+
 	ivec2 dx = ivec2(w, 0);
 	ivec2 dy = ivec2(0, w);
 
@@ -67,8 +75,11 @@ float EdgeAt(ivec2 ipos, int w, out float rangeFade)
 	float ic = InvDepth(ipos);
 	float dist = 1.0 / max(ic, 1.0e-8);
 	if (centerSample.a < 0.5 || !HasNormal(centerSample.xyz * 2.0 - 1.0) || (LineRange > 0.0 && dist > LineRange))
-		return 0.0;
-	rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
+	{
+		FragColor = vec4(0.0);
+		return;
+	}
+	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
 
 	// depth silhouettes / convex edges
 	float lapX = InvDepth(ipos + dx) + InvDepth(ipos - dx) - 2.0 * ic;
@@ -89,45 +100,6 @@ float EdgeAt(ivec2 ipos, int w, out float rangeFade)
 		normalEdge = 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, m);
 	}
 
-	// quantised so equal strengths on both sides of a crease compare as equal
-	return floor(max(depthEdge, normalEdge) * 32.0 + 0.5) / 32.0;
-}
-
-void main()
-{
-	vec2 uv = Offset + TexCoord * Scale;
-
-#if defined(MULTISAMPLE)
-	gTexSize = textureSize(DepthTexture);
-#else
-	gTexSize = textureSize(DepthTexture, 0);
-#endif
-
-	ivec2 ipos = ivec2(uv * vec2(gTexSize));
-	int w = int(LineWidth);
-
-	float rangeFade;
-	float s = EdgeAt(ipos, w, rangeFade);
-	if (s <= 0.0)
-	{
-		FragColor = vec4(0.0);
-		return;
-	}
-
-	// One pixel lines: a crease between floor and wall triggers on both sides of the
-	// crease (the depth is continuous there), which gives 2 px wide, stair-stepped lines.
-	// Keep only the local maximum; ties go to the left / upper pixel, so the choice is
-	// the same for every pixel of the line and no steps appear.
-	if (w <= 1)
-	{
-		float r;
-		if (EdgeAt(ipos + ivec2(1, 0), 1, r) > s || EdgeAt(ipos + ivec2(0, 1), 1, r) > s ||
-			EdgeAt(ipos - ivec2(1, 0), 1, r) >= s || EdgeAt(ipos - ivec2(0, 1), 1, r) >= s)
-		{
-			FragColor = vec4(0.0);
-			return;
-		}
-	}
-
-	FragColor = vec4(LineR, LineG, LineB, s * LineAlpha * rangeFade);
+	float edge = max(depthEdge, normalEdge) * LineAlpha * rangeFade;
+	FragColor = vec4(LineR, LineG, LineB, edge);
 }
