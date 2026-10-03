@@ -239,6 +239,7 @@ protected:
 	int mTextureMode;
 	int mTextureClamp;
 	bool mNoOutline;
+	bool mSky;
 	int mTextureModeFlags;
 	int mSoftLight;
 	float mLightParms[4];
@@ -281,6 +282,7 @@ public:
 		mTextureMode = -1;
 		mTextureClamp = 0;
 		mNoOutline = false;
+		mSky = false;
 		mTextureModeFlags = 0;
 		mStreamData.uDesaturationFactor = 0.0f;
 		mAlphaThreshold = 0.5f;
@@ -405,7 +407,13 @@ public:
 		if (!mBrightmapEnabled) f &= ~(TEXF_Brightmap | TEXF_Glowmap);
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
+		if (mSky) f |= TEXF_Sky;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
+	}
+
+	void SetSky(bool on)
+	{
+		mSky = on;
 	}
 
 	void SetNoOutline(bool on)

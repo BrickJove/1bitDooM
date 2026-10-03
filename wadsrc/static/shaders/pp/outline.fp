@@ -39,11 +39,18 @@ vec3 FetchNormal(ivec2 p)
 	return texelFetch(NormalTexture, ClampPos(p), 0).xyz * 2.0 - 1.0;
 }
 
-// The sky dome is drawn with depth clamping, so its pixels sit on the far plane.
-// Sky never gets lines, and a far plane neighbour is no silhouette.
+// Sky never gets lines, and a sky neighbour is no silhouette. The sky dome sits on the far
+// plane and is tagged with class 1/3 in the normal buffer. The tag matters because "sky
+// walls" (the sky hack at the map border) write their real depth afterwards, but not the normal.
 bool IsSky(float inv)
 {
 	return inv <= (LinearizeDepthA + LinearizeDepthB) * 1.05;
+}
+
+bool SkyAt(ivec2 p, float inv)
+{
+	float a = texelFetch(NormalTexture, ClampPos(p), 0).a;
+	return IsSky(inv) || (a > 0.2 && a < 0.45);
 }
 
 bool HasNormal(vec3 n)
@@ -92,7 +99,7 @@ void main()
 		FragColor = vec4(0.0);
 		return;
 	}
-	if (IsSky(ic))
+	if (SkyAt(ipos, ic))
 	{
 		FragColor = vec4(0.0);
 		return;
@@ -103,8 +110,8 @@ void main()
 	// (an axis with a sky neighbour is skipped: the edge towards the sky gets no line)
 	float ix1 = InvDepth(ipos + dx), ix2 = InvDepth(ipos - dx);
 	float iy1 = InvDepth(ipos + dy), iy2 = InvDepth(ipos - dy);
-	float lapX = (IsSky(ix1) || IsSky(ix2)) ? 0.0 : ix1 + ix2 - 2.0 * ic;
-	float lapY = (IsSky(iy1) || IsSky(iy2)) ? 0.0 : iy1 + iy2 - 2.0 * ic;
+	float lapX = (SkyAt(ipos + dx, ix1) || SkyAt(ipos - dx, ix2)) ? 0.0 : ix1 + ix2 - 2.0 * ic;
+	float lapY = (SkyAt(ipos + dy, iy1) || SkyAt(ipos - dy, iy2)) ? 0.0 : iy1 + iy2 - 2.0 * ic;
 	float ridge = max(-lapX, -lapY) / max(ic, 1.0e-8);
 	float depthEdge = smoothstep(DepthThreshold, DepthThreshold * 1.5, ridge);
 

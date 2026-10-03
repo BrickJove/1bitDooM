@@ -55,6 +55,7 @@ void HWSkyPortal::DrawContents(HWDrawInfo *di, FRenderState &state)
 	}
 
 
+	state.SetSky(true);
 	state.ResetColor();
 	state.EnableFog(false);
 	state.AlphaFunc(Alpha_GEqual, 0.f);
@@ -112,6 +113,7 @@ void HWSkyPortal::DrawContents(HWDrawInfo *di, FRenderState &state)
 	}
 	di->lightmode = oldlightmode;
 	state.SetDepthClamp(oldClamp);
+	state.SetSky(false);
 }
 
 const char *HWSkyPortal::GetName() { return "Sky"; }

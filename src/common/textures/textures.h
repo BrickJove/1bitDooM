@@ -112,6 +112,7 @@ enum texflags
 	TEXF_Detailmap = 0x20000,
 	TEXF_Glowmap = 0x40000,
 	TEXF_ClampY = 0x80000,
+	TEXF_Sky = 0x200000,	// set while the sky is drawn (outline pass: never outlined, not a silhouette)
 	TEXF_NoOutline = 0x100000,	// set while models and masked / translucent geometry are drawn: no screen space outlines there
 };
 
