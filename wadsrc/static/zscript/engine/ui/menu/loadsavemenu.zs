@@ -1,0 +1,829 @@
+/*
+** loadsavemenu.zs
+**
+** The load game and save game menus
+**
+**---------------------------------------------------------------------------
+**
+** Copyright 2001-2016 Marisa Heit
+** Copyright 2010-2017 Christoph Oelckers
+** Copyright 2017-2025 GZDoom Maintainers and Contributors
+** Copyright 2025-2026 UZDoom Maintainers and Contributors
+**
+** SPDX-License-Identifier: GPL-3.0-or-later
+**
+**---------------------------------------------------------------------------
+**
+** Code written prior to 2026 is also licensed under:
+**
+** SPDX-License-Identifier: BSD-3-Clause
+**
+**---------------------------------------------------------------------------
+**
+*/
+
+struct SaveGameNode native
+{
+	native String SaveTitle;
+	native readonly String Filename;
+	native readonly String UUID;
+	native bool bOldVersion;
+	native bool bMissingWads;
+	native bool bNoDelete;
+}
+
+struct SavegameManager native ui
+{
+	native int WindowSize;
+	native SaveGameNode quickSaveSlot;
+	native readonly String SaveCommentString;
+
+	native static SavegameManager GetManager();
+	native void ReadSaveStrings();
+	native void UnloadSaveData();
+
+	native int RemoveSaveSlot(int index);
+	native void LoadSavegame(int Selected);
+	native void DoSave(int Selected, String savegamestring);
+	native int ExtractSaveData(int index);
+	native void ClearSaveStuff();
+	native bool DrawSavePic(int x, int y, int w, int h);
+	deprecated("4.0") void DrawSaveComment(Font font, int cr, int x, int y, int scalefactor)
+	{
+		// Unfortunately, this was broken beyond repair so it now prints nothing.
+	}
+	native void SetFileInfo(int Selected);
+	native int SavegameCount();
+	native SaveGameNode GetSavegame(int i);
+	native void InsertNewSaveNode();
+	native bool RemoveNewSaveNode();
+	native int RemoveUUIDSaveSlots();
+
+}
+
+
+
+class LoadSaveMenu : ListMenu
+{
+	SavegameManager manager;
+	int TopItem;
+	int Selected;
+
+	double wScale;
+
+	int savepicLeft;
+	int savepicTop;
+	int savepicWidth;
+	int savepicHeight;
+	int rowHeight;
+	int listboxLeft;
+	int listboxTop;
+	int listboxWidth;
+
+	int listboxRows;
+	int listboxHeight;
+	int listboxRight;
+
+	int commentAreaLeft;
+	int commentLeft;
+	int commentAreaTop;
+	int commentTop;
+	int commentAreaWidth;
+	int commentWidth;
+	int commentAreaHeight;
+	int commentHeight;
+	int commentRows;
+
+	bool mEntering;
+	TextEnterMenu mInput;
+	int FontHeight;
+	double FontScale;
+
+	BrokenLines BrokenSaveComment;
+
+	TextureID warningTextureId;
+	TextureID errorTextureId;
+	TextureID frameCornerTextureId;
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void Init(Menu parent, ListMenuDescriptor desc)
+	{
+		Super.Init(parent, desc);
+		manager = SavegameManager.GetManager();
+		manager.ReadSaveStrings();
+		SetWindows();
+
+		warningTextureId = TexMan.CheckForTexture("m_warn");
+		errorTextureId = TexMan.CheckForTexture("m_error");
+		frameCornerTextureId = TexMan.CheckForTexture("m_corner");
+	}
+
+	private void SetWindows()
+	{
+		bool aspect43 = true;
+		int Width43 = screen.GetHeight() * 4 / 3;
+		int Left43 = (screen.GetWidth() - Width43) / 2;
+
+		wScale = Width43 / 640.;
+
+		savepicLeft = Left43 + int(20 * wScale);
+		savepicTop = int(mDesc.mYpos * screen.GetHeight() / 200);
+		savepicWidth = int(240 * wScale);
+		savepicHeight = int(180 * wScale);
+
+		FontScale = max(screen.GetHeight() / 480, 1);
+		FontHeight = Font.GetConsoleFont(NewConsoleFont).GetHeight();
+		rowHeight = int(max((FontHeight + 1) * FontScale, 1));
+
+		listboxLeft = savepicLeft + savepicWidth + int(20*wScale);
+		listboxTop = savepicTop;
+		listboxWidth = Width43 + Left43 - listboxLeft - int(30 * wScale);
+		int listboxHeight1 = screen.GetHeight() - listboxTop - int(20*wScale);
+		listboxRows = (listboxHeight1 - 1) / rowHeight;
+		listboxHeight = listboxRows * rowHeight + 1;
+		listboxRight = listboxLeft + listboxWidth;
+
+		commentAreaLeft = savepicLeft;
+		commentLeft = commentAreaLeft + int(4 * wScale);
+		commentAreaTop = savepicTop + savepicHeight + int(16 * wScale);
+		commentTop = commentAreaTop + int(4 * wScale);
+		commentAreaWidth = savepicWidth;
+		commentWidth = commentAreaWidth - int(8 * wScale);
+		commentAreaHeight = listboxHeight - savepicHeight - int(16 * wScale);
+		commentHeight = commentAreaHeight - int(8 * wScale);
+		commentRows = (commentHeight / rowHeight) - 1;
+	}
+
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void OnDestroy()
+	{
+		//manager.ClearSaveStuff ();
+		Super.OnDestroy();
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	virtual void DrawFrame(int left, int top, int width, int height)
+	{
+		let framecolor = Color(255, 80, 80, 80);
+		Screen.DrawLineFrame(framecolor, left, top, width, height, wScale);
+		screen.Dim(0, 0.9, left, top, width, height);
+	}
+
+	virtual void DrawFrameCorners(int left, int top, int width, int height)
+	{
+		int frameBorder = 3 * wScale;
+		int cornerSize = 16 * wScale;
+
+		// TL
+		Screen.drawTexture(
+			frameCornerTextureId,
+			false,
+			left - frameBorder,
+			top - frameBorder,
+			DTA_DESTHEIGHT, cornerSize,
+			DTA_DESTWIDTH, cornerSize,
+			DTA_FlipX, false,
+            DTA_FlipY, false);
+
+		// TR
+		Screen.drawTexture(
+			frameCornerTextureId,
+			false,
+			left + width + frameBorder - cornerSize,
+			top - frameBorder,
+			DTA_DESTHEIGHT, cornerSize,
+			DTA_DESTWIDTH, cornerSize,
+		    DTA_FlipX, true,
+            DTA_FlipY, false);
+
+		// BL
+		Screen.drawTexture(
+			frameCornerTextureId,
+			false,
+			left - frameBorder,
+			top + height + frameBorder - cornerSize,
+			DTA_DESTHEIGHT, cornerSize,
+			DTA_DESTWIDTH, cornerSize,
+			DTA_FlipX, false,
+            DTA_FlipY, true);
+
+		// BR
+		Screen.drawTexture(
+			frameCornerTextureId,
+			false,
+			left + width + frameBorder - cornerSize,
+			top + height + frameBorder - cornerSize,
+			DTA_DESTHEIGHT, cornerSize,
+			DTA_DESTWIDTH, cornerSize,
+		    DTA_FlipX, true,
+            DTA_FlipY, true);
+	}
+
+	override void Drawer ()
+	{
+		Super.Drawer();
+
+		Font desiredConsoleFont = Font.GetConsoleFont(NewConsoleFont);
+		Font desiredSmallFont = Font.GetSmallTextFont(NewSmallFont);
+
+		SaveGameNode node;
+		int i;
+		int j;
+
+		// Draw picture area
+		if (gameaction == ga_loadgame || gameaction == ga_loadgamehidecon || gameaction == ga_savegame)
+		{
+			return;
+		}
+
+		SetWindows();
+		DrawFrame(savepicLeft, savepicTop, savepicWidth, savepicHeight);
+		if (!manager.DrawSavePic(savepicLeft, savepicTop, savepicWidth, savepicHeight))
+		{
+			if (manager.SavegameCount() > 0)
+			{
+				Font font = Font.GetSmallTextFont(NewSmallFont);
+				if (Selected >= manager.SavegameCount()) Selected = 0;
+				String text = (Selected == -1 || !manager.GetSavegame(Selected).bOldVersion)? Stringtable.Localize("$MNU_NOPICTURE") : Stringtable.Localize("$MNU_DIFFVERSION");
+				int textlen = font.StringWidth(text);
+
+				screen.DrawText (font, Font.CR_GOLD, (savepicLeft + savepicWidth / 2) / FontScale - textlen/2,
+					(savepicTop+(savepicHeight-rowHeight)/2) / FontScale, text, DTA_VirtualWidthF, screen.GetWidth() / FontScale, DTA_VirtualHeightF, screen.GetHeight() / FontScale, DTA_KeepRatio, true);
+			}
+		}
+
+		DrawFrameCorners(savepicLeft, savepicTop, savepicWidth, savepicHeight);
+
+		// Draw comment area
+		DrawFrame(commentAreaLeft, commentAreaTop, commentAreaWidth, commentAreaHeight);
+
+		if (Selected >= 0 && Selected < manager.SavegameCount())
+		{
+			int numlinestoprint = min(commentRows, BrokenSaveComment? BrokenSaveComment.Count() : 0);
+			for(int i = 0; i < numlinestoprint; i++)
+			{
+				screen.DrawText(desiredSmallFont, Font.CR_GREY, commentLeft / FontScale, (commentTop + rowHeight * i) / FontScale, BrokenSaveComment.StringAt(i),
+					DTA_VirtualWidthF, screen.GetWidth() / FontScale, DTA_VirtualHeightF, screen.GetHeight() / FontScale, DTA_KeepRatio, true);
+			}
+
+
+			SaveGameNode selectedNode = manager.GetSavegame(Selected);
+			if (selectedNode.bMissingWads || selectedNode.bOldVersion)
+			{
+				int warningTop = (commentTop + commentHeight) - (FontHeight * FontScale);
+				int iconSize = (FontHeight - 4) * FontScale;
+				int iconPadding = 2 * FontScale;
+
+				String text = "";
+				TextureID iconTextureId;
+				if (selectedNode.bMissingWads)
+				{
+					text = Stringtable.Localize("$MNU_SAVEMISSINGWADS");
+					iconTextureID = warningTextureId;
+				}
+				else if (selectedNode.bOldVersion)
+				{
+					text = Stringtable.Localize("$MNU_SAVEOLDVERSION");
+					iconTextureID = errorTextureId;
+				}
+
+				Screen.drawTexture(
+					iconTextureID,
+					false,
+					commentLeft,
+					warningTop + iconPadding,
+					DTA_DESTHEIGHT, iconSize,
+					DTA_DESTWIDTH, iconSize);
+
+				screen.DrawText(
+					desiredSmallFont,
+					Font.CR_YELLOW,
+					(commentLeft + iconSize + iconPadding) / FontScale,
+					warningTop / FontScale,
+					text,
+					DTA_VirtualWidthF, screen.GetWidth() / FontScale,
+					DTA_VirtualHeightF, screen.GetHeight() / FontScale,
+					DTA_KeepRatio,
+					true);
+			}
+		}
+
+		DrawFrameCorners(commentAreaLeft, commentAreaTop, commentAreaWidth, commentAreaHeight);
+
+		// Draw file area
+		DrawFrame(listboxLeft, listboxTop, listboxWidth, listboxHeight);
+
+		if (manager.SavegameCount() == 0)
+		{
+			String text = Stringtable.Localize("$MNU_NOFILES");
+			int textlen = int(desiredConsoleFont.StringWidth(text) * FontScale);
+
+			screen.DrawText (desiredConsoleFont, Font.CR_GOLD, (listboxLeft+(listboxWidth-textlen)/2) / FontScale, (listboxTop+(listboxHeight-rowHeight)/2) / FontScale, text,
+				DTA_VirtualWidthF, screen.GetWidth() / FontScale, DTA_VirtualHeightF, screen.GetHeight() / FontScale, DTA_KeepRatio, true);
+			return;
+		}
+
+		j = TopItem;
+		for (i = 0; i < listboxRows && j < manager.SavegameCount(); i++)
+		{
+			node = manager.GetSavegame(j);
+
+			TextureID iconTexId = 0;
+			if (node.bOldVersion)
+			{
+				iconTexId = errorTextureId;
+			}
+			else if (node.bMissingWads)
+			{
+				iconTexId = warningTextureId;
+			}
+
+			screen.SetClipRect(listboxLeft, listboxTop+rowHeight*i, listboxRight, listboxTop+rowHeight*(i+1));
+
+			int rowTop = listboxTop + (rowHeight * i);
+			int rowBottom = rowTop + rowHeight;
+			int textLeftMargin = 2;
+			int iconSize = (FontHeight - 4) * FontScale;
+			int iconPadding = 2 * FontScale;
+
+			if (j == Selected)
+			{
+				screen.Clear(
+					listboxLeft,
+					rowTop,
+					listboxRight,
+					rowBottom,
+					mEntering ? Color(255,255,0,0) : Color(255,32,32,32));
+			}
+
+			if (iconTexId)
+			{
+				Screen.drawTexture(
+					iconTexId,
+					false,
+					listboxLeft + textLeftMargin + iconPadding,
+					rowTop + iconPadding,
+					DTA_DESTHEIGHT, iconSize,
+					DTA_DESTWIDTH, iconSize);
+
+				textLeftMargin += 16;
+			}
+
+			int textColor = Font.CR_WHITE;
+			if (j == Selected)
+			{
+				textColor = Font.CR_BRICK;
+			}
+
+			if (j == Selected && mEntering)
+			{
+				String s = mInput.GetText() .. NewSmallFont.GetCursor();
+				int length = int(desiredSmallFont.StringWidth(s) * FontScale);
+				int displacement = min(0, listboxWidth - 2 - length);
+				screen.DrawText(
+					desiredSmallFont,
+					textColor,
+					((listboxLeft + displacement) / FontScale) + textLeftMargin,
+					(rowTop + FontScale) / FontScale,
+					s,
+					DTA_VirtualWidthF,
+					screen.GetWidth() / FontScale,
+					DTA_VirtualHeightF,
+					screen.GetHeight() / FontScale,
+					DTA_KeepRatio,
+					true);
+			}
+			else
+			{
+				screen.DrawText(
+					desiredSmallFont,
+					textColor,
+					(listboxLeft / FontScale) + textLeftMargin,
+					(rowTop + FontScale) / FontScale,
+					node.SaveTitle,
+					DTA_VirtualWidthF,
+					screen.GetWidth() / FontScale,
+					DTA_VirtualHeightF,
+					screen.GetHeight() / FontScale,
+					DTA_KeepRatio,
+					true);
+			}
+
+			screen.ClearClipRect();
+			j++;
+		}
+
+		DrawFrameCorners(listboxLeft, listboxTop, listboxWidth, listboxHeight);
+	}
+
+	void UpdateSaveComment()
+	{
+		Font desiredConsoleFont = Font.GetConsoleFont(NewConsoleFont);
+		BrokenSaveComment = desiredConsoleFont.BreakLines(manager.SaveCommentString, int(commentWidth / FontScale));
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	virtual void TryDeleteMessage()
+	{
+		if (Selected != -1 && Selected < manager.SavegameCount())
+		{
+			String EndString;
+			EndString = String.Format(
+				"%s\n%s%s%s?\n\n%s",
+				Stringtable.Localize("$MNU_DELETESG"),
+				TEXTCOLOR_WHITE,
+				manager.GetSavegame(Selected).SaveTitle,
+				TEXTCOLOR_NORMAL,
+				Stringtable.Localize("$PRESSYN")
+			);
+			StartMessage (EndString, 0);
+		}
+	}
+
+	override bool MenuEvent (int mkey, bool fromcontroller)
+	{
+		switch (mkey)
+		{
+		case MKEY_Up:
+			if (manager.SavegameCount() > 1)
+			{
+				if (Selected == -1) Selected = TopItem;
+				else
+				{
+					if (--Selected < 0) Selected = manager.SavegameCount()-1;
+					if (Selected < TopItem) TopItem = Selected;
+					else if (Selected >= TopItem + listboxRows) TopItem = MAX(0, Selected - listboxRows + 1);
+				}
+				manager.UnloadSaveData ();
+				manager.ExtractSaveData (Selected);
+				UpdateSaveComment();
+			}
+			return true;
+
+		case MKEY_Down:
+			if (manager.SavegameCount() > 1)
+			{
+				if (Selected == -1) Selected = TopItem;
+				else
+				{
+					if (++Selected >= manager.SavegameCount()) Selected = 0;
+					if (Selected < TopItem) TopItem = Selected;
+					else if (Selected >= TopItem + listboxRows) TopItem = MAX(0, Selected - listboxRows + 1);
+				}
+				manager.UnloadSaveData ();
+				manager.ExtractSaveData (Selected);
+				UpdateSaveComment();
+			}
+			return true;
+
+		case MKEY_PageDown:
+			if (manager.SavegameCount() > 1)
+			{
+				if (TopItem >= manager.SavegameCount() - listboxRows)
+				{
+					TopItem = 0;
+					if (Selected != -1) Selected = 0;
+				}
+				else
+				{
+					TopItem = MIN(TopItem + listboxRows, manager.SavegameCount() - listboxRows);
+					if (TopItem > Selected && Selected != -1) Selected = TopItem;
+				}
+				manager.UnloadSaveData ();
+				manager.ExtractSaveData (Selected);
+				UpdateSaveComment();
+			}
+			return true;
+
+		case MKEY_PageUp:
+			if (manager.SavegameCount() > 1)
+			{
+				if (TopItem == 0)
+				{
+					TopItem = MAX(0, manager.SavegameCount() - listboxRows);
+					if (Selected != -1) Selected = TopItem;
+				}
+				else
+				{
+					TopItem = MAX(TopItem - listboxRows, 0);
+					if (Selected >= TopItem + listboxRows) Selected = TopItem;
+				}
+				manager.UnloadSaveData ();
+				manager.ExtractSaveData (Selected);
+				UpdateSaveComment();
+			}
+			return true;
+
+		case MKEY_Clear:
+			// This is handled by OnUIEvent for keyboard
+			if (fromcontroller == true)
+			{
+				TryDeleteMessage();
+			}
+			return true;
+
+		case MKEY_Enter:
+			return false;	// This event will be handled by the subclasses
+
+		case MKEY_MBYes:
+		{
+			if (Selected < manager.SavegameCount())
+			{
+				Selected = manager.RemoveSaveSlot (Selected);
+				UpdateSaveComment();
+			}
+			return true;
+		}
+
+		default:
+			return Super.MenuEvent(mkey, fromcontroller);
+		}
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override bool MouseEvent(int type, int x, int y)
+	{
+		if (x >= listboxLeft && x < listboxLeft + listboxWidth &&
+			y >= listboxTop && y < listboxTop + listboxHeight)
+		{
+			int lineno = (y - listboxTop) / rowHeight;
+
+			if (TopItem + lineno < manager.SavegameCount())
+			{
+				Selected = TopItem + lineno;
+				manager.UnloadSaveData ();
+				manager.ExtractSaveData (Selected);
+				UpdateSaveComment();
+				if (type == MOUSE_Release)
+				{
+					if (MenuEvent(MKEY_Enter, true))
+					{
+						return true;
+					}
+				}
+			}
+			else Selected = -1;
+		}
+		else Selected = -1;
+
+		return Super.MouseEvent(type, x, y);
+	}
+
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override bool OnUIEvent(UIEvent ev)
+	{
+		if (ev.Type == UIEvent.Type_KeyDown)
+		{
+			if (Selected != -1 && Selected < manager.SavegameCount())
+			{
+				switch (ev.KeyChar)
+				{
+				case UIEvent.Key_F1:
+					manager.SetFileInfo(Selected);
+					UpdateSaveComment();
+					return true;
+
+				case UIEvent.Key_DEL:
+					TryDeleteMessage();
+					return true;
+				}
+			}
+		}
+		else if (ev.Type == UIEvent.Type_WheelUp)
+		{
+			if (TopItem > 0) TopItem--;
+			return true;
+		}
+		else if (ev.Type == UIEvent.Type_WheelDown)
+		{
+			if (TopItem < manager.SavegameCount() - listboxRows) TopItem++;
+			return true;
+		}
+		return Super.OnUIEvent(ev);
+	}
+
+
+}
+
+class SaveMenu : LoadSaveMenu
+{
+	String mSaveName;
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void Init(Menu parent, ListMenuDescriptor desc)
+	{
+		Super.Init(parent, desc);
+		manager.InsertNewSaveNode();
+		Selected = manager.ExtractSaveData (-1);
+		TopItem = MAX(0, Selected - listboxRows + 1);
+		UpdateSaveComment();
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void OnDestroy()
+	{
+		if (manager.RemoveNewSaveNode())
+		{
+			Selected--;
+		}
+		Super.OnDestroy();
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void TryDeleteMessage()
+	{
+		// cannot delete 'new save game' item
+		if (Selected == 0)
+		{
+			return;
+		}
+
+		super.TryDeleteMessage();
+	}
+
+	override bool MenuEvent (int mkey, bool fromcontroller)
+	{
+		if (Super.MenuEvent(mkey, fromcontroller))
+		{
+			return true;
+		}
+		if (Selected == -1)
+		{
+			return false;
+		}
+
+		if (mkey == MKEY_Enter)
+		{
+			String SavegameString = (Selected != 0)? manager.GetSavegame(Selected).SaveTitle : "";
+			mInput = TextEnterMenu.OpenTextEnter(self, Menu.OptionFont(), SavegameString, -1, fromcontroller);
+			mInput.ActivateMenu();
+			mEntering = true;
+		}
+		else if (mkey == MKEY_Input)
+		{
+			// Do not start the save here, it would cause some serious execution ordering problems.
+			mEntering = false;
+			mSaveName = mInput.GetText();
+			mInput = null;
+		}
+		else if (mkey == MKEY_Abort)
+		{
+			mEntering = false;
+			mInput = null;
+		}
+		return false;
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override bool MouseEvent(int type, int x, int y)
+	{
+		if (mSaveName.Length() > 0)
+		{
+			// Do not process events when saving is in progress to avoid update of the current index,
+			// i.e. Selected member variable must remain unchanged
+			return true;
+		}
+
+		return Super.MouseEvent(type, x, y);
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override bool OnUIEvent(UIEvent ev)
+	{
+		if (ev.Type == UIEvent.Type_KeyDown)
+		{
+			if (Selected != -1)
+			{
+				switch (ev.KeyChar)
+				{
+				case 78://'N':
+					Selected = TopItem = 0;
+					manager.UnloadSaveData ();
+					return true;
+				}
+			}
+		}
+		return Super.OnUIEvent(ev);
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void Ticker()
+	{
+		if (mSaveName.Length() > 0)
+		{
+			manager.DoSave(Selected, mSaveName);
+			mSaveName = "";
+		}
+	}
+
+}
+
+//=============================================================================
+//
+//
+//
+//=============================================================================
+
+class LoadMenu : LoadSaveMenu
+{
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override void Init(Menu parent, ListMenuDescriptor desc)
+	{
+		Super.Init(parent, desc);
+		Selected = manager.ExtractSaveData (-1);
+		TopItem = MAX(0, Selected - listboxRows + 1);
+		UpdateSaveComment();
+	}
+
+	//=============================================================================
+	//
+	//
+	//
+	//=============================================================================
+
+	override bool MenuEvent (int mkey, bool fromcontroller)
+	{
+		if (Super.MenuEvent(mkey, fromcontroller))
+		{
+			return true;
+		}
+		if (Selected == -1 || manager.SavegameCount() == 0)
+		{
+			return false;
+		}
+
+		if (mkey == MKEY_Enter)
+		{
+			manager.LoadSavegame(Selected);
+			return true;
+		}
+		return false;
+	}
+}

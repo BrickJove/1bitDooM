@@ -1,0 +1,262 @@
+/*
+** themedata.cpp
+**
+** Loads and holds color data
+**
+**---------------------------------------------------------------------------
+**
+** Copyright 2026 UZDoom Maintainers and Contributors
+**
+** SPDX-License-Identifier: GPL-3.0-or-later
+**
+**---------------------------------------------------------------------------
+**
+*/
+
+#include <zwidget/core/colorf.h>
+#include <zwidget/core/resourcedata.h>
+
+#include "printf.h"
+#include "sc_man.h"
+#include "themedata.h"
+#include "utility/colorspace.h"
+#include "zwidget/widgets/imagebox/imagebox.h"
+
+Colorf Theme::accent;
+ImageBoxAnchor Theme::anchor;
+ImageBoxScale Theme::scale;
+ThemeData Theme::dark = {};
+ThemeData Theme::light = {};
+ThemeData* Theme::theme = nullptr;
+Mode Theme::mode;
+
+enum ThemeCommands
+{
+	THEME_LIGHT,
+	THEME_DARK,
+	THEME_ACCENT,
+	THEME_MAIN,
+	THEME_HEADER,
+	THEME_BUTTON,
+	THEME_HOVER,
+	THEME_CLICK,
+	THEME_BORDER,
+	THEME_ANCHOR,
+	THEME_SCALE,
+};
+
+static const char *ThemeCommandStrings[] =
+{
+	"[light]",
+	"[dark]",
+	"accent",
+	"main",
+	"header",
+	"button",
+	"hover",
+	"click",
+	"border",
+	"anchor",
+	"scale",
+	nullptr
+};
+
+static const ImageBoxAnchor BannerAnchor[] = {
+	Center,
+	North,
+	South,
+	East,
+	West,
+	NorthEast,
+	NorthWest,
+	SouthEast,
+	SouthWest,
+};
+
+static const char* BannerAnchorStrings[2*(sizeof(BannerAnchor)/sizeof(BannerAnchor[0]))+1] = {
+	"Center", "C",
+	"North", "N",
+	"South", "S",
+	"East", "E",
+	"West", "W",
+	"NorthEast", "NE",
+	"NorthWest", "NW",
+	"SouthEast", "SE",
+	"SouthWest", "SW",
+	nullptr,
+};
+
+static const ImageBoxScale BannerScale[] = {
+	None,
+	Contain,
+	Cover,
+	StretchX,
+	GrowX,
+	ShrinkX,
+	StretchY,
+	GrowY,
+	ShrinkY,
+	Stretch,
+	Grow,
+	Shrink,
+};
+
+static const char* BannerScaleStrings[(sizeof(BannerScale)/sizeof(BannerScale[0]))+1] = {
+	"None",
+	"Contain",
+	"Cover",
+	"StretchX",
+	"GrowX",
+	"ShrinkX",
+	"StretchY",
+	"GrowY",
+	"ShrinkY",
+	"Stretch",
+	"Grow",
+	"Shrink",
+	nullptr,
+};
+
+void Theme::initilize(Mode mode, bool contrast)
+{
+	if (Theme::theme) return;
+
+	setMode(mode);
+	
+	auto simple = [](ThemeData &t, uint32_t b1, uint32_t f1, uint32_t b2, uint32_t f2)
+	{
+		t.main.bg = t.header.bg = t.button.bg = Colorf::fromRgb(b1);
+		t.main.fg = t.header.fg = t.button.fg = Colorf::fromRgb(f1);
+		t.hover.fg = t.click.fg = t.border.bg = Colorf::fromRgb(f2);
+		t.hover.bg = t.click.bg = t.border.fg = Colorf::fromRgb(b2);
+	};
+
+	// basic fallback
+	using Color::str;
+	Theme::accent = Colorf::fromRgb(str("#777"));
+	Theme::anchor = Center;
+	Theme::scale = Contain;
+	simple(Theme::light, str("#fff"), str("#000"), str("#ff0"), str("#000"));
+	simple(Theme::dark,  str("#000"), str("#fff"), str("#00f"), str("#fff"));
+
+	auto file = "ui/theme.txt";
+
+	auto hex = [](FScanner &sc) {
+		sc.MustGetString();
+		if (sc.String[0] != '#') return -1;
+		char *end;
+		int rgb = std::strtol(sc.String + 1, &end, 16);
+		auto len = end - (sc.String + 1);
+		if (len == 3)
+		{
+			rgb = (rgb>>8&0xF)<<16 | (rgb>>4&0xF)<<8 | (rgb>>0&0xF)<<0;
+			rgb |= rgb<<4;
+		}
+		else if (len != 6) rgb = -1;
+		return rgb;
+	};
+
+	auto pair = [=](FScanner &sc, ColorLayers &layers) {
+		layers.bg = Colorf::fromRgb(hex(sc));
+		layers.fg = Colorf::fromRgb(hex(sc));
+	};
+
+	auto load = [=](std::vector<uint8_t> buffer) {
+		FScanner sc;
+		sc.OpenMem(file, buffer);
+
+		ThemeData *t = nullptr;
+
+		while (sc.GetString ())
+		{
+			if (sc.String[0] == '/' && sc.String[1] == '/') continue; // GetString is guaranteed to be at least 1 char + null, right?
+			auto command = sc.MatchString(ThemeCommandStrings);
+			switch (command)
+			{
+			default:
+				break;
+			case -1:
+				DPrintf(DMSG_WARNING, "Unknown theme command");
+				continue;
+			case THEME_LIGHT:
+				t = &Theme::light;
+				continue;
+			case THEME_DARK:
+				t = &Theme::dark;
+				continue;
+			case THEME_ACCENT:
+				Theme::accent = Colorf::fromRgb(hex(sc));
+				continue;
+			case THEME_ANCHOR:
+				{
+					sc.MustGetString();
+					auto anchor = sc.MatchString(BannerAnchorStrings);
+					if (anchor == -1) DPrintf(DMSG_WARNING, "Unknown anchor '%s'\n", sc.String);
+					else Theme::anchor = BannerAnchor[anchor/2];
+					continue;
+				}
+			case THEME_SCALE:
+				{
+					sc.MustGetString();
+					FString s = sc.String;
+					unsigned scale = None;
+					for (auto &ss: s.Split(','))
+					{
+						size_t i;
+						for (i = 0; BannerScaleStrings[i]; i++)
+						{
+							if (ss.CompareNoCase(BannerScaleStrings[i]) == 0) break;
+						}
+						if (!BannerScaleStrings[i])
+						{
+							DPrintf(DMSG_WARNING, "Unknown scale '%s'\n", ss.GetChars());
+							scale = Theme::scale;
+							break;
+						}
+						scale |= BannerScale[i];
+					}
+					Theme::scale = static_cast<ImageBoxScale>(scale);
+					continue;
+				}
+			}
+			if (!t)
+			{
+				DPrintf(DMSG_WARNING, "Theme not selected\n");
+				continue;
+			}
+			if (contrast) continue;
+			switch (command)
+			{
+			case THEME_MAIN:   pair(sc, t->main);   break;
+			case THEME_HEADER: pair(sc, t->header); break;
+			case THEME_BUTTON: pair(sc, t->button); break;
+			case THEME_HOVER:  pair(sc, t->hover);  break;
+			case THEME_CLICK:  pair(sc, t->click);  break;
+			case THEME_BORDER: pair(sc, t->border); break;
+			}
+		}
+
+		sc.Close();
+	};
+
+	// from uzdoom.pk3
+	load(LoadWidgetData(file, true));
+
+	// from mods
+	load(LoadWidgetData(file));
+}
+
+Colorf Theme::mix(const ColorLayers& color, float mix)
+{
+	auto a = Color::rgb(color.bg.r, color.bg.g, color.bg.b);
+	auto b = Color::rgb(color.fg.r, color.fg.g, color.fg.b);
+	auto c = Color::mix(a, b, mix).rgb;
+	return { c.r, c.g, c.b };
+}
+
+Colorf Theme::getMain  (float mix) { return Theme::mix(Theme::theme->main,   mix); }
+Colorf Theme::getHeader(float mix) { return Theme::mix(Theme::theme->header, mix); }
+Colorf Theme::getButton(float mix) { return Theme::mix(Theme::theme->button, mix); }
+Colorf Theme::getHover (float mix) { return Theme::mix(Theme::theme->hover,  mix); }
+Colorf Theme::getClick (float mix) { return Theme::mix(Theme::theme->click,  mix); }
+Colorf Theme::getBorder(float mix) { return Theme::mix(Theme::theme->border, mix); }
