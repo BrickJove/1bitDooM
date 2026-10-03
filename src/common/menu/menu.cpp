@@ -1155,6 +1155,8 @@ DEFINE_FIELD(FOptionMenuSettings, mFontColorHeader)
 DEFINE_FIELD(FOptionMenuSettings, mFontColorHighlight)
 DEFINE_FIELD(FOptionMenuSettings, mFontColorSelection)
 DEFINE_FIELD(FOptionMenuSettings, mLinespacing)
+DEFINE_FIELD(FOptionMenuSettings, mFont)
+DEFINE_FIELD(FOptionMenuSettings, mSelector)
 
 DEFINE_FIELD(DImageScrollerDescriptor, mItems)
 DEFINE_FIELD(DImageScrollerDescriptor, textBackground)

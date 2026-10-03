@@ -176,6 +176,8 @@ struct gameinfo_t
 	FName mFontColorHeader;
 	FName mFontColorHighlight;
 	FName mFontColorSelection;
+	FName mMenuFont;
+	FString mMenuSelector;
 	FName mSliderColor;
 	FName mSliderBackColor;
 	FString mBackButton;

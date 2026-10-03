@@ -31,6 +31,8 @@ struct FOptionMenuSettings native version("2.4")
 	int mFontColorHighlight;
 	int mFontColorSelection;
 	int mLinespacing;
+	native Font mFont;
+	native TextureID mSelector;
 }
 
 class OptionMenuDescriptor : MenuDescriptor native
@@ -968,7 +970,16 @@ class OptionMenu : Menu
 				}
 				if (((MenuTime() % 8) < 6) || GetCurrentMenu() != self)
 				{
-					DrawOptionText(cur_indent + 3 * CleanXfac_1, y, OptionMenuSettings.mFontColorSelection, "◀");
+					if (OptionMenuSettings.mSelector.IsValid())
+					{
+						// Custom selector graphic from GAMEINFO "MenuSelector", centred on the row.
+						Vector2 ssize = TexMan.GetScaledSize(OptionMenuSettings.mSelector);
+						screen.DrawTexture(OptionMenuSettings.mSelector, true, cur_indent + 3 * CleanXfac_1, y + (fontheight - ssize.y * CleanYfac_1) / 2, DTA_CleanNoMove_1, true);
+					}
+					else
+					{
+						DrawOptionText(cur_indent + 3 * CleanXfac_1, y, OptionMenuSettings.mFontColorSelection, "◀");
+					}
 				}
 			}
 

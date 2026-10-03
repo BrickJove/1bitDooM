@@ -1470,6 +1470,8 @@ void SetDefaultMenuColors()
 	OptionSettings.mFontColorHeader = V_FindFontColor(gameinfo.mFontColorHeader);
 	OptionSettings.mFontColorHighlight = V_FindFontColor(gameinfo.mFontColorHighlight);
 	OptionSettings.mFontColorSelection = V_FindFontColor(gameinfo.mFontColorSelection);
+	OptionSettings.mFont = gameinfo.mMenuFont != NAME_None ? V_GetFont(gameinfo.mMenuFont.GetChars()) : nullptr;
+	OptionSettings.mSelector = gameinfo.mMenuSelector.IsNotEmpty() ? TexMan.CheckForTexture(gameinfo.mMenuSelector.GetChars(), ETextureType::Any) : FTextureID();
 
 	auto cls = PClass::FindClass(gameinfo.HelpMenuClass);
 	if (!cls)
