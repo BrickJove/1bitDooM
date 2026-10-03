@@ -44,14 +44,24 @@ bool HasNormal(vec3 n)
 	return dot(n, n) > 0.01;
 }
 
+// Fixed reference direction used to decide on which side of a crease the line is drawn.
+const vec3 SideRef = vec3(0.3714, 0.8281, 0.4152);
+
 // 1.0 = same direction. Neighbours nearer than the centre or without
 // normal are ignored, so the line stays on the nearer surface.
-float NormalDot(vec3 nc, float ic, ivec2 p)
+// A crease between two surfaces triggers on both sides (the depth is continuous there),
+// which gives a double line. So only the side whose normal ranks higher along SideRef
+// draws it: every pixel of the crease makes the same choice, the line is exactly
+// LineWidth pixels wide and cannot break up.
+float NormalDot(vec3 nc, float fc, float ic, ivec2 p)
 {
 	vec3 n = FetchNormal(p);
 	if (!HasNormal(n) || InvDepth(p) > ic * 1.02)
 		return 1.0;
-	return dot(nc, normalize(n));
+	n = normalize(n);
+	if (dot(n, SideRef) > fc + 0.002)
+		return 1.0;
+	return dot(nc, n);
 }
 
 void main()
@@ -93,10 +103,11 @@ void main()
 	if (HasNormal(nc))
 	{
 		nc = normalize(nc);
-		float m = NormalDot(nc, ic, ipos + dx);
-		m = min(m, NormalDot(nc, ic, ipos - dx));
-		m = min(m, NormalDot(nc, ic, ipos + dy));
-		m = min(m, NormalDot(nc, ic, ipos - dy));
+		float fc = dot(nc, SideRef);
+		float m = NormalDot(nc, fc, ic, ipos + dx);
+		m = min(m, NormalDot(nc, fc, ic, ipos - dx));
+		m = min(m, NormalDot(nc, fc, ic, ipos + dy));
+		m = min(m, NormalDot(nc, fc, ic, ipos - dy));
 		normalEdge = 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, m);
 	}
 
