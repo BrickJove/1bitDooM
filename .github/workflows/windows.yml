@@ -1,0 +1,33 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows RelWithDebInfo
+    uses: ./.github/workflows/build_core.yml
+    with:
+      build_type: RelWithDebInfo
+      name: Windows
+      os: windows-latest
+      os_image: ''
+      build_opts: -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
+      environment: ''
+      deps_cmdline: >-
+        winget install --accept-source-agreements --verbose --exact --id=Ccache.Ccache
+      extra_files: >-
+        oalsoft.zip
+          ea8bc36fd7fa05f64e13400d20886de753a227202a4ea3781913489a26b36fc6
+          https://github.com/kcat/openal-soft/releases/download/1.23.1/openal-soft-1.23.1-bin.zip
+        sndfile.zip
+          2173935c0c1ed13cf627951d34483f9d405ead2eb473190461c42ba220643a3f
+          https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2-win64.zip
+        libcurl.zip
+          d290b4ee475968b04dcb2e0c4f046f2ff25c35c65d3e54259cef7cc6cea069e2
+          https://curl.se/windows/dl-8.20.0_5/curl-8.20.0_5-win64-mingw.zip

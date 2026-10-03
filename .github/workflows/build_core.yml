@@ -289,7 +289,7 @@ jobs:
         mkdir package
         7z a package/licenses.zip ../docs/licenses/*
 
-        echo "name=${{ runner.os }}-$(uname -m)-UZDoom-$(git describe --tags --exclude x-*)" | tee -a "$GITHUB_OUTPUT"
+        echo "name=${{ runner.os }}-$(uname -m)-1bitDooM-$(git describe --tags --always --exclude "x-*")" | tee -a "$GITHUB_OUTPUT"
 
     - name: Package Windows
       if: runner.os == 'Windows'
