@@ -870,7 +870,7 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.DepthThreshold = max((float)gl_outline_depth, 0.001f);
 	float angle = gl_outline_normal;
 	uniforms.NormalThreshold = angle <= 0.0f ? -2.0f : (float)cos(clamp(angle, 1.0f, 179.0f) * (M_PI / 180.0));
-	uniforms.LineWidth = clamp(floorf((float)gl_outline_width + 0.5f), 1.0f, 16.0f);
+	uniforms.LineWidth = max(1.0f, floorf(gl_outline_width * sceneHeight / 1080.0f + 0.5f));
 	uniforms.LineAlpha = clamp((float)gl_outline_alpha, 0.0f, 1.0f);
 	uniforms.LineR = color.r / 255.0f;
 	uniforms.LineG = color.g / 255.0f;
@@ -880,59 +880,14 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.Scale = screen->SceneScale();
 	uniforms.Offset = screen->SceneOffset();
 
-	if (sceneWidth != lastWidth || sceneHeight != lastHeight)
-	{
-		EdgeTex[0] = { sceneWidth, sceneHeight, PixelFormat::Rgba8 };
-		EdgeTex[1] = { sceneWidth, sceneHeight, PixelFormat::Rgba8 };
-		lastWidth = sceneWidth;
-		lastHeight = sceneHeight;
-	}
-
-	PPViewport texViewport;
-	texViewport.left = 0;
-	texViewport.top = 0;
-	texViewport.width = sceneWidth;
-	texViewport.height = sceneHeight;
-
-	OutlineDilateUniforms dilate;
-	int lineWidth = (int)uniforms.LineWidth;
-	dilate.Before = (float)((lineWidth - 1) / 2);
-	dilate.After = (float)(lineWidth / 2);
-	dilate.LineAlpha = uniforms.LineAlpha;
-	dilate.LineR = uniforms.LineR;
-	dilate.LineG = uniforms.LineG;
-	dilate.LineB = uniforms.LineB;
-	dilate.Padding1 = dilate.Padding2 = 0.0f;
-
 	renderstate->PushGroup("outline");
 
-	// pass 1: one pixel wide edge mask from depth + normals
 	renderstate->Clear();
 	renderstate->Shader = gl_multisample > 1 ? &OutlineMS : &Outline;
 	renderstate->Uniforms.Set(uniforms);
-	renderstate->Viewport = texViewport;
+	renderstate->Viewport = screen->mSceneViewport;
 	renderstate->SetInputSceneDepth(0);
 	renderstate->SetInputSceneNormal(1);
-	renderstate->SetOutputTexture(&EdgeTex[0]);
-	renderstate->SetNoBlend();
-	renderstate->Draw();
-
-	// pass 2: widen horizontally
-	renderstate->Clear();
-	renderstate->Shader = &DilateH;
-	renderstate->Uniforms.Set(dilate);
-	renderstate->Viewport = texViewport;
-	renderstate->SetInputTexture(0, &EdgeTex[0]);
-	renderstate->SetOutputTexture(&EdgeTex[1]);
-	renderstate->SetNoBlend();
-	renderstate->Draw();
-
-	// pass 3: widen vertically and draw over the scene
-	renderstate->Clear();
-	renderstate->Shader = &DilateV;
-	renderstate->Uniforms.Set(dilate);
-	renderstate->Viewport = screen->mSceneViewport;
-	renderstate->SetInputTexture(0, &EdgeTex[1]);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();
