@@ -74,6 +74,15 @@ float FlatNeighbour(vec3 nc, float ic, ivec2 p)
 	return 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, dot(nc, normalize(n)));
 }
 
+// Top edge of a wall under a sky ceiling: above it sit the sky wall quads (portal depth with the
+// sky tag, same distance as the wall). Far dome pixels do not count (that is open sky).
+float SkyQuadNeighbour(float ic, ivec2 p)
+{
+	float ni = InvDepth(p);
+	float a = texelFetch(NormalTexture, ClampPos(p), 0).a;
+	return (a > 0.2 && a < 0.45 && !IsSky(ni) && abs(ni - ic) < 0.12 * ic) ? 1.0 : 0.0;
+}
+
 void main()
 {
 	vec2 uv = Offset + TexCoord * Scale;
@@ -130,6 +139,7 @@ void main()
 			creaseEdge = max(creaseEdge, FlatNeighbour(nc, ic, ipos + dy));
 			creaseEdge = max(creaseEdge, FlatNeighbour(nc, ic, ipos - dy));
 		}
+		creaseEdge = max(creaseEdge, max(SkyQuadNeighbour(ic, ipos + dy), SkyQuadNeighbour(ic, ipos - dy)));
 	}
 
 	float edge = max(depthEdge, creaseEdge) * LineAlpha * rangeFade;
