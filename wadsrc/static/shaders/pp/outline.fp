@@ -39,6 +39,13 @@ vec3 FetchNormal(ivec2 p)
 	return texelFetch(NormalTexture, ClampPos(p), 0).xyz * 2.0 - 1.0;
 }
 
+// The sky dome is drawn with depth clamping, so its pixels sit on the far plane.
+// Sky never gets lines, and a far plane neighbour is no silhouette.
+bool IsSky(float inv)
+{
+	return inv <= (LinearizeDepthA + LinearizeDepthB) * 1.05;
+}
+
 bool HasNormal(vec3 n)
 {
 	return dot(n, n) > 0.01;
@@ -85,11 +92,19 @@ void main()
 		FragColor = vec4(0.0);
 		return;
 	}
+	if (IsSky(ic))
+	{
+		FragColor = vec4(0.0);
+		return;
+	}
 	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
 
 	// depth silhouettes / convex edges
-	float lapX = InvDepth(ipos + dx) + InvDepth(ipos - dx) - 2.0 * ic;
-	float lapY = InvDepth(ipos + dy) + InvDepth(ipos - dy) - 2.0 * ic;
+	// (an axis with a sky neighbour is skipped: the edge towards the sky gets no line)
+	float ix1 = InvDepth(ipos + dx), ix2 = InvDepth(ipos - dx);
+	float iy1 = InvDepth(ipos + dy), iy2 = InvDepth(ipos - dy);
+	float lapX = (IsSky(ix1) || IsSky(ix2)) ? 0.0 : ix1 + ix2 - 2.0 * ic;
+	float lapY = (IsSky(iy1) || IsSky(iy2)) ? 0.0 : iy1 + iy2 - 2.0 * ic;
 	float ridge = max(-lapX, -lapY) / max(ic, 1.0e-8);
 	float depthEdge = smoothstep(DepthThreshold, DepthThreshold * 1.5, ridge);
 
