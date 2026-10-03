@@ -112,6 +112,7 @@ enum texflags
 	TEXF_Detailmap = 0x20000,
 	TEXF_Glowmap = 0x40000,
 	TEXF_ClampY = 0x80000,
+	TEXF_Model = 0x100000,	// set while a 3D model is drawn (lets the outline pass tell models from map geometry)
 };
 
 class FBitmap;
