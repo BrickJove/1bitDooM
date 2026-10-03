@@ -52,8 +52,10 @@ bool HasNormal(vec3 n)
 // normal are ignored, so the line stays on the nearer surface.
 float NormalDot(vec3 nc, float ic, ivec2 p)
 {
-	vec3 n = FetchNormal(p);
-	if (!HasNormal(n) || InvDepth(p) > ic * 1.02)
+	vec4 ns = texelFetch(NormalTexture, ClampPos(p), 0);
+	vec3 n = ns.xyz * 2.0 - 1.0;
+	// models, model shadows and masked parts have alpha 0 and are not map geometry
+	if (ns.a < 0.5 || !HasNormal(n) || InvDepth(p) > ic * 1.02)
 		return 1.0;
 	return dot(nc, normalize(n));
 }

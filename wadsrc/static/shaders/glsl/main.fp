@@ -65,7 +65,7 @@ const int TEXF_Brightmap = 0x10000;
 const int TEXF_Detailmap = 0x20000;
 const int TEXF_Glowmap = 0x40000;
 const int TEXF_ClampY = 0x80000;
-const int TEXF_Model = 0x100000;
+const int TEXF_NoOutline = 0x100000;
 
 //===========================================================================
 //
@@ -946,7 +946,7 @@ void main()
 
 #ifdef GBUFFER_PASS
 	FragFog = vec4(AmbientOcclusionColor(), 1.0);
-	// alpha 1 = map geometry, 0 = model/sprite (outline pass skips those); TEXF_Model works on every backend
-	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, ((uTextureMode & TEXF_Model) != 0) ? 0.0 : vEyeNormal.w);
+	// alpha 1 = map geometry, 0 = model/sprite (outline pass skips those); TEXF_NoOutline works on every backend
+	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, ((uTextureMode & TEXF_NoOutline) != 0) ? 0.0 : vEyeNormal.w);
 #endif
 }

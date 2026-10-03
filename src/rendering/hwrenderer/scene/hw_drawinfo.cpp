@@ -563,6 +563,8 @@ void HWDrawInfo::RenderScene(FRenderState &state)
 
 
 	// Part 2: masked geometry. This is set up so that only pixels with alpha>gl_mask_threshold will show
+	// (fences, grates, trees: the see-through parts must not get screen space outlines)
+	state.SetNoOutline(true);
 	state.AlphaFunc(Alpha_GEqual, gl_mask_threshold);
 	drawlists[GLDL_MASKEDWALLS].DrawWalls(this, state, false);
 	drawlists[GLDL_MASKEDFLATS].DrawFlats(this, state, false);
@@ -574,6 +576,7 @@ void HWDrawInfo::RenderScene(FRenderState &state)
 		drawlists[GLDL_MASKEDWALLSOFS].DrawWalls(this, state, false);
 		state.ClearDepthBias();
 	}
+	state.SetNoOutline(false);
 
 	screen->mBones->Map();
 	drawlists[GLDL_MODELS].Draw(this, state, false);
@@ -599,6 +602,7 @@ void HWDrawInfo::RenderTranslucent(FRenderState &state)
 	RenderAll.Clock();
 
 	// final pass: translucent stuff
+	state.SetNoOutline(true);
 	state.AlphaFunc(Alpha_GEqual, gl_mask_sprite_threshold);
 	state.SetRenderStyle(STYLE_Translucent);
 
@@ -612,6 +616,7 @@ void HWDrawInfo::RenderTranslucent(FRenderState &state)
 
 	state.AlphaFunc(Alpha_GEqual, 0.5f);
 	state.SetDepthMask(true);
+	state.SetNoOutline(false);
 
 	RenderAll.Unclock();
 }

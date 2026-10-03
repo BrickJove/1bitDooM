@@ -238,7 +238,7 @@ protected:
 	int mSpecialEffect;
 	int mTextureMode;
 	int mTextureClamp;
-	bool mModelFlag;
+	bool mNoOutline;
 	int mTextureModeFlags;
 	int mSoftLight;
 	float mLightParms[4];
@@ -280,7 +280,7 @@ public:
 		mStreamData.uFogColor = mFogColor;
 		mTextureMode = -1;
 		mTextureClamp = 0;
-		mModelFlag = false;
+		mNoOutline = false;
 		mTextureModeFlags = 0;
 		mStreamData.uDesaturationFactor = 0.0f;
 		mAlphaThreshold = 0.5f;
@@ -404,13 +404,13 @@ public:
 		int f = mTextureModeFlags;
 		if (!mBrightmapEnabled) f &= ~(TEXF_Brightmap | TEXF_Glowmap);
 		if (mTextureClamp) f |= TEXF_ClampY;
-		if (mModelFlag) f |= TEXF_Model;
+		if (mNoOutline) f |= TEXF_NoOutline;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 
-	void SetModelFlag(bool on)
+	void SetNoOutline(bool on)
 	{
-		mModelFlag = on;
+		mNoOutline = on;
 	}
 
 	void EnableTexture(bool on)
