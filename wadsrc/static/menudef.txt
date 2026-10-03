@@ -967,6 +967,11 @@ OptionMenu "VideoOptions" protected
 	Slider "Outline width",                       "gl_outline_width", 0.5, 6.0, 0.5, 1
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
 	StaticText " "
+	StaticText "contrast curve (before shaders)", 1
+	Option "Contrast curve",                     "gl_curve", "OnOff"
+	Slider "Curve contrast",                      "gl_curve_contrast", 0.5, 4.0, 0.1, 1
+	Slider "Curve pivot",                         "gl_curve_mid", 0.2, 0.8, 0.05, 2
+	StaticText " "
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"
 	Slider "Model outline width",                 "gl_model_outline_width", 0.1, 2.0, 0.1, 1
