@@ -876,7 +876,8 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.LineG = color.g / 255.0f;
 	uniforms.LineB = color.b / 255.0f;
 	uniforms.LineRange = max((float)gl_outline_range, 0.0f);
-	uniforms.Padding1 = uniforms.Padding2 = 0.0f;
+	uniforms.LineFarScale = clamp((float)gl_outline_far_width, 0.0f, 100.0f) / 100.0f;
+	uniforms.Padding2 = 0.0f;
 	uniforms.Scale = screen->SceneScale();
 	uniforms.Offset = screen->SceneOffset();
 
