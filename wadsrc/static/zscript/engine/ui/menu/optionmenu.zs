@@ -977,6 +977,11 @@ class OptionMenu : Menu
 						Vector2 ssize = TexMan.GetScaledSize(OptionMenuSettings.mSelector);
 						screen.DrawTexture(OptionMenuSettings.mSelector, true, cur_indent + 3 * CleanXfac_1, y + (fontheight - ssize.y * CleanYfac_1) / 2, DTA_CleanNoMove_1, true);
 					}
+					else if (OptionMenuSettings.mFont && OptionMenuSettings.mFont.GetGlyphHeight(0xd) > 0)
+					{
+						// No MenuSelector set: use the selector glyph (character 13) of the custom menu font, as older versions did.
+						DrawOptionText(cur_indent + 3 * CleanXfac_1, y, OptionMenuSettings.mFontColorSelection, "\xd");
+					}
 					else
 					{
 						DrawOptionText(cur_indent + 3 * CleanXfac_1, y, OptionMenuSettings.mFontColorSelection, "◀");
