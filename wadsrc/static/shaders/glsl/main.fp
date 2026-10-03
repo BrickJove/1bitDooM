@@ -946,7 +946,12 @@ void main()
 
 #ifdef GBUFFER_PASS
 	FragFog = vec4(AmbientOcclusionColor(), 1.0);
-	// alpha 1 = map geometry, 0 = model/sprite (outline pass skips those); TEXF_NoOutline works on every backend
-	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, ((uTextureMode & TEXF_NoOutline) != 0) ? 0.0 : vEyeNormal.w);
+	// Surface class for the outline pass, in alpha (the buffer may have only 2 alpha bits, so 4 levels):
+	// 0 = model / sprite / masked (no outlines), 2/3 = wall (steep surface), 1 = floor or ceiling.
+	// TEXF_NoOutline works on every backend.
+	float surfaceClass = vEyeNormal.w;
+	if (abs(vWorldNormal.y) < 0.7) surfaceClass *= 0.6667;
+	if ((uTextureMode & TEXF_NoOutline) != 0) surfaceClass = 0.0;
+	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, surfaceClass);
 #endif
 }

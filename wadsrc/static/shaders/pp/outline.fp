@@ -44,26 +44,20 @@ bool HasNormal(vec3 n)
 	return dot(n, n) > 0.01;
 }
 
-// Fixed reference direction used to decide on which side of a crease the line is drawn.
-const vec3 SideRef = vec3(0.3714, 0.8281, 0.4152);
+// Alpha of the normal buffer holds the surface class: 2/3 = wall, 1 = floor / ceiling,
+// 0 = model, sprite or masked texture (never outlined).
+const float FlatClass = 0.83;
 
-// 1.0 = same direction. Neighbours nearer than the centre or without
-// normal are ignored, so the line stays on the nearer surface.
-// A crease between two surfaces triggers on both sides (the depth is continuous there),
-// which gives a double line. So only the side whose normal ranks higher along SideRef
-// draws it: every pixel of the crease makes the same choice, the line is exactly
-// LineWidth pixels wide and cannot break up.
-float NormalDot(vec3 nc, float fc, float ic, ivec2 p)
+// Is there a floor / ceiling pixel at p that the wall pixel (normal nc, inverse depth ic)
+// touches? 1.0 = yes. Flats that are much nearer are ignored: that is a ledge, the depth
+// silhouette test draws it on the nearer (floor) side.
+float FlatNeighbour(vec3 nc, float ic, ivec2 p)
 {
 	vec4 ns = texelFetch(NormalTexture, ClampPos(p), 0);
 	vec3 n = ns.xyz * 2.0 - 1.0;
-	// models, model shadows and masked parts have alpha 0 and are not map geometry
-	if (ns.a < 0.5 || !HasNormal(n) || InvDepth(p) > ic * 1.02)
-		return 1.0;
-	n = normalize(n);
-	if (dot(n, SideRef) > fc + 0.002)
-		return 1.0;
-	return dot(nc, n);
+	if (ns.a < FlatClass || !HasNormal(n) || InvDepth(p) > ic * 1.12)
+		return 0.0;
+	return 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, dot(nc, normalize(n)));
 }
 
 void main()
@@ -99,20 +93,23 @@ void main()
 	float ridge = max(-lapX, -lapY) / max(ic, 1.0e-8);
 	float depthEdge = smoothstep(DepthThreshold, DepthThreshold * 1.5, ridge);
 
-	// normal creases
-	float normalEdge = 0.0;
-	vec3 nc = FetchNormal(ipos);
-	if (HasNormal(nc))
+	// Creases: only where a wall meets a floor or ceiling, drawn on the wall side, so the line
+	// runs along the bottom and top edge of walls. Wall-wall corners get no line from here;
+	// an outer corner with background behind it is a depth silhouette (above).
+	float creaseEdge = 0.0;
+	if (centerSample.a < FlatClass)
 	{
-		nc = normalize(nc);
-		float fc = dot(nc, SideRef);
-		float m = NormalDot(nc, fc, ic, ipos + dx);
-		m = min(m, NormalDot(nc, fc, ic, ipos - dx));
-		m = min(m, NormalDot(nc, fc, ic, ipos + dy));
-		m = min(m, NormalDot(nc, fc, ic, ipos - dy));
-		normalEdge = 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, m);
+		vec3 nc = FetchNormal(ipos);
+		if (HasNormal(nc))
+		{
+			nc = normalize(nc);
+			creaseEdge = FlatNeighbour(nc, ic, ipos + dx);
+			creaseEdge = max(creaseEdge, FlatNeighbour(nc, ic, ipos - dx));
+			creaseEdge = max(creaseEdge, FlatNeighbour(nc, ic, ipos + dy));
+			creaseEdge = max(creaseEdge, FlatNeighbour(nc, ic, ipos - dy));
+		}
 	}
 
-	float edge = max(depthEdge, normalEdge) * LineAlpha * rangeFade;
+	float edge = max(depthEdge, creaseEdge) * LineAlpha * rangeFade;
 	FragColor = vec4(LineR, LineG, LineB, edge);
 }
