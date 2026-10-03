@@ -788,6 +788,32 @@ struct OutlineUniforms
 	}
 };
 
+struct OutlineDilateUniforms
+{
+	float Before;	// mask pixels taken before / after the current one (Before + After + 1 = line width)
+	float After;
+	float LineAlpha;
+	float LineR;
+	float LineG;
+	float LineB;
+	float Padding1, Padding2;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "Before", UniformType::Float, offsetof(OutlineDilateUniforms, Before) },
+			{ "After", UniformType::Float, offsetof(OutlineDilateUniforms, After) },
+			{ "LineAlpha", UniformType::Float, offsetof(OutlineDilateUniforms, LineAlpha) },
+			{ "LineR", UniformType::Float, offsetof(OutlineDilateUniforms, LineR) },
+			{ "LineG", UniformType::Float, offsetof(OutlineDilateUniforms, LineG) },
+			{ "LineB", UniformType::Float, offsetof(OutlineDilateUniforms, LineB) },
+			{ "Padding1", UniformType::Float, offsetof(OutlineDilateUniforms, Padding1) },
+			{ "Padding2", UniformType::Float, offsetof(OutlineDilateUniforms, Padding2) }
+		};
+	}
+};
+
 class PPOutline
 {
 public:
@@ -796,6 +822,12 @@ public:
 private:
 	PPShader Outline = { "shaders/pp/outline.fp", "", OutlineUniforms::Desc() };
 	PPShader OutlineMS = { "shaders/pp/outline.fp", "#define MULTISAMPLE\n", OutlineUniforms::Desc() };
+	PPShader DilateH = { "shaders/pp/outline_dilate.fp", "#define DILATE_H\n", OutlineDilateUniforms::Desc() };
+	PPShader DilateV = { "shaders/pp/outline_dilate.fp", "#define DILATE_V\n", OutlineDilateUniforms::Desc() };
+
+	PPTexture EdgeTex[2];
+	int lastWidth = 0;
+	int lastHeight = 0;
 };
 
 struct PresentUniforms

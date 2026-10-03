@@ -3,6 +3,10 @@
 **
 ** Jupiter3D: screen space geometry outlines.
 **
+** Pass 1 of 3: writes a one pixel wide edge mask (R = strength * range fade).
+** outline_dilate.fp then widens it to the configured line width (so lines are
+** exactly N pixels wide in every direction) and draws it over the scene.
+**
 ** Silhouettes and convex edges: second derivative of inverse linear depth.
 ** 1/z is affine in screen space for planar surfaces, so flat floors and
 ** walls give 0 at any viewing angle and only real depth steps trigger.
@@ -65,10 +69,6 @@ void main()
 #endif
 
 	ivec2 ipos = ivec2(uv * vec2(gTexSize));
-	int w = int(LineWidth);
-
-	ivec2 dx = ivec2(w, 0);
-	ivec2 dy = ivec2(0, w);
 
 	// Only map geometry gets lines: models carry alpha 0, sprites have no normal.
 	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
@@ -76,31 +76,31 @@ void main()
 	float dist = 1.0 / max(ic, 1.0e-8);
 	if (centerSample.a < 0.5 || !HasNormal(centerSample.xyz * 2.0 - 1.0) || (LineRange > 0.0 && dist > LineRange))
 	{
-		FragColor = vec4(0.0);
+		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
 	}
 	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
 
-	// depth silhouettes / convex edges
+	const ivec2 dx = ivec2(1, 0);
+	const ivec2 dy = ivec2(0, 1);
+
+	// depth silhouettes / convex edges (drawn on the nearer pixel only)
 	float lapX = InvDepth(ipos + dx) + InvDepth(ipos - dx) - 2.0 * ic;
 	float lapY = InvDepth(ipos + dy) + InvDepth(ipos - dy) - 2.0 * ic;
 	float ridge = max(-lapX, -lapY) / max(ic, 1.0e-8);
 	float depthEdge = smoothstep(DepthThreshold, DepthThreshold * 1.5, ridge);
 
-	// normal creases
+	// normal creases: only against the left / upper neighbour, so a crease is seen
+	// from exactly one side and the mask is one pixel wide
 	float normalEdge = 0.0;
 	vec3 nc = FetchNormal(ipos);
 	if (HasNormal(nc))
 	{
 		nc = normalize(nc);
-		// Creases are only compared against the left and upper neighbour (distance w).
-		// A crease is seen by exactly one side, so the line is exactly w pixels wide;
-		// comparing in both directions would draw it twice (once per side).
 		float m = NormalDot(nc, ic, ipos - dx);
 		m = min(m, NormalDot(nc, ic, ipos - dy));
 		normalEdge = 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, m);
 	}
 
-	float edge = max(depthEdge, normalEdge) * LineAlpha * rangeFade;
-	FragColor = vec4(LineR, LineG, LineB, edge);
+	FragColor = vec4(max(depthEdge, normalEdge) * rangeFade, 0.0, 0.0, 1.0);
 }
