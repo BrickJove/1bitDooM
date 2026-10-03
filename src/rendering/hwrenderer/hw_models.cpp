@@ -119,6 +119,34 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 		state.SetObjectColor(PalEntry(outlineColor));
 		state.SetOutlineHull(outlineWidth);
 	}
+	else if (shadowActive)
+	{
+		// Shadow pass: flat black, keeps the texture alpha so cut-out parts stay cut out.
+		state.SetTextureMode(TM_STENCIL);
+		state.SetObjectColor(0xff000000);
+	}
+}
+
+// draws the model squashed onto the floor in flat black (hard silhouette shadow)
+void FHWModelRenderer::BeginShadow(const VSMatrix& flatMatrix)
+{
+	shadowActive = true;
+	state.mModelMatrix = flatMatrix;
+	state.SetCulling(Cull_None);
+	state.SetDepthBias(-1.f, -128.f);
+}
+
+void FHWModelRenderer::EndShadow(const VSMatrix& objectToWorldMatrix, FRenderStyle style, int smf_flags, bool mirrored)
+{
+	shadowActive = false;
+	state.ClearDepthBias();
+	state.SetObjectColor(0xffffffff);
+	state.SetTextureMode(TM_NORMAL);
+	state.mModelMatrix = objectToWorldMatrix;
+
+	// restore culling as BeginDrawModel left it
+	if ((smf_flags & MDL_FORCECULLBACKFACES) || (!(style == DefaultRenderStyle()) && !(smf_flags & MDL_DONTCULLBACKFACES)))
+		state.SetCulling((mirrored ^ portalState.isMirrored()) ? Cull_CCW : Cull_CW);
 }
 
 // draws the model a second time, inflated along its normals with front faces culled,

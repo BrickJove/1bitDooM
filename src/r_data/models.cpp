@@ -67,6 +67,17 @@ static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle
 	color = 0xff000000;
 	return gl_model_outline_width;
 }
+
+// Flat black drop shadows (video menu)
+CVAR(Bool, gl_model_shadow_monsters, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
+static bool WantsModelShadow(AActor* actor)
+{
+	if (actor->player != nullptr || (actor->flags & MF_MISSILE)) return false;
+	if (!(actor->RenderStyle == DefaultRenderStyle())) return false;	// translucent / fuzzy / invisible actors cast no shadow
+	return (actor->flags3 & MF3_ISMONSTER) ? (bool)gl_model_shadow_monsters : (bool)gl_model_shadow_decor;
+}
 EXTERN_CVAR (Bool, r_drawvoxels)
 
 extern TDeletingArray<FVoxel *> Voxels;
@@ -99,6 +110,19 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		renderer->EndOutline(actor->RenderStyle, smf_flags, orientation < 0, false);
 	}
 	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
+
+	if ((gl_model_shadow_monsters || gl_model_shadow_decor) && WantsModelShadow(actor))
+	{
+		// Squash the model onto the floor below the actor. The y scale is not exactly 0 so the normal matrix stays invertible.
+		VSMatrix flat;
+		flat.loadIdentity();
+		flat.translate(0.f, (float)actor->floorz + 0.05f, 0.f);
+		flat.scale(1.f, 0.001f, 1.f);
+		flat.multMatrix(objectToWorldMatrix);
+		renderer->BeginShadow(flat);
+		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
+		renderer->EndShadow(objectToWorldMatrix, actor->RenderStyle, smf_flags, orientation < 0);
+	}
 	renderer->EndDrawModel(actor->RenderStyle, smf_flags);
 }
 

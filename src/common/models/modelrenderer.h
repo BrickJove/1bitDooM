@@ -46,4 +46,8 @@ public:
 	// inverted hull outline pass. Called between BeginDrawModel/EndDrawModel.
 	virtual void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color) {}
 	virtual void EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud) {}
+
+	// flat black drop shadow pass. Called between BeginDrawModel/EndDrawModel.
+	virtual void BeginShadow(const VSMatrix& flatMatrix) {}
+	virtual void EndShadow(const VSMatrix& objectToWorldMatrix, FRenderStyle style, int smf_flags, bool mirrored) {}
 };
