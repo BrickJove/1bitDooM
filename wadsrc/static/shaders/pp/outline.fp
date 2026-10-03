@@ -65,6 +65,11 @@ void main()
 #endif
 
 	ivec2 ipos = ivec2(uv * vec2(gTexSize));
+	int w = int(LineWidth);
+
+	ivec2 dx = ivec2(w, 0);
+	ivec2 dy = ivec2(0, w);
+
 	// Only map geometry gets lines: models carry alpha 0, sprites have no normal.
 	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
 	float ic = InvDepth(ipos);
@@ -74,15 +79,7 @@ void main()
 		FragColor = vec4(0.0);
 		return;
 	}
-
-	// Line width thins out linearly with distance: full width at the player,
-	// LineFarScale * width at LineRange. Below 1 pixel the line fades instead.
-	float t = LineRange > 0.0 ? clamp(dist / LineRange, 0.0, 1.0) : 0.0;
-	float wf = LineWidth * mix(1.0, LineFarScale, t);
-	int w = max(1, int(wf + 0.5));
-	float widthFade = min(wf, 1.0);
-	ivec2 dx = ivec2(w, 0);
-	ivec2 dy = ivec2(0, w);
+	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
 
 	// depth silhouettes / convex edges
 	float lapX = InvDepth(ipos + dx) + InvDepth(ipos - dx) - 2.0 * ic;
@@ -103,6 +100,6 @@ void main()
 		normalEdge = 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, m);
 	}
 
-	float edge = max(depthEdge, normalEdge) * LineAlpha * widthFade;
+	float edge = max(depthEdge, normalEdge) * LineAlpha * rangeFade;
 	FragColor = vec4(LineR, LineG, LineB, edge);
 }

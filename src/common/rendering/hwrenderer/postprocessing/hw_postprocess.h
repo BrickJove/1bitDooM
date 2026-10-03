@@ -762,8 +762,7 @@ struct OutlineUniforms
 	float LineG;
 	float LineB;
 	float LineRange;	// max distance in map units, 0 = unlimited
-	float LineFarScale;	// line width factor reached at LineRange (1 = no thinning)
-	float Padding2;
+	float Padding1, Padding2;
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -781,7 +780,7 @@ struct OutlineUniforms
 			{ "LineG", UniformType::Float, offsetof(OutlineUniforms, LineG) },
 			{ "LineB", UniformType::Float, offsetof(OutlineUniforms, LineB) },
 			{ "LineRange", UniformType::Float, offsetof(OutlineUniforms, LineRange) },
-			{ "LineFarScale", UniformType::Float, offsetof(OutlineUniforms, LineFarScale) },
+			{ "Padding1", UniformType::Float, offsetof(OutlineUniforms, Padding1) },
 			{ "Padding2", UniformType::Float, offsetof(OutlineUniforms, Padding2) },
 			{ "Scale", UniformType::Vec2, offsetof(OutlineUniforms, Scale) },
 			{ "Offset", UniformType::Vec2, offsetof(OutlineUniforms, Offset) }
