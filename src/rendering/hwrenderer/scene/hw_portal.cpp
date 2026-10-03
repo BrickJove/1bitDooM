@@ -409,11 +409,7 @@ void HWPortal::RemoveStencil(HWDrawInfo *di, FRenderState &state, bool usestenci
 		state.SetEffect(EFF_STENCIL);
 		state.EnableTexture(false);
 		state.SetRenderStyle(STYLE_Source);
-		// The alpha-only colour mask also reaches the normal buffer's alpha (surface class).
-		// Tag these pixels as sky so the outline pass does not treat portal quads as walls.
-		state.SetSky(true);
 		DrawPortalStencil(state, STP_DepthRestore);
-		state.SetSky(false);
 		state.SetEffect(EFF_NONE);
 		state.EnableTexture(true);
 		state.SetColorMask(true);
