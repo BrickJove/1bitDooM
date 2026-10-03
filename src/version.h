@@ -89,8 +89,8 @@
 #define VR3D_ENABLED
 
 // More stuff that needs to be different for derivatives.
-#define GAMENAME "UZDoom"
-#define WGAMENAME L"UZDoom"
+#define GAMENAME "1bitDooM"
+#define WGAMENAME L"1bitDooM"
 #define GAMENAMELOWERCASE "uzdoom"
 #define APPID "org.zdoom.UZDoom"
 #define QUERYIWADDEFAULT true

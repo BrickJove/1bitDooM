@@ -69,13 +69,13 @@ BEGIN
     "        BEGIN\r\n"
     "            VALUE ""Comments"", ""Thanks to id Software for creating DOOM and then releasing the source code. Thanks also to TeamTNT for creating BOOM, which ZDoom is partially based on. Includes code based on the Cajun Bot 0.97 by Martin Collberg.""\r\n"
     "            VALUE ""CompanyName"", "" ""\r\n"
-    "            VALUE ""FileDescription"", ""UZDoom""\r\n"
+    "            VALUE ""FileDescription"", ""1bitDooM""\r\n"
     "            VALUE ""FileVersion"", RC_FILEVERSION2\r\n"
-    "            VALUE ""InternalName"", ""UZDoom""\r\n"
+    "            VALUE ""InternalName"", ""1bitDooM""\r\n"
     "            VALUE ""LegalCopyright"", ""Copyright © 1993-1996 id Software, 1998-2016 Marisa Heit, 2002-2016 Christoph Oelckers, , 2017-2025 GZDoom Maintainers and Contributors, 2025-2026 UZDoom Maintainers and Contributors.""\r\n"
     "            VALUE ""LegalTrademarks"", ""DoomR is a Registered Trademark of id Software, Inc.""\r\n"
     "            VALUE ""OriginalFilename"", ""uzdoom.exe""\r\n"
-    "            VALUE ""ProductName"", ""UZDoom""\r\n"
+    "            VALUE ""ProductName"", ""1bitDooM""\r\n"
     "            VALUE ""ProductVersion"", GIT_VERSION\r\n"
     "        END\r\n"
     "    END\r\n"
@@ -316,13 +316,13 @@ BEGIN
         BEGIN
             VALUE "Comments", "Thanks to id Software for creating DOOM and then releasing the source code. Thanks also to TeamTNT for creating BOOM, which ZDoom is partially based on. Includes code based on the Cajun Bot 0.97 by Martin Collberg."
             VALUE "CompanyName", " "
-            VALUE "FileDescription", "UZDoom " GIT_DESCRIPTION
+            VALUE "FileDescription", "1bitDooM " GIT_DESCRIPTION
             VALUE "FileVersion", RC_FILEVERSION2
-            VALUE "InternalName", "UZDoom"
+            VALUE "InternalName", "1bitDooM"
             VALUE "LegalCopyright", "Copyright © 1993-1996 id Software, 1998-2016 Marisa Heit, 2002-2016 Christoph Oelckers, 2017-2025 GZDoom Maintainers and Contributors, 2025-2026 UZDoom Maintainers and Contributors."
             VALUE "LegalTrademarks", "Doom® is a Registered Trademark of id Software, Inc."
             VALUE "OriginalFilename", "uzdoom.exe"
-            VALUE "ProductName", "UZDoom"
+            VALUE "ProductName", "1bitDooM"
             VALUE "ProductVersion", GIT_DESCRIPTION
         END
     END
