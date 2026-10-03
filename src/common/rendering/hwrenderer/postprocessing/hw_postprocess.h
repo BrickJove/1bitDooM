@@ -761,7 +761,8 @@ struct OutlineUniforms
 	float LineR;
 	float LineG;
 	float LineB;
-	float Padding0, Padding1, Padding2;
+	float LineRange;	// max distance in map units, 0 = unlimited
+	float Padding1, Padding2;
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -778,7 +779,7 @@ struct OutlineUniforms
 			{ "LineR", UniformType::Float, offsetof(OutlineUniforms, LineR) },
 			{ "LineG", UniformType::Float, offsetof(OutlineUniforms, LineG) },
 			{ "LineB", UniformType::Float, offsetof(OutlineUniforms, LineB) },
-			{ "Padding0", UniformType::Float, offsetof(OutlineUniforms, Padding0) },
+			{ "LineRange", UniformType::Float, offsetof(OutlineUniforms, LineRange) },
 			{ "Padding1", UniformType::Float, offsetof(OutlineUniforms, Padding1) },
 			{ "Padding2", UniformType::Float, offsetof(OutlineUniforms, Padding2) },
 			{ "Scale", UniformType::Vec2, offsetof(OutlineUniforms, Scale) },

@@ -945,6 +945,6 @@ void main()
 
 #ifdef GBUFFER_PASS
 	FragFog = vec4(AmbientOcclusionColor(), 1.0);
-	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, 1.0);
+	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, vEyeNormal.w);
 #endif
 }

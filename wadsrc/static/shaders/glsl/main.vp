@@ -90,8 +90,13 @@ void main()
 			ClipDistance4 = worldcoord.y - ((uSplitBottomPlane.w + uSplitBottomPlane.x * worldcoord.x + uSplitBottomPlane.y * worldcoord.z) * uSplitBottomPlane.z);
 		}
 
-		vWorldNormal = vec4(normalize((NormalModelMatrix * vec4(normalize(bones.Normal), 1.0)).xyz), 1.0);
-		vEyeNormal = vec4(normalize((NormalViewMatrix * vec4(normalize(vWorldNormal.xyz), 1.0)).xyz), 1.0);
+		// w = 1 for map geometry (uniform normals), 0 for models (per-vertex normals). Used by the outline pass.
+		float mapGeometry = 1.0;
+		#ifdef HAS_UNIFORM_VERTEX_DATA
+			if ((useVertexData & 2) != 0) mapGeometry = 0.0;
+		#endif
+		vWorldNormal = vec4(normalize((NormalModelMatrix * vec4(normalize(bones.Normal), 1.0)).xyz), mapGeometry);
+		vEyeNormal = vec4(normalize((NormalViewMatrix * vec4(normalize(vWorldNormal.xyz), 1.0)).xyz), mapGeometry);
 	#endif
 
 	#ifdef SPHEREMAP

@@ -70,8 +70,18 @@ void main()
 	ivec2 dx = ivec2(w, 0);
 	ivec2 dy = ivec2(0, w);
 
-	// depth silhouettes / convex edges
+	// Only map geometry gets lines: models carry alpha 0, sprites have no normal.
+	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
 	float ic = InvDepth(ipos);
+	float dist = 1.0 / max(ic, 1.0e-8);
+	if (centerSample.a < 0.5 || !HasNormal(centerSample.xyz * 2.0 - 1.0) || (LineRange > 0.0 && dist > LineRange))
+	{
+		FragColor = vec4(0.0);
+		return;
+	}
+	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
+
+	// depth silhouettes / convex edges
 	float lapX = InvDepth(ipos + dx) + InvDepth(ipos - dx) - 2.0 * ic;
 	float lapY = InvDepth(ipos + dy) + InvDepth(ipos - dy) - 2.0 * ic;
 	float ridge = max(-lapX, -lapY) / max(ic, 1.0e-8);
@@ -90,6 +100,6 @@ void main()
 		normalEdge = 1.0 - smoothstep(NormalThreshold - 0.08, NormalThreshold, m);
 	}
 
-	float edge = max(depthEdge, normalEdge) * LineAlpha;
+	float edge = max(depthEdge, normalEdge) * LineAlpha * rangeFade;
 	FragColor = vec4(LineR, LineG, LineB, edge);
 }

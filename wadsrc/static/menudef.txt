@@ -962,6 +962,10 @@ OptionMenu "VideoOptions" protected
 	Submenu "$GLMNU_DYNLIGHT",                 GLLightOptions
 	Submenu "$DSPLYMNU_CULLOPT",			   "CullingOptions"
 	StaticText " "
+	Option "Map outlines",                       "gl_outline", "OnOff"
+	Slider "Outline width",                       "gl_outline_width", 0.5, 6.0, 0.5, 1
+	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
+	StaticText " "
 	Slider "$DSPLYMNU_SCREENSIZE",             screenblocks,           3.0, 12.0, 1.0, 0
 	StaticText " "
 	Slider "$DSPLYMNU_FOV",                    fov,                    75.0, 120.0, 0.1, 1, "", 0, Gray, 1.0, "$VALFORMAT_DEGREES"
