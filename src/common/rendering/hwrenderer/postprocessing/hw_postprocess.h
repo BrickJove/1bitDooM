@@ -798,34 +798,6 @@ private:
 	PPShader OutlineMS = { "shaders/pp/outline.fp", "#define MULTISAMPLE\n", OutlineUniforms::Desc() };
 };
 
-struct ToneCurveUniforms
-{
-	float Contrast;
-	float Mid;
-	float Padding1, Padding2;
-
-	static std::vector<UniformFieldDesc> Desc()
-	{
-		return
-		{
-			{ "Contrast", UniformType::Float, offsetof(ToneCurveUniforms, Contrast) },
-			{ "Mid", UniformType::Float, offsetof(ToneCurveUniforms, Mid) },
-			{ "Padding1", UniformType::Float, offsetof(ToneCurveUniforms, Padding1) },
-			{ "Padding2", UniformType::Float, offsetof(ToneCurveUniforms, Padding2) }
-		};
-	}
-};
-
-// Jupiter3D: contrast curve with a pivot, runs right before the custom "scene" shaders
-class PPToneCurve
-{
-public:
-	void Render(PPRenderState *renderstate);
-
-private:
-	PPShader Curve = { "shaders/pp/tonecurve.fp", "", ToneCurveUniforms::Desc() };
-};
-
 struct PresentUniforms
 {
 	float InvGamma;
@@ -974,7 +946,6 @@ public:
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
 	PPOutline outline;
-	PPToneCurve toneCurve;
 	PPPresent present;
 	PPShadowMap shadowmap;
 	PPCustomShaders customShaders;

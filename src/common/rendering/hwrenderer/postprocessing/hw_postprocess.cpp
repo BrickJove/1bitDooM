@@ -895,30 +895,6 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	renderstate->PopGroup();
 }
 
-void PPToneCurve::Render(PPRenderState *renderstate)
-{
-	if (gl_curve == 0)
-		return;
-
-	ToneCurveUniforms uniforms;
-	uniforms.Contrast = max((float)gl_curve_contrast, 0.0f);
-	uniforms.Mid = clamp((float)gl_curve_mid, 0.0f, 1.0f);
-	uniforms.Padding1 = uniforms.Padding2 = 0.0f;
-
-	renderstate->PushGroup("tonecurve");
-
-	renderstate->Clear();
-	renderstate->Shader = &Curve;
-	renderstate->Uniforms.Set(uniforms);
-	renderstate->Viewport = screen->mScreenViewport;
-	renderstate->SetInputCurrent(0);
-	renderstate->SetOutputNext();
-	renderstate->SetNoBlend();
-	renderstate->Draw();
-
-	renderstate->PopGroup();
-}
-
 PPPresent::PPPresent()
 {
 	static const float data[64] =
@@ -1271,7 +1247,6 @@ void Postprocess::Pass2(PPRenderState* state, int fixedcm, float flash, int scen
 	colormap.Render(state, fixedcm, flash);
 	lens.Render(state);
 	fxaa.Render(state);
-	toneCurve.Render(state);
 
 	customShaders.Run(state, "scene");
 

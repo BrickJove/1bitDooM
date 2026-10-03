@@ -79,15 +79,6 @@ CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max 
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
-// Jupiter3D: contrast curve in front of custom (e.g. 1-bit) shaders
-CUSTOM_CVAR(Int, gl_curve, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-{
-	if (self < 0 || self > 1)
-		self = 0;
-}
-CVAR(Float, gl_curve_contrast, 1.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// 1 = unchanged, higher = fewer mid greys
-CVAR(Float, gl_curve_mid, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// pivot: this brightness stays where it is
-
 CUSTOM_CVAR(Int, gl_ssao_portals, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
 	if (self < 0)

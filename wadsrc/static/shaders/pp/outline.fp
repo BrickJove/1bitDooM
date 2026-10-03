@@ -110,8 +110,6 @@ void main()
 		}
 	}
 
-	// Hard edge: a line pixel is fully drawn or not at all. A grey, half transparent line
-	// would be thresholded unpredictably by a 1-bit shader further down the chain.
-	float edge = step(0.5, max(depthEdge, creaseEdge) * rangeFade) * LineAlpha;
+	float edge = max(depthEdge, creaseEdge) * LineAlpha * rangeFade;
 	FragColor = vec4(LineR, LineG, LineB, edge);
 }
