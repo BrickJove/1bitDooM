@@ -122,6 +122,12 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 		state.SetTextureMode(TM_STENCIL);
 		state.SetObjectColor(PalEntry(outlineColor));
 		state.SetOutlineHull(outlineWidth);
+
+		// Skins with transparent areas get no hull outline: the inflated shell would be
+		// drawn as a solid rim behind the cut-out parts. Draw nothing for this surface.
+		bool see = skin != nullptr && skin->HasTransparentPixels();
+		state.SetColorMask(!see);
+		state.SetDepthMask(!see);
 	}
 	else if (shadowActive)
 	{
@@ -166,6 +172,8 @@ void FHWModelRenderer::BeginOutline(FRenderStyle style, int smf_flags, bool mirr
 void FHWModelRenderer::EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud)
 {
 	outlineWidth = 0.f;
+	state.SetColorMask(true);
+	state.SetDepthMask(true);
 	state.SetOutlineHull(0.f, savedAlphaThreshold);
 	state.SetObjectColor(0xffffffff);
 	state.SetTextureMode(TM_NORMAL);

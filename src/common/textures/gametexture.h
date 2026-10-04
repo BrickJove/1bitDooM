@@ -349,6 +349,8 @@ public:
 		return Base->GetTranslucency();
 	}
 
+	bool HasTransparentPixels() { return Base->HasTransparentPixels(); }
+
 	int GetClampMode(int clampmode)
 	{
 		if (GetUseType() == ETextureType::SWCanvas) clampmode = CLAMP_NOFILTER;

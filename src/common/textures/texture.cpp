@@ -422,6 +422,27 @@ bool FTexture::DetermineTranslucency()
 	return !!bTranslucent;
 }
 
+// True if any pixel is not fully opaque (cut-out holes or translucency). Cached.
+// Used to keep inverted hull outlines off models with see-through skins.
+bool FTexture::HasTransparentPixels()
+{
+	if (bHasHoles == -1)
+	{
+		bHasHoles = 0;
+		FTextureBuffer buf = CreateTexBuffer(0);
+		if (buf.mBuffer != nullptr)
+		{
+			const uint8_t* px = buf.mBuffer;
+			size_t count = size_t(buf.mWidth) * buf.mHeight;
+			for (size_t i = 0; i < count; i++)
+			{
+				if (px[i * 4 + 3] != 0xff) { bHasHoles = 1; break; }
+			}
+		}
+	}
+	return bHasHoles == 1;
+}
+
 //===========================================================================
 //
 // the default just returns an empty texture.

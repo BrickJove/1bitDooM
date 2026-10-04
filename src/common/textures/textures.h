@@ -223,6 +223,7 @@ protected:
 	bool bHasCanvas = false;
 	bool bHdr = false; 				// only canvas textures for now.
 	int8_t bTranslucent = -1;
+	int8_t bHasHoles = -1;			// cached: any pixel with alpha < 255 (cut-out or translucent)
 	int8_t areacount = 0;			// this is capped at 4 sections.
 
 
@@ -295,6 +296,7 @@ public:
 public:
 	FTextureBuffer CreateTexBuffer(int translation, int flags = 0);
 	virtual bool DetermineTranslucency();
+	bool HasTransparentPixels();
 	bool GetTranslucency()
 	{
 		return bTranslucent != -1 ? bTranslucent : DetermineTranslucency();
