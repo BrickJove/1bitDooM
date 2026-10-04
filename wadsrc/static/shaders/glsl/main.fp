@@ -202,27 +202,32 @@ vec4 getTexel(vec2 st)
 {
 	vec4 texel = texture(tex, st);
 
-	// Distance blur: beyond the start distance the texture is blurred with a disc of constant size
-	// in SCREEN pixels (like an out of focus lens), whatever the texture size or viewing angle.
-	// The taps are placed with the screen space derivatives of the texture coordinate.
+	// Distance blur: gaussian blur beyond the start distance. The kernel is a 7x7 binomial
+	// approximation of a gaussian, its size is constant in SCREEN pixels (independent of the
+	// texture size and viewing angle). The taps are placed with the screen space derivatives
+	// of the texture coordinate.
 	int blurBits = (uTextureMode >> 22) & 0x1ff;
 	if (blurBits != 0)
 	{
 		vec2 dsx = dFdx(st);
 		vec2 dsy = dFdy(st);
 		float blurStart = float(blurBits & 63) * 64.0;
-		float blurRadius = float(blurBits >> 6) * 1.5;	// screen pixels at full effect
+		float blurRadius = float(blurBits >> 6) * 1.5;	// screen pixels (kernel half width) at full effect
 		float f = smoothstep(0.0, 1.0, clamp((pixelpos.w - blurStart) / 1024.0, 0.0, 1.0));
 		if (f > 0.0)
 		{
-			const vec2 taps[12] = vec2[12](
-				vec2(-0.326, -0.406), vec2(-0.840, -0.074), vec2(-0.696,  0.457), vec2(-0.203,  0.621),
-				vec2( 0.962, -0.195), vec2( 0.473, -0.480), vec2( 0.519,  0.767), vec2( 0.185, -0.893),
-				vec2( 0.507,  0.064), vec2( 0.896,  0.412), vec2(-0.322, -0.933), vec2(-0.792, -0.598));
-			float r = blurRadius * f;
-			for (int i = 0; i < 12; i++)
-				texel += texture(tex, st + (dsx * taps[i].x + dsy * taps[i].y) * r);
-			texel *= (1.0 / 13.0);
+			const float w[7] = float[7](1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0);	// sum 64
+			float step = blurRadius * f / 3.0;
+			vec4 sum = vec4(0.0);
+			for (int j = 0; j < 7; j++)
+			{
+				for (int i = 0; i < 7; i++)
+				{
+					vec2 o = vec2(float(i - 3), float(j - 3)) * step;
+					sum += texture(tex, st + dsx * o.x + dsy * o.y) * (w[i] * w[j]);
+				}
+			}
+			texel = sum * (1.0 / 4096.0);
 		}
 	}
 
