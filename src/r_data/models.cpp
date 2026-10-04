@@ -384,19 +384,6 @@ void RenderHUDModel(FModelRenderer *renderer, DPSprite *psp, FVector3 translatio
 		renderer->EndOutline(playermo->RenderStyle, smf_flags, orientation < 0, true);
 	}
 	RenderFrameModels(renderer, playermo->Level, smf, psp->GetState(), psp->GetTics(), ticFrac, trans, psp->Caller);
-
-	// mark the weapon's pixels (alpha 0) so the weapon pixelation post process can find them
-	if (renderer->BeginWeaponMask(playermo->RenderStyle))
-	{
-		if (outlineWidth > 0.f)
-		{
-			renderer->BeginOutline(playermo->RenderStyle, smf_flags, orientation < 0, true, outlineWidth, outlineColor);
-			RenderFrameModels(renderer, playermo->Level, smf, psp->GetState(), psp->GetTics(), ticFrac, trans, psp->Caller);
-			renderer->EndOutline(playermo->RenderStyle, smf_flags, orientation < 0, true);
-		}
-		RenderFrameModels(renderer, playermo->Level, smf, psp->GetState(), psp->GetTics(), ticFrac, trans, psp->Caller);
-		renderer->EndWeaponMask(playermo->RenderStyle);
-	}
 	renderer->EndDrawHUDModel(playermo->RenderStyle, smf_flags);
 }
 

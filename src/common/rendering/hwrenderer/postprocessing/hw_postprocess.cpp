@@ -857,32 +857,6 @@ void PPAmbientOcclusion::Render(PPRenderState *renderstate, float m5, int sceneW
 /////////////////////////////////////////////////////////////////////////////
 // Jupiter3D: screen space geometry outlines
 
-EXTERN_CVAR(Int, gl_weapon_pixelate)
-
-void PPWeaponPixelate::Render(PPRenderState *renderstate, int sceneHeight)
-{
-	int level = clamp((int)gl_weapon_pixelate, 0, 3);
-	if (level == 0 || sceneHeight <= 0)
-		return;
-
-	WeaponPixelUniforms uniforms;
-	uniforms.BlockSize = max(1.0f, sceneHeight / (100.0f * (1 << (level - 1))));
-	uniforms.Padding0 = uniforms.Padding1 = uniforms.Padding2 = 0.0f;
-
-	renderstate->PushGroup("weaponpixel");
-
-	renderstate->Clear();
-	renderstate->Shader = &Shader;
-	renderstate->Uniforms.Set(uniforms);
-	renderstate->Viewport = screen->mScreenViewport;
-	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
-	renderstate->SetOutputNext();
-	renderstate->SetNoBlend();
-	renderstate->Draw();
-
-	renderstate->PopGroup();
-}
-
 void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	if (gl_outline == 0 || sceneWidth <= 0 || sceneHeight <= 0)
@@ -1262,7 +1236,6 @@ void PPCustomShaderInstance::AddUniformField(size_t &offset, const FString &name
 
 void Postprocess::Pass1(PPRenderState* state, int fixedcm, int sceneWidth, int sceneHeight)
 {
-	weaponPixel.Render(state, sceneHeight);	// first: it needs the alpha mask, which later passes do not keep
 	exposure.Render(state, sceneWidth, sceneHeight);
 	customShaders.Run(state, "beforebloom");
 	bloom.RenderBloom(state, sceneWidth, sceneHeight, fixedcm);

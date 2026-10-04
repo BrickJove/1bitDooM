@@ -47,11 +47,6 @@ public:
 	virtual void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color) {}
 	virtual void EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud) {}
 
-	// writes alpha 0 into the scene for every pixel of the HUD weapon model (mask for the weapon pixelation post process).
-	// Returns false when not wanted. Call between BeginDrawHUDModel/EndDrawHUDModel.
-	virtual bool BeginWeaponMask(FRenderStyle style) { return false; }
-	virtual void EndWeaponMask(FRenderStyle style) {}
-
 	// flat black drop shadow pass. Called between BeginDrawModel/EndDrawModel.
 	virtual void BeginShadow(const VSMatrix& flatMatrix) {}
 	virtual void EndShadow(const VSMatrix& objectToWorldMatrix, FRenderStyle style, int smf_flags, bool mirrored) {}
