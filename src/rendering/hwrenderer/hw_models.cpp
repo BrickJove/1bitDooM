@@ -133,12 +133,19 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 		state.SetColorMask(!see);
 		state.SetDepthMask(!see);
 	}
-	else if (shadowActive)
+	else if (shadowActive || blackActive)
 	{
-		// Shadow pass: flat black, keeps the texture alpha so cut-out parts stay cut out.
+		// Shadow / black pass: flat black, keeps the texture alpha so cut-out parts stay cut out.
 		state.SetTextureMode(TM_STENCIL);
 		state.SetObjectColor(0xff000000);
 	}
+}
+
+void FHWModelRenderer::EndBlack()
+{
+	blackActive = false;
+	state.SetObjectColor(0xffffffff);
+	state.SetTextureMode(TM_NORMAL);
 }
 
 // draws the model squashed onto the floor in flat black (hard silhouette shadow)

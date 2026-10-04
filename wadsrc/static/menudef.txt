@@ -977,6 +977,9 @@ OptionMenu "VideoOptions" protected
 	Option "Model outlines",                     "gl_model_outline", "OnOff"
 	Slider "Model outline width",                 "gl_model_outline_width", 0.1, 2.0, 0.1, 1
 	StaticText " "
+	StaticText "far monsters", 1
+	Slider "Monsters black beyond (0 = off)",    "gl_model_black_distance", 0, 4096, 128, 0
+	StaticText " "
 	StaticText "3d model shadows", 1
 	Option "Shadows: enemies",                   "gl_model_shadow_monsters", "OnOff"
 	Option "Shadows: decoration",                "gl_model_shadow_decor", "OnOff"

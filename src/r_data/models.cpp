@@ -68,6 +68,9 @@ static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle
 	return gl_model_outline_width;
 }
 
+// Monsters drawn completely black beyond this distance (0 = off)
+CVAR(Float, gl_model_black_distance, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
 // Flat black drop shadows (video menu)
 CVAR(Bool, gl_model_shadow_monsters, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
@@ -111,6 +114,11 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	float orientation = scaleFactorX * scaleFactorY * scaleFactorZ;
 
 	renderer->BeginDrawModel(actor->RenderStyle, smf_flags, objectToWorldMatrix, orientation < 0);
+
+	// far away monsters become flat black silhouettes
+	bool blackModel = gl_model_black_distance > 0.f && (actor->flags3 & MF3_ISMONSTER) && actor->player == nullptr
+		&& (actor->Pos() - r_viewpoint.Pos).Length() > gl_model_black_distance;
+
 	uint32_t outlineColor = 0xff000000;
 	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor);
 	if (outlineWidth > 0.f)
@@ -119,7 +127,9 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 		renderer->EndOutline(actor->RenderStyle, smf_flags, orientation < 0, false);
 	}
+	if (blackModel) renderer->BeginBlack();
 	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
+	if (blackModel) renderer->EndBlack();
 
 	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
 	{
