@@ -77,15 +77,17 @@ CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth 
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited
 
-// Textures get blurred beyond a distance from the viewer.
-CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where textures start to blur, 0 = off")
-CVARD(Int, gl_texblur_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How strong distant textures blur (1..7)")
+// Textures get blurred beyond a distance from the viewer. Map geometry and actors (sprites, models) have their own settings.
+CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where map textures start to blur, 0 = off")
+CVARD(Int, gl_texblur_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How strong distant map textures blur (1..7)")
+CVARD(Float, gl_texblur_actor_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where actor textures (sprites, models) start to blur, 0 = off")
+CVARD(Int, gl_texblur_actor_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How strong distant actor textures blur (1..7)")
 
-// Packs both settings into 9 bits for uTextureMode: 6 bits start (64 unit steps), 3 bits strength. 0 = off.
-int GetTexBlurBits()
+// Packs the settings into 9 bits for uTextureMode: 6 bits start (64 unit steps), 3 bits strength. 0 = off.
+int GetTexBlurBits(bool actors)
 {
-	float start = gl_texblur_start;
-	int amount = clamp((int)gl_texblur_amount, 0, 7);
+	float start = actors ? gl_texblur_actor_start : gl_texblur_start;
+	int amount = clamp(actors ? (int)gl_texblur_actor_amount : (int)gl_texblur_amount, 0, 7);
 	if (start <= 0.f || amount == 0) return 0;
 	int s = clamp((int)(start / 64.f + 0.5f), 1, 63);
 	return s | (amount << 6);

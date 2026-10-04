@@ -23,7 +23,7 @@
 #include "version.h"
 #include "i_interface.h"
 
-int GetTexBlurBits();	// hw_postprocess_cvars.cpp
+int GetTexBlurBits(bool actors);	// hw_postprocess_cvars.cpp
 
 struct FColormap;
 class IVertexBuffer;
@@ -242,6 +242,7 @@ protected:
 	int mTextureClamp;
 	bool mNoOutline;
 	bool mSky;
+	bool mActorBlur;
 	int mTextureModeFlags;
 	int mSoftLight;
 	float mLightParms[4];
@@ -285,6 +286,7 @@ public:
 		mTextureClamp = 0;
 		mNoOutline = false;
 		mSky = false;
+		mActorBlur = false;
 		mTextureModeFlags = 0;
 		mStreamData.uDesaturationFactor = 0.0f;
 		mAlphaThreshold = 0.5f;
@@ -410,13 +412,19 @@ public:
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mSky) f |= TEXF_Sky;
-		else f |= (GetTexBlurBits() & 0x1ff) << TEXF_BlurShift;
+		else f |= (GetTexBlurBits(mActorBlur) & 0x1ff) << TEXF_BlurShift;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 
 	void SetSky(bool on)
 	{
 		mSky = on;
+	}
+
+	// true while actors (sprites, models) are drawn: they use their own distance blur settings
+	void SetActorBlur(bool on)
+	{
+		mActorBlur = on;
 	}
 
 	void SetNoOutline(bool on)

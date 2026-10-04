@@ -968,8 +968,10 @@ OptionMenu "VideoOptions" protected
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
 	StaticText " "
 	StaticText "distance blur", 1
-	Slider "Blur start distance (0 = off)",    "gl_texblur_start", 0, 4032, 64, 0
-	Slider "Blur strength",                     "gl_texblur_amount", 1, 7, 1, 0
+	Slider "Map blur start distance (0 = off)", "gl_texblur_start", 0, 4032, 64, 0
+	Slider "Map blur strength",                 "gl_texblur_amount", 1, 7, 1, 0
+	Slider "Actor blur start distance (0 = off)", "gl_texblur_actor_start", 0, 4032, 64, 0
+	Slider "Actor blur strength",               "gl_texblur_actor_amount", 1, 7, 1, 0
 	StaticText " "
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"

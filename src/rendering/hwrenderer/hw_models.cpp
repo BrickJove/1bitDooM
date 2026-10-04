@@ -59,6 +59,7 @@ void FHWModelRenderer::BeginDrawModel(FRenderStyle style, int smf_flags, const V
 	state.mModelMatrix = objectToWorldMatrix;
 	state.EnableModelMatrix(true);
 	state.SetNoOutline(true);
+	state.SetActorBlur(true);
 }
 
 void FHWModelRenderer::EndDrawModel(FRenderStyle style, int smf_flags)
@@ -66,6 +67,7 @@ void FHWModelRenderer::EndDrawModel(FRenderStyle style, int smf_flags)
 	state.SetBoneIndexBase(-1);
 	state.EnableModelMatrix(false);
 	state.SetNoOutline(false);
+	state.SetActorBlur(false);
 	state.SetDepthFunc(DF_Less);
 	if ((smf_flags & MDL_FORCECULLBACKFACES) || (!(style == DefaultRenderStyle()) && !(smf_flags & MDL_DONTCULLBACKFACES)))
 		state.SetCulling(Cull_None);
@@ -87,6 +89,7 @@ void FHWModelRenderer::BeginDrawHUDModel(FRenderStyle style, const VSMatrix &obj
 	state.mModelMatrix = objectToWorldMatrix;
 	state.EnableModelMatrix(true);
 	state.SetNoOutline(true);
+	state.SetActorBlur(true);
 }
 
 void FHWModelRenderer::EndDrawHUDModel(FRenderStyle style, int smf_flags)
@@ -94,6 +97,7 @@ void FHWModelRenderer::EndDrawHUDModel(FRenderStyle style, int smf_flags)
 	state.SetBoneIndexBase(-1);
 	state.EnableModelMatrix(false);
 	state.SetNoOutline(false);
+	state.SetActorBlur(false);
 
 	state.SetDepthFunc(DF_Less);
 	if (!(style == DefaultRenderStyle()) || (smf_flags & MDL_FORCECULLBACKFACES))
