@@ -23,6 +23,8 @@
 #include "version.h"
 #include "i_interface.h"
 
+int GetTexBlurBits();	// hw_postprocess_cvars.cpp
+
 struct FColormap;
 class IVertexBuffer;
 class IIndexBuffer;
@@ -408,6 +410,7 @@ public:
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mSky) f |= TEXF_Sky;
+		else f |= (GetTexBlurBits() & 0x1ff) << TEXF_BlurShift;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 

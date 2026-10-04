@@ -202,6 +202,28 @@ vec4 getTexel(vec2 st)
 {
 	vec4 texel = texture(tex, st);
 
+	// Distance blur: beyond the start distance the texture is averaged over a growing neighbourhood.
+	int blurBits = (uTextureMode >> 22) & 0x1ff;
+	if (blurBits != 0)
+	{
+		float blurStart = float(blurBits & 63) * 64.0;
+		float blurStrength = float(blurBits >> 6) * 2.0;	// texels at full effect
+		float f = clamp((pixelpos.w - blurStart) / 1024.0, 0.0, 1.0);
+		if (f > 0.0)
+		{
+			vec2 texel1 = 1.0 / vec2(textureSize(tex, 0));
+			float r = blurStrength * f;
+			vec2 o1 = texel1 * r;
+			vec2 o2 = texel1 * (r * 0.7071);
+			texel = texel
+				+ texture(tex, st + vec2( o1.x, 0.0)) + texture(tex, st + vec2(-o1.x, 0.0))
+				+ texture(tex, st + vec2(0.0,  o1.y)) + texture(tex, st + vec2(0.0, -o1.y))
+				+ texture(tex, st + vec2( o2.x,  o2.y)) + texture(tex, st + vec2(-o2.x,  o2.y))
+				+ texture(tex, st + vec2( o2.x, -o2.y)) + texture(tex, st + vec2(-o2.x, -o2.y));
+			texel *= (1.0 / 9.0);
+		}
+	}
+
 	//
 	// Apply texture modes
 	//

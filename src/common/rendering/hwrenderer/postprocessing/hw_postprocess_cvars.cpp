@@ -76,6 +76,20 @@ CVAR(Float, gl_outline_width, 1.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// pixels 
 CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth discontinuity sensitivity (lower = more lines)
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited
+
+// Textures get blurred beyond a distance from the viewer.
+CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where textures start to blur, 0 = off")
+CVARD(Int, gl_texblur_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How strong distant textures blur (1..7)")
+
+// Packs both settings into 9 bits for uTextureMode: 6 bits start (64 unit steps), 3 bits strength. 0 = off.
+int GetTexBlurBits()
+{
+	float start = gl_texblur_start;
+	int amount = clamp((int)gl_texblur_amount, 0, 7);
+	if (start <= 0.f || amount == 0) return 0;
+	int s = clamp((int)(start / 64.f + 0.5f), 1, 63);
+	return s | (amount << 6);
+}
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
