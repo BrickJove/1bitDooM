@@ -326,6 +326,14 @@ OptionValue "NoYes"
 	1, "$TXT_NO"
 }
 
+OptionValue "WeaponPixelate"
+{
+	0, "Off"
+	1, "160x100"
+	2, "320x200"
+	3, "640x400"
+}
+
 OptionValue "OnOff"
 {
 	0, "$OPTVAL_OFF"
@@ -966,6 +974,9 @@ OptionMenu "VideoOptions" protected
 	Option "Map outlines",                       "gl_outline", "OnOff"
 	Slider "Outline width",                       "gl_outline_width", 0.5, 6.0, 0.5, 1
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
+	StaticText " "
+	StaticText "player weapon", 1
+	Option "Weapon pixelation",                  "gl_weapon_pixelate", "WeaponPixelate"
 	StaticText " "
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"
