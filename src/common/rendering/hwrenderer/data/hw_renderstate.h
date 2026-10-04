@@ -240,7 +240,6 @@ protected:
 	int mTextureClamp;
 	bool mNoOutline;
 	bool mSky;
-	int mPixelate;
 	int mTextureModeFlags;
 	int mSoftLight;
 	float mLightParms[4];
@@ -284,7 +283,6 @@ public:
 		mTextureClamp = 0;
 		mNoOutline = false;
 		mSky = false;
-		mPixelate = 0;
 		mTextureModeFlags = 0;
 		mStreamData.uDesaturationFactor = 0.0f;
 		mAlphaThreshold = 0.5f;
@@ -410,19 +408,12 @@ public:
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mSky) f |= TEXF_Sky;
-		f |= (mPixelate & 0x1ff) << TEXF_PixelShift;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 
 	void SetSky(bool on)
 	{
 		mSky = on;
-	}
-
-	// block size in 1/4 pixels (0 = off); the shader snaps texture lookups to that screen grid
-	void SetPixelate(int quarterPixels)
-	{
-		mPixelate = quarterPixels;
 	}
 
 	void SetNoOutline(bool on)

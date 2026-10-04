@@ -47,7 +47,6 @@ EXTERN_CVAR(Bool, r_drawplayersprites)
 EXTERN_CVAR(Bool, r_deathcamera)
 
 
-CVARD(Int, gl_weapon_pixelate, 0, CVAR_GLOBALCONFIG | CVAR_ARCHIVE, "Pixelates the player weapon as if the resolution were lower: 0 = off, 1 = 160x100, 2 = 320x200, 3 = 640x400");
 CVARD(Bool, gl_weapon_purelightlevel, false, CVAR_GLOBALCONFIG | CVAR_ARCHIVE, "[This feature is temporarily disabled] Makes the lighting on weapon sprites (or models) purely match the sector's light level you're standing in");
 
 //==========================================================================
@@ -117,20 +116,11 @@ void HWDrawInfo::DrawPlayerSprites(bool hudModelStep, FRenderState &state)
 {
 	auto oldlightmode = lightmode;
 	if (!hudModelStep && isSoftwareLighting(oldlightmode)) SetFallbackLightMode();	// Software lighting cannot handle 2D content.
-	// optional pixelation to a fixed base resolution (block size relative to the render target height)
-	int pixelLevel = clamp((int)gl_weapon_pixelate, 0, 3);
-	if (pixelLevel > 0)
-	{
-		float targetHeight = 100.f * (1 << (pixelLevel - 1));
-		float height = (float)(hudModelStep ? screen->mSceneViewport.height : screen->mScreenViewport.height);
-		state.SetPixelate(clamp((int)(height / targetHeight * 4.f + 0.5f), 4, 511));
-	}
 	for (auto &hudsprite : hudsprites)
 	{
 		if ((!!hudsprite.mframe) == hudModelStep)
 			DrawPSprite(&hudsprite, state);
 	}
-	state.SetPixelate(0);
 	lightmode = oldlightmode;
 }
 

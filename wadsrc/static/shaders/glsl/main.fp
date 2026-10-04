@@ -675,15 +675,6 @@ vec3 ApplyNormalMap(vec2 texcoord)
 
 void SetMaterialProps(inout Material material, vec2 texCoord)
 {
-	// Player weapon pixelation: every screen pixel of a block samples the texture at the block centre.
-	int pixelQuarter = (uTextureMode >> 22) & 0x1ff;
-	if (pixelQuarter != 0)
-	{
-		float blk = float(pixelQuarter) * 0.25;
-		vec2 fc = gl_FragCoord.xy;
-		vec2 d = (floor(fc / blk) + 0.5) * blk - fc;
-		texCoord += dFdx(texCoord) * d.x + dFdy(texCoord) * d.y;
-	}
 #ifdef NPOT_EMULATION
 	if (uNpotEmulation.y != 0.0)
 	{
