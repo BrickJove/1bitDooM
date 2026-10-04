@@ -788,6 +788,34 @@ struct OutlineUniforms
 	}
 };
 
+struct WeaponPixelUniforms
+{
+	float BlockSize;
+	float Padding0, Padding1, Padding2;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "BlockSize", UniformType::Float, offsetof(WeaponPixelUniforms, BlockSize) },
+			{ "Padding0", UniformType::Float, offsetof(WeaponPixelUniforms, Padding0) },
+			{ "Padding1", UniformType::Float, offsetof(WeaponPixelUniforms, Padding1) },
+			{ "Padding2", UniformType::Float, offsetof(WeaponPixelUniforms, Padding2) }
+		};
+	}
+};
+
+// Renders the player weapon as if the whole game ran at a low base resolution.
+// The weapon pixels are marked with alpha 0 in the scene buffer.
+class PPWeaponPixelate
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneHeight);
+
+private:
+	PPShader Shader = { "shaders/pp/weaponpixel.fp", "", WeaponPixelUniforms::Desc() };
+};
+
 class PPOutline
 {
 public:
@@ -946,6 +974,7 @@ public:
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
 	PPOutline outline;
+	PPWeaponPixelate weaponPixel;
 	PPPresent present;
 	PPShadowMap shadowmap;
 	PPCustomShaders customShaders;

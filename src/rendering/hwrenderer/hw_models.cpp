@@ -35,6 +35,7 @@
 #include "actor.h"
 
 CVAR(Bool, gl_light_models, true, CVAR_ARCHIVE)
+EXTERN_CVAR(Int, gl_weapon_pixelate)
 
 VSMatrix FHWModelRenderer::GetViewToWorldMatrix()
 {
@@ -115,6 +116,7 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 	state.SetMaterial(skin, UF_Skin, 0, clampNoFilter ? CLAMP_NOFILTER : CLAMP_NONE, translation, -1, act->GetClass());
 	state.SetLightIndex(modellightindex);
 
+	bool hullSkipped = false;
 	if (outlineWidth > 0.f)
 	{
 		// Outline pass: a negative alpha threshold tells main.vp to push the vertices
@@ -125,9 +127,19 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 
 		// Skins with transparent areas get no hull outline: the inflated shell would be
 		// drawn as a solid rim behind the cut-out parts. Draw nothing for this surface.
-		bool see = skin != nullptr && skin->HasTransparentPixels();
-		state.SetColorMask(!see);
-		state.SetDepthMask(!see);
+		hullSkipped = skin != nullptr && skin->HasTransparentPixels();
+		if (!maskActive)
+		{
+			state.SetColorMask(!hullSkipped);
+			state.SetDepthMask(!hullSkipped);
+		}
+	}
+	if (maskActive)
+	{
+		// flat alpha 0 (stencil effect), written to the alpha channel only
+		state.SetEffect(EFF_STENCIL);
+		state.SetColorMask(false, false, false, !hullSkipped);
+		state.SetDepthMask(false);
 	}
 	else if (shadowActive)
 	{
@@ -135,6 +147,25 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 		state.SetTextureMode(TM_STENCIL);
 		state.SetObjectColor(0xff000000);
 	}
+}
+
+bool FHWModelRenderer::BeginWeaponMask(FRenderStyle style)
+{
+	if (gl_weapon_pixelate <= 0) return false;
+	maskActive = true;
+	state.SetRenderStyle(STYLE_Source);
+	state.SetColorMask(false, false, false, true);
+	state.SetDepthMask(false);
+	return true;
+}
+
+void FHWModelRenderer::EndWeaponMask(FRenderStyle style)
+{
+	maskActive = false;
+	state.SetEffect(EFF_NONE);
+	state.SetColorMask(true);
+	state.SetDepthMask(true);
+	state.SetRenderStyle(style);
 }
 
 // draws the model squashed onto the floor in flat black (hard silhouette shadow)

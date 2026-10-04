@@ -54,11 +54,14 @@ public:
 	void SetupFrame(FModel *model, unsigned int frame1, unsigned int frame2, unsigned int size, int boneStartIndex) override;
 	void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color) override;
 	void EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud) override;
+	bool BeginWeaponMask(FRenderStyle style) override;
+	void EndWeaponMask(FRenderStyle style) override;
 	void BeginShadow(const VSMatrix& flatMatrix) override;
 	void EndShadow(const VSMatrix& objectToWorldMatrix, FRenderStyle style, int smf_flags, bool mirrored) override;
 
 private:
 	bool shadowActive = false;
+	bool maskActive = false;
 	float outlineWidth = 0.f;
 	uint32_t outlineColor = 0xff000000;
 	float savedAlphaThreshold = 0.5f;
