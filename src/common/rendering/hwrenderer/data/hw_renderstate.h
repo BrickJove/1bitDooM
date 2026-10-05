@@ -412,15 +412,7 @@ public:
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mSky) f |= TEXF_Sky;
-		else
-		{
-			int bits = GetTexBlurBits(mActorBlur) & 63;
-			if (bits != 0)
-			{
-				f |= bits << TEXF_BlurShift;
-				if (mMaterial.mMaterial && mMaterial.mMaterial->Source()->IsBrightOnAverage()) f |= TEXF_AvgWhite;
-			}
-		}
+		else f |= (GetTexBlurBits(mActorBlur) & 63) << TEXF_BlurShift;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 
@@ -682,6 +674,9 @@ private:
 		mMaterial.mOverrideShader = overrideshader;
 		mMaterial.mChanged = true;
 		mTextureModeFlags = mat->GetLayerFlags();
+		// Distant textures are drawn flat white or black. Decided here, with the material that is being set
+		// right now (never dereference the stored material elsewhere, it may be stale after a level change).
+		if (GetTexBlurBits(mActorBlur) != 0 && mat->Source()->IsBrightOnAverage()) mTextureModeFlags |= TEXF_AvgWhite;
 		auto scale = mat->GetDetailScale();
 		mStreamData.uDetailParms = { scale.X, scale.Y, 2, 0 };
 	}
