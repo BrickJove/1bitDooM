@@ -77,11 +77,11 @@ CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth 
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited
 
-// Textures get blurred beyond a distance from the viewer. Map geometry and actors (sprites, models) have their own settings.
-CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where map textures start to blur, 0 = off")
-CVARD(Int, gl_texblur_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How strong distant map textures blur (1..7)")
-CVARD(Float, gl_texblur_actor_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where actor textures (sprites, models) start to blur, 0 = off")
-CVARD(Int, gl_texblur_actor_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How strong distant actor textures blur (1..7)")
+// Textures turn white or black beyond a distance from the viewer. Map geometry and actors (sprites, models) have their own settings.
+CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where map textures turn black or white, 0 = off")
+CVARD(Int, gl_texblur_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Size of the area averaged to decide black or white for distant map textures (1..7)")
+CVARD(Float, gl_texblur_actor_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where actor textures (sprites, models) turn black or white, 0 = off")
+CVARD(Int, gl_texblur_actor_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Size of the area averaged to decide black or white for distant actor textures (1..7)")
 
 // Packs the settings into 9 bits for uTextureMode: 6 bits start (64 unit steps), 3 bits strength. 0 = off.
 int GetTexBlurBits(bool actors)

@@ -202,32 +202,29 @@ vec4 getTexel(vec2 st)
 {
 	vec4 texel = texture(tex, st);
 
-	// Distance blur: gaussian blur beyond the start distance. The kernel is a 7x7 binomial
-	// approximation of a gaussian, its size is constant in SCREEN pixels (independent of the
-	// texture size and viewing angle). The taps are placed with the screen space derivatives
-	// of the texture coordinate.
+	// Distance 1-bit: beyond the start distance textures become pure white or black.
 	int blurBits = (uTextureMode >> 22) & 0x1ff;
 	if (blurBits != 0)
 	{
-		vec2 dsx = dFdx(st);
-		vec2 dsy = dFdy(st);
-		float blurStart = float(blurBits & 63) * 64.0;
-		float blurRadius = float(blurBits >> 6) * 1.5;	// screen pixels (kernel half width) at full effect
-		float f = smoothstep(0.0, 1.0, clamp((pixelpos.w - blurStart) / 1024.0, 0.0, 1.0));
-		if (f > 0.0)
+		float farStart = float(blurBits & 63) * 64.0;
+		if (pixelpos.w > farStart)
 		{
-			const float w[7] = float[7](1.0, 6.0, 15.0, 20.0, 15.0, 6.0, 1.0);	// sum 64
-			float step = blurRadius * f / 3.0;
-			vec4 sum = vec4(0.0);
-			for (int j = 0; j < 7; j++)
+			// Far away: replace the colour with pure white or black, depending on the rough average
+			// brightness of the surroundings (5x5 taps, spread in screen pixels). Alpha is kept.
+			vec2 dsx = dFdx(st);
+			vec2 dsy = dFdy(st);
+			float spread = float(blurBits >> 6) * 2.0;	// screen pixels between taps
+			vec3 sum = vec3(0.0);
+			for (int j = -2; j <= 2; j++)
 			{
-				for (int i = 0; i < 7; i++)
+				for (int i = -2; i <= 2; i++)
 				{
-					vec2 o = vec2(float(i - 3), float(j - 3)) * step;
-					sum += texture(tex, st + dsx * o.x + dsy * o.y) * (w[i] * w[j]);
+					vec2 o = vec2(float(i), float(j)) * spread;
+					sum += texture(tex, st + dsx * o.x + dsy * o.y).rgb;
 				}
 			}
-			texel = sum * (1.0 / 4096.0);
+			float lum = dot(sum * (1.0 / 25.0), vec3(0.299, 0.587, 0.114));
+			texel.rgb = vec3(lum > 0.5 ? 1.0 : 0.0);
 		}
 	}
 
