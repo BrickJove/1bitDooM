@@ -112,7 +112,8 @@ enum texflags
 	TEXF_Detailmap = 0x20000,
 	TEXF_Glowmap = 0x40000,
 	TEXF_ClampY = 0x80000,
-	TEXF_BlurShift = 22,	// bits 22..30: distance blur, start in 64 unit steps (6 bits) and strength (3 bits), see GetTexBlurBits()
+	TEXF_BlurShift = 22,	// bits 22..27: distance start for the black/white mode in 64 unit steps, see GetTexBlurBits()
+	TEXF_AvgWhite = 1 << 28,	// distant texture turns white (else black): its average brightness is above 50%
 	TEXF_Sky = 0x200000,	// set while the sky is drawn (outline pass: never outlined, not a silhouette)
 	TEXF_NoOutline = 0x100000,	// set while models and masked / translucent geometry are drawn: no screen space outlines there
 };
@@ -224,6 +225,7 @@ protected:
 	bool bHasCanvas = false;
 	bool bHdr = false; 				// only canvas textures for now.
 	int8_t bTranslucent = -1;
+	int8_t bAvgBright = -1;			// cached: average brightness of the opaque pixels is above 50%
 	int8_t bHasHoles = -1;			// cached: any pixel with alpha < 255 (cut-out or translucent)
 	int8_t areacount = 0;			// this is capped at 4 sections.
 
@@ -298,6 +300,7 @@ public:
 	FTextureBuffer CreateTexBuffer(int translation, int flags = 0);
 	virtual bool DetermineTranslucency();
 	bool HasTransparentPixels();
+	bool IsBrightOnAverage();
 	bool GetTranslucency()
 	{
 		return bTranslucent != -1 ? bTranslucent : DetermineTranslucency();

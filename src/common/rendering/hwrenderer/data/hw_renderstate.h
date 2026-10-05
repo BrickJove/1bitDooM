@@ -412,7 +412,15 @@ public:
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mSky) f |= TEXF_Sky;
-		else f |= (GetTexBlurBits(mActorBlur) & 0x1ff) << TEXF_BlurShift;
+		else
+		{
+			int bits = GetTexBlurBits(mActorBlur) & 63;
+			if (bits != 0)
+			{
+				f |= bits << TEXF_BlurShift;
+				if (mMaterial.mMaterial && mMaterial.mMaterial->Source()->IsBrightOnAverage()) f |= TEXF_AvgWhite;
+			}
+		}
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 

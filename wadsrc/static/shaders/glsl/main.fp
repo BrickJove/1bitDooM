@@ -203,29 +203,12 @@ vec4 getTexel(vec2 st)
 	vec4 texel = texture(tex, st);
 
 	// Distance 1-bit: beyond the start distance textures become pure white or black.
-	int blurBits = (uTextureMode >> 22) & 0x1ff;
+	int blurBits = (uTextureMode >> 22) & 0x7f;
 	if (blurBits != 0)
 	{
 		float farStart = float(blurBits & 63) * 64.0;
 		if (pixelpos.w > farStart)
-		{
-			// Far away: replace the colour with pure white or black, depending on the rough average
-			// brightness of the surroundings (5x5 taps, spread in screen pixels). Alpha is kept.
-			vec2 dsx = dFdx(st);
-			vec2 dsy = dFdy(st);
-			float spread = float(blurBits >> 6) * 2.0;	// screen pixels between taps
-			vec3 sum = vec3(0.0);
-			for (int j = -2; j <= 2; j++)
-			{
-				for (int i = -2; i <= 2; i++)
-				{
-					vec2 o = vec2(float(i), float(j)) * spread;
-					sum += texture(tex, st + dsx * o.x + dsy * o.y).rgb;
-				}
-			}
-			float lum = dot(sum * (1.0 / 25.0), vec3(0.299, 0.587, 0.114));
-			texel.rgb = vec3(lum > 0.5 ? 1.0 : 0.0);
-		}
+			texel.rgb = vec3((blurBits & 64) != 0 ? 1.0 : 0.0);	// whole texture flat white or black, alpha is kept
 	}
 
 	//

@@ -79,18 +79,14 @@ CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max 
 
 // Textures turn white or black beyond a distance from the viewer. Map geometry and actors (sprites, models) have their own settings.
 CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where map textures turn black or white, 0 = off")
-CVARD(Int, gl_texblur_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Size of the area averaged to decide black or white for distant map textures (1..7)")
 CVARD(Float, gl_texblur_actor_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where actor textures (sprites, models) turn black or white, 0 = off")
-CVARD(Int, gl_texblur_actor_amount, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Size of the area averaged to decide black or white for distant actor textures (1..7)")
 
-// Packs the settings into 9 bits for uTextureMode: 6 bits start (64 unit steps), 3 bits strength. 0 = off.
+// Start distance in 64 unit steps (6 bits) for uTextureMode. 0 = off.
 int GetTexBlurBits(bool actors)
 {
 	float start = actors ? gl_texblur_actor_start : gl_texblur_start;
-	int amount = clamp(actors ? (int)gl_texblur_actor_amount : (int)gl_texblur_amount, 0, 7);
-	if (start <= 0.f || amount == 0) return 0;
-	int s = clamp((int)(start / 64.f + 0.5f), 1, 63);
-	return s | (amount << 6);
+	if (start <= 0.f) return 0;
+	return clamp((int)(start / 64.f + 0.5f), 1, 63);
 }
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)

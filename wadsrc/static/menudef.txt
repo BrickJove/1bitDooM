@@ -969,9 +969,7 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "distant textures black/white", 1
 	Slider "Map b/w start distance (0 = off)", "gl_texblur_start", 0, 4032, 64, 0
-	Slider "Map b/w averaging size",                 "gl_texblur_amount", 1, 7, 1, 0
 	Slider "Actor b/w start distance (0 = off)", "gl_texblur_actor_start", 0, 4032, 64, 0
-	Slider "Actor b/w averaging size",               "gl_texblur_actor_amount", 1, 7, 1, 0
 	StaticText " "
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"

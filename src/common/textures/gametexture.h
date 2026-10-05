@@ -350,6 +350,7 @@ public:
 	}
 
 	bool HasTransparentPixels() { return Base->HasTransparentPixels(); }
+	bool IsBrightOnAverage() { return !isHardwareCanvas() && Base->IsBrightOnAverage(); }
 
 	int GetClampMode(int clampmode)
 	{
