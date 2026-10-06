@@ -422,31 +422,6 @@ bool FTexture::DetermineTranslucency()
 	return !!bTranslucent;
 }
 
-// True if the average brightness of the (mostly) opaque pixels is above 50%. Cached.
-// Distant textures are drawn as a single flat white or black depending on this.
-bool FTexture::IsBrightOnAverage()
-{
-	if (bAvgBright == -1)
-	{
-		bAvgBright = 0;
-		FTextureBuffer buf = CreateTexBuffer(0);
-		if (buf.mBuffer != nullptr)
-		{
-			const uint8_t* px = buf.mBuffer;
-			size_t count = size_t(buf.mWidth) * buf.mHeight;
-			uint64_t sum = 0, n = 0;
-			for (size_t i = 0; i < count; i++)
-			{
-				if (px[i * 4 + 3] < 128) continue;
-				sum += (px[i * 4 + 2] * 77 + px[i * 4 + 1] * 150 + px[i * 4] * 29) >> 8;	// BGRA
-				n++;
-			}
-			if (n > 0 && sum * 2 > n * 255) bAvgBright = 1;
-		}
-	}
-	return bAvgBright == 1;
-}
-
 // True if any pixel is not fully opaque (cut-out holes or translucency). Cached.
 // Used to keep inverted hull outlines off models with see-through skins.
 bool FTexture::HasTransparentPixels()

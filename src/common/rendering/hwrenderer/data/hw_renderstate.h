@@ -674,9 +674,6 @@ private:
 		mMaterial.mOverrideShader = overrideshader;
 		mMaterial.mChanged = true;
 		mTextureModeFlags = mat->GetLayerFlags();
-		// Distant textures are drawn flat white or black. Decided here, with the material that is being set
-		// right now (never dereference the stored material elsewhere, it may be stale after a level change).
-		if (GetTexBlurBits(mActorBlur) != 0 && mat->Source()->IsBrightOnAverage()) mTextureModeFlags |= TEXF_AvgWhite;
 		auto scale = mat->GetDetailScale();
 		mStreamData.uDetailParms = { scale.X, scale.Y, 2, 0 };
 	}

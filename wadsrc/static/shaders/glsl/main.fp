@@ -200,16 +200,15 @@ const int Tex_Blend_Hardlight = 4;
 
 vec4 getTexel(vec2 st)
 {
-	vec4 texel = texture(tex, st);
-
-	// Distance 1-bit: beyond the start distance textures become pure white or black.
-	int blurBits = (uTextureMode >> 22) & 0x7f;
-	if (blurBits != 0)
+	// Distance resolution: beyond the start distance the texture is sampled at half resolution
+	// (every 2x2 texels show the colour of the centre of their block).
+	int farBits = (uTextureMode >> 22) & 63;
+	if (farBits != 0 && pixelpos.w > float(farBits) * 64.0)
 	{
-		float farStart = float(blurBits & 63) * 64.0;
-		if (pixelpos.w > farStart)
-			texel.rgb = vec3((blurBits & 64) != 0 ? 1.0 : 0.0);	// whole texture flat white or black, alpha is kept
+		vec2 sz = vec2(textureSize(tex, 0));
+		st = (floor(st * sz * 0.5) * 2.0 + 1.0) / sz;
 	}
+	vec4 texel = texture(tex, st);
 
 	//
 	// Apply texture modes
