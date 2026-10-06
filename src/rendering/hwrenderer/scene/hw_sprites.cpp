@@ -98,14 +98,6 @@ CUSTOM_CVAR(Int, gl_fuzztype, 8, CVAR_ARCHIVE)
 
 void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 {
-	// actors use their own distance blur settings
-	struct ActorBlurScope
-	{
-		FRenderState &s;
-		ActorBlurScope(FRenderState &st) : s(st) { s.SetActorBlur(true); }
-		~ActorBlurScope() { s.SetActorBlur(false); }
-	} actorBlurScope(state);
-
 	bool additivefog = false;
 	bool foglayer = false;
 	int rel = fullbright ? 0 : getExtraLight();

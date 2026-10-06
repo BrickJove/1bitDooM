@@ -967,10 +967,6 @@ OptionMenu "VideoOptions" protected
 	Slider "Outline width",                       "gl_outline_width", 0.5, 6.0, 0.5, 1
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
 	StaticText " "
-	StaticText "distant map textures, lower resolution", 1
-	Slider "Start distance (0 = off)",              "gl_texblur_start", 0, 4032, 64, 0
-	Slider "Resolution factor (2 = half)",          "gl_texblur_factor", 2, 7, 1, 0
-	StaticText " "
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"
 	Slider "Model outline width",                 "gl_model_outline_width", 0.1, 2.0, 0.1, 1

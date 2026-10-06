@@ -77,22 +77,6 @@ CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth 
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited
 
-// Textures drop to half resolution beyond a distance from the viewer. Map geometry only (not actors).
-CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where map textures drop to half resolution, 0 = off")
-
-// Factor by which the texture resolution is reduced beyond the start distance (2 = half, 3 = a third, ...). Any int from 2 to 7, set from the menu.
-CVARD(Int, gl_texblur_factor, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Resolution reduction factor of distant map textures (2..7)")
-
-// Packs the settings into 9 bits for uTextureMode: 6 bits start distance (64 unit steps) and 3 bits factor. 0 = off.
-int GetTexBlurBits(bool actors)
-{
-	if (actors) return 0;	// actors (sprites, models) are never reduced
-	float start = gl_texblur_start;
-	if (start <= 0.f) return 0;
-	int factor = clamp((int)gl_texblur_factor, 1, 7);
-	if (factor < 2) return 0;
-	return clamp((int)(start / 64.f + 0.5f), 1, 63) | (factor << 6);
-}
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
