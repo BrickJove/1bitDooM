@@ -47,13 +47,14 @@ CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 // The thickness follows the render resolution (width of the 3D view in pixels), in steps:
-// below 640 = 2 pixels, 640..799 = 3, 800 and up = 4.
+// below 512 = 1 pixel, 512..639 = 2, 640..799 = 3, 800 and up = 4.
 static float ResolutionOutlineWidth()
 {
 	int w = screen != nullptr ? screen->mSceneViewport.width : 0;
 	if (w >= 800) return 4.f;
 	if (w >= 640) return 3.f;
-	return 2.f;
+	if (w >= 512) return 2.f;
+	return 1.f;
 }
 
 // Returns the outline width to use for this model (0 = none) and its colour.
