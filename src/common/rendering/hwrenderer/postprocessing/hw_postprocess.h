@@ -764,6 +764,8 @@ struct OutlineUniforms
 	float LineRange;	// max distance in map units, 0 = unlimited
 	float ModelInnerDist;	// models farther away than this get a 1 pixel inner outline, 0 = off
 	float MapLines;		// 1 = draw the map geometry lines
+	float ExtraLines;	// 1 = additionally draw sky borders and inner wall corners
+	float Padding1;
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -783,6 +785,8 @@ struct OutlineUniforms
 			{ "LineRange", UniformType::Float, offsetof(OutlineUniforms, LineRange) },
 			{ "ModelInnerDist", UniformType::Float, offsetof(OutlineUniforms, ModelInnerDist) },
 			{ "MapLines", UniformType::Float, offsetof(OutlineUniforms, MapLines) },
+			{ "ExtraLines", UniformType::Float, offsetof(OutlineUniforms, ExtraLines) },
+			{ "Padding1", UniformType::Float, offsetof(OutlineUniforms, Padding1) },
 			{ "Scale", UniformType::Vec2, offsetof(OutlineUniforms, Scale) },
 			{ "Offset", UniformType::Vec2, offsetof(OutlineUniforms, Offset) }
 		};

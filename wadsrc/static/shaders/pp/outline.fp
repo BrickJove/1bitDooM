@@ -166,6 +166,35 @@ void main()
 		creaseEdge = max(creaseEdge, max(SkyQuadNeighbour(ic, ipos + dy), SkyQuadNeighbour(ic, ipos - dy)));
 	}
 
-	float edge = max(depthEdge, creaseEdge) * LineAlpha * rangeFade;
+	// Extended mode: also the border of walls against the sky (top edge under an open sky) and
+	// concave wall-wall corners (inner corners). The corner line is only taken from the +x / +y
+	// neighbour so that it stays one pixel wide.
+	float extraEdge = 0.0;
+	if (ExtraLines > 0.5 && centerSample.a < FlatClass)
+	{
+		if (SkyAt(ipos + dx, ix1) || SkyAt(ipos - dx, ix2) || SkyAt(ipos + dy, iy1) || SkyAt(ipos - dy, iy2))
+			extraEdge = 1.0;
+
+		vec3 nc2 = FetchNormal(ipos);
+		if (HasNormal(nc2))
+		{
+			nc2 = normalize(nc2);
+			float rawLapX = ix1 + ix2 - 2.0 * ic;
+			float rawLapY = iy1 + iy2 - 2.0 * ic;
+			for (int k = 0; k < 2; k++)
+			{
+				ivec2 q = ipos + (k == 0 ? dx : dy);
+				float qi = k == 0 ? ix1 : iy1;
+				vec4 s = texelFetch(NormalTexture, ClampPos(q), 0);
+				vec3 n = s.xyz * 2.0 - 1.0;
+				float lap = k == 0 ? rawLapX : rawLapY;
+				if (s.a > 0.5 && s.a < FlatClass && HasNormal(n) && abs(qi - ic) < 0.05 * ic && lap >= 0.0
+				    && dot(nc2, normalize(n)) < NormalThreshold)
+					extraEdge = 1.0;
+			}
+		}
+	}
+
+	float edge = max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
 	FragColor = vec4(LineR, LineG, LineB, edge);
 }

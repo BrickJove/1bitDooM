@@ -68,7 +68,7 @@ CUSTOM_CVAR(Int, gl_ssao, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 // Jupiter3D: screen space outlines
 CUSTOM_CVAR(Int, gl_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 {
-	if (self < 0 || self > 1)
+	if (self < 0 || self > 2)
 		self = 0;
 }
 

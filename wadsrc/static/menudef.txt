@@ -326,6 +326,13 @@ OptionValue "NoYes"
 	1, "$TXT_NO"
 }
 
+OptionValue "OutlineMode"
+{
+	0, "Off"
+	1, "Normal"
+	2, "Extended (sky border, inner corners)"
+}
+
 OptionValue "WeaponPixelSize"
 {
 	0, "Off"
@@ -973,7 +980,7 @@ OptionMenu "VideoOptions" protected
 	Submenu "$DSPLYMNU_CULLOPT",			   "CullingOptions"
 	StaticText " "
 	StaticText "map geometry outlines", 1
-	Option "Map outlines",                       "gl_outline", "OnOff"
+	Option "Map outlines",                       "gl_outline", "OutlineMode"
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
 	StaticText " "
 	StaticText "3d model outline", 1
