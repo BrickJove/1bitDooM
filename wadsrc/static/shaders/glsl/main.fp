@@ -200,15 +200,23 @@ const int Tex_Blend_Hardlight = 4;
 
 vec4 getTexel(vec2 st)
 {
-	// Distance resolution: beyond the start distance the texture is sampled at half resolution
-	// (every 2x2 texels show the colour of the centre of their block).
+	// Distance resolution: beyond the start distance the texture looks as if it were half the size
+	// (e.g. 64x64 instead of 128x128): every 2x2 block of texels is replaced by its average, shown
+	// without filtering. The four texels are fetched at their centres, so this works the same with
+	// nearest and linear filtering.
+	vec4 texel;
 	int farBits = (uTextureMode >> 22) & 63;
 	if (farBits != 0 && pixelpos.w > float(farBits) * 64.0)
 	{
 		vec2 sz = vec2(textureSize(tex, 0));
-		st = (floor(st * sz * 0.5) * 2.0 + 1.0) / sz;
+		vec2 b = floor(st * sz * 0.5) * 2.0;
+		texel = (texture(tex, (b + vec2(0.5, 0.5)) / sz) + texture(tex, (b + vec2(1.5, 0.5)) / sz)
+		       + texture(tex, (b + vec2(0.5, 1.5)) / sz) + texture(tex, (b + vec2(1.5, 1.5)) / sz)) * 0.25;
 	}
-	vec4 texel = texture(tex, st);
+	else
+	{
+		texel = texture(tex, st);
+	}
 
 	//
 	// Apply texture modes
