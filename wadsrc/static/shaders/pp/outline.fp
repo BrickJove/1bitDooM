@@ -53,10 +53,11 @@ bool SkyAt(ivec2 p, float inv)
 	return IsSky(inv) || (a > 0.2 && a < 0.45);
 }
 
-// surface class of 3D models (written by main.fp)
-bool IsModelClass(float a)
+// 3D models are marked in the normal buffer by alpha 0 and an impossible normal (1,1,1)
+// (the alpha channel has only 2 bits, so there is no spare class level for them).
+bool IsModelClass(vec4 s)
 {
-	return a > 0.1 && a < 0.25;
+	return s.a < 0.1 && s.r > 0.99 && s.g > 0.99 && s.b > 0.99;
 }
 
 bool HasNormal(vec3 n)
@@ -111,12 +112,12 @@ void main()
 	float dist = 1.0 / max(ic, 1.0e-8);
 	// 3D models (surface class ~0.1667) beyond ModelInnerDist: 1 pixel line on the inside of the silhouette,
 	// i.e. on model pixels that touch something that is not a model.
-	if (ModelInnerDist > 0.0 && IsModelClass(centerSample.a) && dist > ModelInnerDist)
+	if (ModelInnerDist > 0.0 && IsModelClass(centerSample) && dist > ModelInnerDist)
 	{
-		bool inner = !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(1, 0)), 0).a)
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(1, 0)), 0).a)
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(0, 1)), 0).a)
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(0, 1)), 0).a);
+		bool inner = !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(1, 0)), 0))
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(1, 0)), 0))
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(0, 1)), 0))
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(0, 1)), 0));
 		FragColor = vec4(LineR, LineG, LineB, inner ? LineAlpha : 0.0);
 		return;
 	}

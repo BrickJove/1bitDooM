@@ -955,7 +955,8 @@ void main()
 	if (abs(vWorldNormal.y) < 0.7) surfaceClass *= 0.6667;
 	if ((uTextureMode & TEXF_Sky) != 0) surfaceClass = 0.3333;
 	if ((uTextureMode & TEXF_NoOutline) != 0) surfaceClass = 0.0;
-	if ((uTextureMode & TEXF_Model) != 0) surfaceClass = 0.1667;	// 3D model: not outlined like map geometry, but its edge can be
-	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, surfaceClass);
+	vec3 normalOut = vEyeNormal.xyz * 0.5 + 0.5;
+	if ((uTextureMode & TEXF_Model) != 0) { surfaceClass = 0.0; normalOut = vec3(1.0); }	// 3D model marker for the outline pass
+	FragNormal = vec4(normalOut, surfaceClass);
 #endif
 }
