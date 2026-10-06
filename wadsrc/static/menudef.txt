@@ -326,6 +326,16 @@ OptionValue "NoYes"
 	1, "$TXT_NO"
 }
 
+OptionValue "WeaponPixelSize"
+{
+	0, "Off"
+	2, "2x"
+	3, "3x"
+	4, "4x"
+	6, "6x"
+	8, "8x"
+}
+
 OptionValue "OnOff"
 {
 	0, "$OPTVAL_OFF"
@@ -973,6 +983,9 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "far monsters", 1
 	Slider "Monsters black beyond (0 = off)",    "gl_model_black_distance", 0, 4096, 128, 0
+	StaticText " "
+	StaticText "player weapon", 1
+	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1
 	Option "Shadows: enemies",                   "gl_model_shadow_monsters", "OnOff"

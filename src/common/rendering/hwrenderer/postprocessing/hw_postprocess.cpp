@@ -895,6 +895,40 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	renderstate->PopGroup();
 }
 
+/////////////////////////////////////////////////////////////////////////////
+// Jupiter3D: weapon pixelation
+
+void PPWeaponPixel::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	// Only when a HUD model was drawn this frame: otherwise the depth buffer still holds the whole world.
+	bool active = hudModelDrawn;
+	hudModelDrawn = false;
+
+	int pixelSize = gl_weapon_pixel;
+	if (!active || pixelSize < 2 || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	WeaponPixelUniforms uniforms;
+	uniforms.LinearizeDepthA = 1.0f / screen->GetZFar() - 1.0f / screen->GetZNear();
+	uniforms.LinearizeDepthB = max(1.0f / screen->GetZNear(), 1.e-8f);
+	uniforms.PixelSize = (float)clamp(pixelSize, 2, 16);
+	uniforms.Padding1 = 0.0f;
+
+	renderstate->PushGroup("weaponpixel");
+
+	renderstate->Clear();
+	renderstate->Shader = gl_multisample > 1 ? &WeaponPixelMS : &WeaponPixel;
+	renderstate->Uniforms.Set(uniforms);
+	renderstate->Viewport = screen->mScreenViewport;
+	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
+	renderstate->SetInputSceneDepth(1);
+	renderstate->SetOutputNext();
+	renderstate->SetNoBlend();
+	renderstate->Draw();
+
+	renderstate->PopGroup();
+}
+
 PPPresent::PPPresent()
 {
 	static const float data[64] =
@@ -1236,6 +1270,7 @@ void PPCustomShaderInstance::AddUniformField(size_t &offset, const FString &name
 
 void Postprocess::Pass1(PPRenderState* state, int fixedcm, int sceneWidth, int sceneHeight)
 {
+	weaponPixel.Render(state, sceneWidth, sceneHeight);
 	exposure.Render(state, sceneWidth, sceneHeight);
 	customShaders.Run(state, "beforebloom");
 	bloom.RenderBloom(state, sceneWidth, sceneHeight, fixedcm);

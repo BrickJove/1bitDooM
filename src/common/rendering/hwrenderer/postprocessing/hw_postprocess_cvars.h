@@ -70,6 +70,8 @@ EXTERN_CVAR(Int, gl_ssao_portals)
 EXTERN_CVAR(Float, gl_ssao_strength)
 EXTERN_CVAR(Int, gl_ssao_debug)
 EXTERN_CVAR(Float, gl_ssao_bias)
+EXTERN_CVAR(Int, gl_weapon_pixel)
+extern bool hudModelDrawn;
 EXTERN_CVAR(Float, gl_ssao_radius)
 EXTERN_CVAR(Float, gl_ssao_blur)
 EXTERN_CVAR(Float, gl_ssao_exponent)

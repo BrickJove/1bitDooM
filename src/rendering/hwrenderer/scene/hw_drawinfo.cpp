@@ -28,6 +28,7 @@
 #include "models.h"
 #include "hw_clock.h"
 #include "hw_cvars.h"
+#include "hwrenderer/postprocessing/hw_postprocess_cvars.h"
 #include "hw_viewpointbuffer.h"
 #include "flatvertices.h"
 #include "hw_lightbuffer.h"
@@ -944,6 +945,7 @@ void HWDrawInfo::EndDrawScene(sector_t * viewsector, FRenderState &state)
 		screen->mBones->Map();
 		DrawPlayerSprites(true, state);
 		screen->mBones->Unmap();
+		hudModelDrawn = true;
 	}
 
 	state.EnableStencil(false);

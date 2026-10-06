@@ -934,6 +934,39 @@ private:
 
 
 /////////////////////////////////////////////////////////////////////////////
+// Jupiter3D: pixelates only the player's 3D weapon (HUD model)
+// The HUD model is drawn last with a cleared depth buffer, so "depth is not at the far plane" marks exactly its pixels.
+
+struct WeaponPixelUniforms
+{
+	float LinearizeDepthA;
+	float LinearizeDepthB;
+	float PixelSize;
+	float Padding1;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "LinearizeDepthA", UniformType::Float, offsetof(WeaponPixelUniforms, LinearizeDepthA) },
+			{ "LinearizeDepthB", UniformType::Float, offsetof(WeaponPixelUniforms, LinearizeDepthB) },
+			{ "PixelSize", UniformType::Float, offsetof(WeaponPixelUniforms, PixelSize) },
+			{ "Padding1", UniformType::Float, offsetof(WeaponPixelUniforms, Padding1) }
+		};
+	}
+};
+
+class PPWeaponPixel
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+
+private:
+	PPShader WeaponPixel = { "shaders/pp/weaponpixel.fp", "", WeaponPixelUniforms::Desc() };
+	PPShader WeaponPixelMS = { "shaders/pp/weaponpixel.fp", "#define MULTISAMPLE\n", WeaponPixelUniforms::Desc() };
+};
+
+/////////////////////////////////////////////////////////////////////////////
 
 class Postprocess
 {
@@ -946,6 +979,7 @@ public:
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
 	PPOutline outline;
+	PPWeaponPixel weaponPixel;
 	PPPresent present;
 	PPShadowMap shadowmap;
 	PPCustomShaders customShaders;
