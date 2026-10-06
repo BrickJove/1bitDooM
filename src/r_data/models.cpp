@@ -126,14 +126,10 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor, outlinePixels);
 	if (outlinePixels && outlineWidth > 0.f)
 	{
-		// menu outline: full width up to 256 units, shrinking smoothly to 1 pixel at 512, gone beyond 1024
+		// menu outline: full width up close, 1 pixel beyond 512 units, gone beyond 1024
 		double outlineDist = (actor->Pos() - r_viewpoint.Pos).Length();
 		if (outlineDist > 1024.0) outlineWidth = 0.f;
-		else if (outlineDist > 256.0)
-		{
-			float t = (float)min((outlineDist - 256.0) / 256.0, 1.0);
-			outlineWidth = max(outlineWidth + (1.0f - outlineWidth) * t, min(outlineWidth, 1.0f));
-		}
+		else if (outlineDist > 512.0) outlineWidth = min(outlineWidth, 1.0f);
 	}
 	if (outlineWidth > 0.f)
 	{
