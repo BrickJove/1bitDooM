@@ -77,14 +77,14 @@ CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth 
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited
 
-// Textures drop to half resolution beyond a distance from the viewer. Map geometry and actors (sprites, models) have their own settings.
+// Textures drop to half resolution beyond a distance from the viewer. Map geometry only (not actors).
 CVARD(Float, gl_texblur_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where map textures drop to half resolution, 0 = off")
-CVARD(Float, gl_texblur_actor_start, 0.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Distance in map units where actor textures (sprites, models) drop to half resolution, 0 = off")
 
 // Start distance in 64 unit steps (6 bits) for uTextureMode. 0 = off.
 int GetTexBlurBits(bool actors)
 {
-	float start = actors ? gl_texblur_actor_start : gl_texblur_start;
+	if (actors) return 0;	// actors (sprites, models) are never reduced
+	float start = gl_texblur_start;
 	if (start <= 0.f) return 0;
 	return clamp((int)(start / 64.f + 0.5f), 1, 63);
 }
