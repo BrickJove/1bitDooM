@@ -363,14 +363,18 @@ void HWWall::RenderTranslucentWall(HWWallDispatcher*di, FRenderState &state)
 //==========================================================================
 void HWWall::DrawWall(HWWallDispatcher*di, FRenderState &state, bool translucent)
 {
-	// Lines flagged "Not shown on map" never get a screen space outline.
+	// Lines flagged "Not shown on map", sky walls and untextured walls never get a screen space outline.
 	struct NoOutlineScope
 	{
 		FRenderState &s;
 		bool saved;
 		NoOutlineScope(FRenderState &st, bool hide) : s(st), saved(st.GetNoOutline()) { if (hide) s.SetNoOutline(true); }
 		~NoOutlineScope() { s.SetNoOutline(saved); }
-	} noOutlineScope(state, seg != nullptr && seg->linedef != nullptr && (seg->linedef->flags & ML_DONTDRAW));
+	} noOutlineScope(state,
+		(seg != nullptr && seg->linedef != nullptr && (seg->linedef->flags & ML_DONTDRAW)) ||
+		texture == nullptr || !texture->isValid() ||
+		(di->Level != nullptr && texture->GetID() == skyflatnum) ||
+		type == RENDERWALL_COLOR || type == RENDERWALL_FOGBOUNDARY || type == RENDERWALL_MIRRORSURFACE);
 
 	if (screen->BuffersArePersistent())
 	{
