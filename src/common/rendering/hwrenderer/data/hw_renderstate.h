@@ -595,11 +595,9 @@ public:
 
 	// alpha threshold <= -1 = model outline (hull) pass, width = -1 - threshold, see main.vp / main.fp.
 	// Not a plain negative test: AlphaFunc(Alpha_GEqual, 0) legitimately sets -0.001.
-	// With ndcThickness > 0 the hull has a constant width on screen instead: ndcThickness = 2 * pixels / view height.
-	void SetOutlineHull(float width, float restoreThreshold = 0.5f, float ndcThickness = 0.f)
+	void SetOutlineHull(float width, float restoreThreshold = 0.5f)
 	{
-		if (ndcThickness > 0.f) mAlphaThreshold = -1.f - (100.f + ndcThickness);
-		else mAlphaThreshold = width > 0.f ? -1.f - width : restoreThreshold;
+		mAlphaThreshold = width > 0.f ? -1.f - width : restoreThreshold;
 	}
 
 	float GetAlphaThreshold() const

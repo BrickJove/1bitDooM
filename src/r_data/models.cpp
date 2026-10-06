@@ -45,12 +45,11 @@
 CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 // Global model outline (video menu). Only affects models that do not use back face culling and have no MODELDEF Outline of their own.
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, gl_model_outline_width, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// screen pixels, independent of distance
+CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
 // Returns the outline width to use for this model (0 = none) and its colour.
-static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color, bool& pixels)
+static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color)
 {
-	pixels = false;
 	if (smf->outlineWidth > 0.f)
 	{
 		color = smf->outlineColor;
@@ -66,7 +65,6 @@ static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle
 		return 0.f;
 
 	color = 0xff000000;
-	pixels = true;	// the menu value is a thickness in screen pixels
 	return gl_model_outline_width;
 }
 
@@ -122,11 +120,10 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		&& (actor->Pos() - r_viewpoint.Pos).Length() > gl_model_black_distance;
 
 	uint32_t outlineColor = 0xff000000;
-	bool outlinePixels = false;
-	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor, outlinePixels);
+	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor);
 	if (outlineWidth > 0.f)
 	{
-		renderer->BeginOutline(actor->RenderStyle, smf_flags, orientation < 0, false, outlineWidth, outlineColor, outlinePixels);
+		renderer->BeginOutline(actor->RenderStyle, smf_flags, orientation < 0, false, outlineWidth, outlineColor);
 		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 		renderer->EndOutline(actor->RenderStyle, smf_flags, orientation < 0, false);
 	}
@@ -389,11 +386,10 @@ void RenderHUDModel(FModelRenderer *renderer, DPSprite *psp, FVector3 translatio
 	if ((psp->Flags & PSPF_PLAYERTRANSLATED)) trans = psp->Owner->mo->Translation;
 
 	uint32_t outlineColor = 0xff000000;
-	bool outlinePixels = false;
-	float outlineWidth = GetModelOutline(smf, smf_flags, playermo->RenderStyle, true, outlineColor, outlinePixels);
+	float outlineWidth = GetModelOutline(smf, smf_flags, playermo->RenderStyle, true, outlineColor);
 	if (outlineWidth > 0.f)
 	{
-		renderer->BeginOutline(playermo->RenderStyle, smf_flags, orientation < 0, true, outlineWidth, outlineColor, outlinePixels);
+		renderer->BeginOutline(playermo->RenderStyle, smf_flags, orientation < 0, true, outlineWidth, outlineColor);
 		RenderFrameModels(renderer, playermo->Level, smf, psp->GetState(), psp->GetTics(), ticFrac, trans, psp->Caller);
 		renderer->EndOutline(playermo->RenderStyle, smf_flags, orientation < 0, true);
 	}

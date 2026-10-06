@@ -44,7 +44,7 @@ public:
 	virtual void SetupFrame(FModel* model, unsigned int frame1, unsigned int frame2, unsigned int size, int boneStartIndex) {};
 
 	// inverted hull outline pass. Called between BeginDrawModel/EndDrawModel.
-	virtual void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color, bool pixels) {}
+	virtual void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color) {}
 	virtual void EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud) {}
 
 	// draws everything flat black (keeps the texture alpha). Used for far away monsters.

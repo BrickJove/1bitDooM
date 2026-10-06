@@ -979,7 +979,7 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"
-	Slider "Model outline width (pixels)",        "gl_model_outline_width", 1, 8, 1, 0
+	Slider "Model outline width",                 "gl_model_outline_width", 0.1, 2.0, 0.1, 1
 	StaticText " "
 	StaticText "far monsters", 1
 	Slider "Monsters black beyond (0 = off)",    "gl_model_black_distance", 0, 4096, 128, 0
