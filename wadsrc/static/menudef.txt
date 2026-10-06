@@ -974,7 +974,6 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "map geometry outlines", 1
 	Option "Map outlines",                       "gl_outline", "OnOff"
-	Slider "Outline width",                       "gl_outline_width", 0.5, 6.0, 0.5, 1
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0
 	StaticText " "
 	StaticText "3d model outline", 1
