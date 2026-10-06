@@ -425,6 +425,11 @@ public:
 		mIsModel = on;
 	}
 
+	bool GetNoOutline() const
+	{
+		return mNoOutline;
+	}
+
 	void SetNoOutline(bool on)
 	{
 		mNoOutline = on;

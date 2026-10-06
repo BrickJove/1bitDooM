@@ -979,6 +979,7 @@ OptionMenu "VideoOptions" protected
 	StaticText "3d model outline", 1
 	Option "Model outlines",                     "gl_model_outline", "OnOff"
 	Option "Inner outline for far models",       "gl_model_inner_outline", "OnOff"
+	Slider "Inner outline starts at distance",   "gl_model_inner_outline_distance", 64, 4096, 64, 0
 	Slider "Model outline width",                 "gl_model_outline_width", 0.1, 2.0, 0.1, 1
 	StaticText " "
 	StaticText "far monsters", 1
