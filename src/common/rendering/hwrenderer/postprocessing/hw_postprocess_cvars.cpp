@@ -72,6 +72,10 @@ CUSTOM_CVAR(Int, gl_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 		self = 0;
 }
 
+// Models beyond a distance get a 1 pixel outline on the inside of their silhouette.
+CUSTOM_CVAR(Bool, gl_model_inner_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) {}
+CVAR(Float, gl_model_inner_outline_distance, 512.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
+
 CVAR(Float, gl_outline_width, 1.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// pixels at 1080p, scales with resolution
 CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth discontinuity sensitivity (lower = more lines)
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off

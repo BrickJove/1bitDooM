@@ -59,6 +59,7 @@ void FHWModelRenderer::BeginDrawModel(FRenderStyle style, int smf_flags, const V
 	state.mModelMatrix = objectToWorldMatrix;
 	state.EnableModelMatrix(true);
 	state.SetNoOutline(true);
+	state.SetModelClass(true);
 }
 
 void FHWModelRenderer::EndDrawModel(FRenderStyle style, int smf_flags)
@@ -66,6 +67,7 @@ void FHWModelRenderer::EndDrawModel(FRenderStyle style, int smf_flags)
 	state.SetBoneIndexBase(-1);
 	state.EnableModelMatrix(false);
 	state.SetNoOutline(false);
+	state.SetModelClass(false);
 	state.SetDepthFunc(DF_Less);
 	if ((smf_flags & MDL_FORCECULLBACKFACES) || (!(style == DefaultRenderStyle()) && !(smf_flags & MDL_DONTCULLBACKFACES)))
 		state.SetCulling(Cull_None);
@@ -148,6 +150,7 @@ void FHWModelRenderer::EndBlack()
 void FHWModelRenderer::BeginShadow(const VSMatrix& flatMatrix)
 {
 	shadowActive = true;
+	state.SetModelClass(false);	// drop shadows are no model silhouette
 	state.mModelMatrix = flatMatrix;
 	state.SetCulling(Cull_None);
 	state.SetDepthBias(-1.f, -128.f);
@@ -156,6 +159,7 @@ void FHWModelRenderer::BeginShadow(const VSMatrix& flatMatrix)
 void FHWModelRenderer::EndShadow(const VSMatrix& objectToWorldMatrix, FRenderStyle style, int smf_flags, bool mirrored)
 {
 	shadowActive = false;
+	state.SetModelClass(true);
 	state.ClearDepthBias();
 	state.SetObjectColor(0xffffffff);
 	state.SetTextureMode(TM_NORMAL);

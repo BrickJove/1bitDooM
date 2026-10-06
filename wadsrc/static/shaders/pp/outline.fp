@@ -53,6 +53,12 @@ bool SkyAt(ivec2 p, float inv)
 	return IsSky(inv) || (a > 0.2 && a < 0.45);
 }
 
+// surface class of 3D models (written by main.fp)
+bool IsModelClass(float a)
+{
+	return a > 0.1 && a < 0.25;
+}
+
 bool HasNormal(vec3 n)
 {
 	return dot(n, n) > 0.01;
@@ -103,6 +109,23 @@ void main()
 	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
 	float ic = InvDepth(ipos);
 	float dist = 1.0 / max(ic, 1.0e-8);
+	// 3D models (surface class ~0.1667) beyond ModelInnerDist: 1 pixel line on the inside of the silhouette,
+	// i.e. on model pixels that touch something that is not a model.
+	if (ModelInnerDist > 0.0 && IsModelClass(centerSample.a) && dist > ModelInnerDist)
+	{
+		bool inner = !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(1, 0)), 0).a)
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(1, 0)), 0).a)
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(0, 1)), 0).a)
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(0, 1)), 0).a);
+		FragColor = vec4(LineR, LineG, LineB, inner ? LineAlpha : 0.0);
+		return;
+	}
+	if (MapLines < 0.5)
+	{
+		FragColor = vec4(0.0);
+		return;
+	}
+
 	if (centerSample.a < 0.5 || !HasNormal(centerSample.xyz * 2.0 - 1.0) || (LineRange > 0.0 && dist > LineRange))
 	{
 		FragColor = vec4(0.0);

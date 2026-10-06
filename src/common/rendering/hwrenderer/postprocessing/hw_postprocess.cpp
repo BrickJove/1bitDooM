@@ -859,7 +859,7 @@ void PPAmbientOcclusion::Render(PPRenderState *renderstate, float m5, int sceneW
 
 void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
-	if (gl_outline == 0 || sceneWidth <= 0 || sceneHeight <= 0)
+	if ((gl_outline == 0 && !gl_model_inner_outline) || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 
 	PalEntry color = PalEntry(gl_outline_color);
@@ -876,7 +876,8 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.LineG = color.g / 255.0f;
 	uniforms.LineB = color.b / 255.0f;
 	uniforms.LineRange = max((float)gl_outline_range, 0.0f);
-	uniforms.Padding1 = uniforms.Padding2 = 0.0f;
+	uniforms.ModelInnerDist = gl_model_inner_outline ? max((float)gl_model_inner_outline_distance, 1.0f) : 0.0f;
+	uniforms.MapLines = gl_outline != 0 ? 1.0f : 0.0f;
 	uniforms.Scale = screen->SceneScale();
 	uniforms.Offset = screen->SceneOffset();
 

@@ -67,6 +67,7 @@ const int TEXF_Glowmap = 0x40000;
 const int TEXF_ClampY = 0x80000;
 const int TEXF_NoOutline = 0x100000;
 const int TEXF_Sky = 0x200000;
+const int TEXF_Model = 0x400000;
 
 //===========================================================================
 //
@@ -954,6 +955,7 @@ void main()
 	if (abs(vWorldNormal.y) < 0.7) surfaceClass *= 0.6667;
 	if ((uTextureMode & TEXF_Sky) != 0) surfaceClass = 0.3333;
 	if ((uTextureMode & TEXF_NoOutline) != 0) surfaceClass = 0.0;
+	if ((uTextureMode & TEXF_Model) != 0) surfaceClass = 0.1667;	// 3D model: not outlined like map geometry, but its edge can be
 	FragNormal = vec4(vEyeNormal.xyz * 0.5 + 0.5, surfaceClass);
 #endif
 }
