@@ -45,7 +45,7 @@
 CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 // Global model outline (video menu). Only affects models that do not use back face culling and have no MODELDEF Outline of their own.
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Float, gl_model_outline_width, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// screen pixels, independent of distance
+CVAR(Float, gl_model_outline_width, 2.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// screen pixels up close (1 pixel beyond 512 units, none beyond 1024)
 
 // Returns the outline width to use for this model (0 = none) and its colour.
 static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color, bool& pixels)
@@ -124,6 +124,13 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	uint32_t outlineColor = 0xff000000;
 	bool outlinePixels = false;
 	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor, outlinePixels);
+	if (outlinePixels && outlineWidth > 0.f)
+	{
+		// menu outline: full width up close, 1 pixel beyond 512 units, gone beyond 1024
+		double outlineDist = (actor->Pos() - r_viewpoint.Pos).Length();
+		if (outlineDist > 1024.0) outlineWidth = 0.f;
+		else if (outlineDist > 512.0) outlineWidth = min(outlineWidth, 1.0f);
+	}
 	if (outlineWidth > 0.f)
 	{
 		renderer->BeginOutline(actor->RenderStyle, smf_flags, orientation < 0, false, outlineWidth, outlineColor, outlinePixels);
