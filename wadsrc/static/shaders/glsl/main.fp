@@ -200,18 +200,27 @@ const int Tex_Blend_Hardlight = 4;
 
 vec4 getTexel(vec2 st)
 {
-	// Distance resolution: beyond the start distance the texture looks as if it were half the size
-	// (e.g. 64x64 instead of 128x128): every 2x2 block of texels is replaced by its average, shown
-	// without filtering. The four texels are fetched at their centres, so this works the same with
-	// nearest and linear filtering.
+	// Distance resolution: beyond the start distance the texture looks as if it were 1/factor of its size
+	// (e.g. factor 2: 64x64 instead of 128x128): every factor x factor block of texels is replaced by
+	// its average, shown without filtering. The texels are fetched at their centres, so this works the
+	// same with nearest and linear filtering.
 	vec4 texel;
-	int farBits = (uTextureMode >> 22) & 63;
-	if (farBits != 0 && pixelpos.w > float(farBits) * 64.0)
+	int farBits = (uTextureMode >> 22) & 0x1ff;
+	int farFactor = farBits >> 6;
+	if (farFactor >= 2 && pixelpos.w > float(farBits & 63) * 64.0)
 	{
 		vec2 sz = vec2(textureSize(tex, 0));
-		vec2 b = floor(st * sz * 0.5) * 2.0;
-		texel = (texture(tex, (b + vec2(0.5, 0.5)) / sz) + texture(tex, (b + vec2(1.5, 0.5)) / sz)
-		       + texture(tex, (b + vec2(0.5, 1.5)) / sz) + texture(tex, (b + vec2(1.5, 1.5)) / sz)) * 0.25;
+		float fct = float(farFactor);
+		vec2 b = floor(st * sz / fct) * fct;
+		vec4 sum = vec4(0.0);
+		for (int j = 0; j < farFactor; j++)
+		{
+			for (int i = 0; i < farFactor; i++)
+			{
+				sum += texture(tex, (b + vec2(float(i) + 0.5, float(j) + 0.5)) / sz);
+			}
+		}
+		texel = sum / (fct * fct);
 	}
 	else
 	{

@@ -412,7 +412,7 @@ public:
 		if (mTextureClamp) f |= TEXF_ClampY;
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mSky) f |= TEXF_Sky;
-		else f |= (GetTexBlurBits(mActorBlur) & 63) << TEXF_BlurShift;
+		else f |= (GetTexBlurBits(mActorBlur) & 0x1ff) << TEXF_BlurShift;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
 	}
 

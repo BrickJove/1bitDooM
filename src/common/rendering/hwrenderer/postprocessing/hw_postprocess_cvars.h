@@ -66,6 +66,7 @@ EXTERN_CVAR(Float, gl_outline_normal)
 EXTERN_CVAR(Float, gl_outline_alpha)
 EXTERN_CVAR(Float, gl_outline_range)
 EXTERN_CVAR(Float, gl_texblur_start)
+EXTERN_CVAR(Int, gl_texblur_factor)
 int GetTexBlurBits(bool actors);
 EXTERN_CVAR(Color, gl_outline_color)
 EXTERN_CVAR(Int, gl_ssao_portals)
