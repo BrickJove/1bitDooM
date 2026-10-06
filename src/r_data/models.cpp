@@ -45,17 +45,7 @@
 CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 // Global model outline (video menu). Only affects models that do not use back face culling and have no MODELDEF Outline of their own.
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-
-// The thickness follows the render resolution (width of the 3D view in pixels), in steps:
-// below 512 = 1 pixel, 512..639 = 2, 640..799 = 3, 800 and up = 4.
-static float ResolutionOutlineWidth()
-{
-	int w = screen != nullptr ? screen->mSceneViewport.width : 0;
-	if (w >= 800) return 4.f;
-	if (w >= 640) return 3.f;
-	if (w >= 512) return 2.f;
-	return 1.f;
-}
+CVAR(Float, gl_model_outline_width, 2.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// screen pixels up close (1 pixel beyond 512 units, none beyond 1024)
 
 // Returns the outline width to use for this model (0 = none) and its colour.
 static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color, bool& pixels)
@@ -66,7 +56,7 @@ static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle
 		color = smf->outlineColor;
 		return smf->outlineWidth;
 	}
-	if (!gl_model_outline)
+	if (!gl_model_outline || gl_model_outline_width <= 0.f)
 		return 0.f;
 
 	// Same condition the renderer uses to decide whether back faces are culled.
@@ -76,8 +66,8 @@ static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle
 		return 0.f;
 
 	color = 0xff000000;
-	pixels = true;	// thickness in screen pixels, chosen from the resolution
-	return ResolutionOutlineWidth();
+	pixels = true;	// the menu value is a thickness in screen pixels
+	return gl_model_outline_width;
 }
 
 // Monsters drawn completely black beyond this distance (0 = off)
@@ -136,7 +126,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor, outlinePixels);
 	if (outlinePixels && outlineWidth > 0.f)
 	{
-		// menu outline: resolution dependent width up to 256 units, shrinking smoothly to 1 pixel at 512, gone beyond 1024
+		// menu outline: full width up to 256 units, shrinking smoothly to 1 pixel at 512, gone beyond 1024
 		double outlineDist = (actor->Pos() - r_viewpoint.Pos).Length();
 		if (outlineDist > 1024.0) outlineWidth = 0.f;
 		else if (outlineDist > 256.0)
