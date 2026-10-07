@@ -397,7 +397,8 @@ void RenderHUDModel(FModelRenderer *renderer, DPSprite *psp, FVector3 translatio
 	// draws the lines where parts of the weapon overlap, e.g. the hand around the gun).
 	bool outlinePixels = false;
 	float outlineWidth = 0.f;
-	if (gl_weapon_outline && playermo->RenderStyle == DefaultRenderStyle())
+	// Weapons flagged forcecullbackfaces normally bring their own hull geometry: no extra hull for them.
+	if (gl_weapon_outline && playermo->RenderStyle == DefaultRenderStyle() && !(smf_flags & MDL_FORCECULLBACKFACES))
 	{
 		outlineWidth = (float)clamp((int)gl_weapon_outline_width, 1, 8);
 		outlineColor = 0xff000000 | (PalEntry(gl_weapon_outline_color) & 0xffffff);

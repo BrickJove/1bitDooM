@@ -1,0 +1,97 @@
+/*
+** weaponoutline.fp
+**
+** Jupiter3D: outline for the player's 3D weapon (HUD model) only, independent of the world and
+** of every other actor.
+**
+** The HUD model is drawn last after the depth buffer was cleared, so every pixel whose depth is not
+** on the far plane belongs to the weapon. Weapon pixels near the silhouette get a contour line of
+** InnerWidth pixels (inwards), and depth steps / creases inside the weapon get detail lines.
+** Everything else is copied.
+*/
+
+layout(location=0) in vec2 TexCoord;
+layout(location=0) out vec4 FragColor;
+
+layout(binding=0) uniform sampler2D InputTexture;
+#if defined(MULTISAMPLE)
+layout(binding=1) uniform sampler2DMS DepthTexture;
+#else
+layout(binding=1) uniform sampler2D DepthTexture;
+#endif
+
+ivec2 gTexSize;
+
+ivec2 ClampPos(ivec2 p)
+{
+	return clamp(p, ivec2(0), gTexSize - ivec2(1));
+}
+
+// nearer than the far plane = part of the weapon (pixels outside the screen count as background)
+bool IsWeapon(ivec2 p)
+{
+	if (p.x < 0 || p.y < 0 || p.x >= gTexSize.x || p.y >= gTexSize.y)
+		return false;
+	float d = texelFetch(DepthTexture, p, 0).x;
+	float inv = d * LinearizeDepthA + LinearizeDepthB;
+	return inv > (LinearizeDepthA + LinearizeDepthB) * 1.05;
+}
+
+float InvAt(ivec2 p)
+{
+	float d = texelFetch(DepthTexture, p, 0).x;
+	return d * LinearizeDepthA + LinearizeDepthB;
+}
+
+// Detail line inside the weapon: change of the slope of inverse depth (second derivative), both signs.
+// That catches a part lying in front of another one (hand around the gun) as well as creases and
+// ridges on the weapon. An axis with a background neighbour is skipped (that is the silhouette).
+float DetailEdge(ivec2 p)
+{
+	float ic = InvAt(p);
+	float e = 0.0;
+	if (IsWeapon(p + ivec2(1, 0)) && IsWeapon(p - ivec2(1, 0)))
+		e = max(e, abs(InvAt(p + ivec2(1, 0)) + InvAt(p - ivec2(1, 0)) - 2.0 * ic));
+	if (IsWeapon(p + ivec2(0, 1)) && IsWeapon(p - ivec2(0, 1)))
+		e = max(e, abs(InvAt(p + ivec2(0, 1)) + InvAt(p - ivec2(0, 1)) - 2.0 * ic));
+	return e / max(ic, 1.0e-8);
+}
+
+void main()
+{
+	gTexSize = textureSize(InputTexture, 0);
+	ivec2 p = ivec2(TexCoord * vec2(gTexSize));
+	vec4 color = texelFetch(InputTexture, ClampPos(p), 0);
+
+	if (!IsWeapon(p))
+	{
+		FragColor = color;
+		return;
+	}
+
+	bool line = false;
+
+	// contour inwards: weapon pixels within InnerWidth pixels of the background
+	int w = int(InnerWidth);
+	for (int j = -w; j <= w && !line; j++)
+	{
+		for (int i = -w; i <= w; i++)
+		{
+			if (i * i + j * j > w * w)
+				continue;
+			if (!IsWeapon(p + ivec2(i, j)))
+			{
+				line = true;
+				break;
+			}
+		}
+	}
+
+	// details inside the weapon
+	if (!line && Detail > 0.0 && DetailEdge(p) > Detail)
+		line = true;
+
+	if (line)
+		color.rgb = vec3(LineR, LineG, LineB);
+	FragColor = color;
+}

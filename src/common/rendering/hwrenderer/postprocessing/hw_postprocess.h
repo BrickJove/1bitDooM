@@ -961,6 +961,44 @@ struct WeaponPixelUniforms
 	}
 };
 
+// Jupiter3D: inner contour and detail lines for the player's 3D weapon (same depth mask)
+struct WeaponOutlineUniforms
+{
+	float LinearizeDepthA;
+	float LinearizeDepthB;
+	float InnerWidth;	// contour inwards in pixels, 0 = off
+	float Detail;		// sensitivity of lines inside the weapon, 0 = off
+	float LineR;
+	float LineG;
+	float LineB;
+	float Padding1;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "LinearizeDepthA", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthA) },
+			{ "LinearizeDepthB", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthB) },
+			{ "InnerWidth", UniformType::Float, offsetof(WeaponOutlineUniforms, InnerWidth) },
+			{ "Detail", UniformType::Float, offsetof(WeaponOutlineUniforms, Detail) },
+			{ "LineR", UniformType::Float, offsetof(WeaponOutlineUniforms, LineR) },
+			{ "LineG", UniformType::Float, offsetof(WeaponOutlineUniforms, LineG) },
+			{ "LineB", UniformType::Float, offsetof(WeaponOutlineUniforms, LineB) },
+			{ "Padding1", UniformType::Float, offsetof(WeaponOutlineUniforms, Padding1) }
+		};
+	}
+};
+
+class PPWeaponOutline
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+
+private:
+	PPShader WeaponOutline = { "shaders/pp/weaponoutline.fp", "", WeaponOutlineUniforms::Desc() };
+	PPShader WeaponOutlineMS = { "shaders/pp/weaponoutline.fp", "#define MULTISAMPLE\n", WeaponOutlineUniforms::Desc() };
+};
+
 class PPWeaponPixel
 {
 public:
@@ -984,6 +1022,7 @@ public:
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
 	PPOutline outline;
+	PPWeaponOutline weaponOutline;
 	PPWeaponPixel weaponPixel;
 	PPPresent present;
 	PPShadowMap shadowmap;

@@ -901,6 +901,41 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 /////////////////////////////////////////////////////////////////////////////
 // Jupiter3D: weapon pixelation
 
+void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	// hudModelDrawn is reset by the weapon pixel pass that runs after this one
+	int inner = clamp((int)gl_weapon_inner_outline, 0, 8);
+	float detail = max((float)gl_weapon_detail, 0.0f);
+	if (!hudModelDrawn || (inner == 0 && detail <= 0.0f) || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	PalEntry color = PalEntry(gl_weapon_outline_color);
+
+	WeaponOutlineUniforms uniforms;
+	uniforms.LinearizeDepthA = 1.0f / screen->GetZFar() - 1.0f / screen->GetZNear();
+	uniforms.LinearizeDepthB = max(1.0f / screen->GetZNear(), 1.e-8f);
+	uniforms.InnerWidth = (float)inner;
+	uniforms.Detail = detail;
+	uniforms.LineR = color.r / 255.0f;
+	uniforms.LineG = color.g / 255.0f;
+	uniforms.LineB = color.b / 255.0f;
+	uniforms.Padding1 = 0.0f;
+
+	renderstate->PushGroup("weaponoutline");
+
+	renderstate->Clear();
+	renderstate->Shader = gl_multisample > 1 ? &WeaponOutlineMS : &WeaponOutline;
+	renderstate->Uniforms.Set(uniforms);
+	renderstate->Viewport = screen->mScreenViewport;
+	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
+	renderstate->SetInputSceneDepth(1);
+	renderstate->SetOutputNext();
+	renderstate->SetNoBlend();
+	renderstate->Draw();
+
+	renderstate->PopGroup();
+}
+
 void PPWeaponPixel::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	// Only when a HUD model was drawn this frame: otherwise the depth buffer still holds the whole world.
@@ -1273,6 +1308,7 @@ void PPCustomShaderInstance::AddUniformField(size_t &offset, const FString &name
 
 void Postprocess::Pass1(PPRenderState* state, int fixedcm, int sceneWidth, int sceneHeight)
 {
+	weaponOutline.Render(state, sceneWidth, sceneHeight);
 	weaponPixel.Render(state, sceneWidth, sceneHeight);
 	exposure.Render(state, sceneWidth, sceneHeight);
 	customShaders.Run(state, "beforebloom");
