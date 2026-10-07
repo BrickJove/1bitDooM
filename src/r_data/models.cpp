@@ -47,6 +47,8 @@ CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
+extern bool hudModelOutlineAllowed;
+
 // Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
 CVARD(Bool, gl_weapon_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Hull outline of the player's 3D weapon")
 CVARD(Int, gl_weapon_outline_width, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Weapon outline width in screen pixels (1..8)")
@@ -385,6 +387,9 @@ void RenderHUDModel(FModelRenderer *renderer, DPSprite *psp, FVector3 translatio
 	objectToWorldMatrix.rotate(-smf->rolloffset, 1, 0, 0);
 
 	float orientation = smf->xscale * smf->yscale * smf->zscale;
+
+	// Weapons flagged forcecullbackfaces bring their own hull: no outline pass for them (see hw_postprocess.cpp).
+	if (!(smf_flags & MDL_FORCECULLBACKFACES)) hudModelOutlineAllowed = true;
 
 	renderer->BeginDrawHUDModel(playermo->RenderStyle, objectToWorldMatrix, orientation < 0, smf_flags);
 	auto trans = psp->GetTranslation();

@@ -28,7 +28,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Spielerwaffe
 - Waffen-Outline als Hülle (Inverted Hull) nur für das HUD-Modell, Dicke in Bildschirmpixeln (`gl_weapon_outline`, `gl_weapon_outline_width` 1-8, `gl_weapon_outline_color`, Hüllenflächen immer umgedreht); zeichnet auch Linien zwischen Waffenteilen. HUD-Modelle ignorieren `gl_model_outline`.
-- Waffen: keine Hülle bei MDL_FORCECULLBACKFACES; zusätzlich Kontur nach außen (`gl_weapon_outer_outline`, Pixel, auch für flache Modelle wie den Mündungsblitz) als Post-Process.
+- Waffen: weder Hülle noch Außenkontur bei MDL_FORCECULLBACKFACES; zusätzlich Kontur nach außen (`gl_weapon_outer_outline`, Pixel, auch für flache Modelle wie den Mündungsblitz) als Post-Process.
 - Waffen-Pixelung nur für das HUD-Modell (`gl_weapon_pixel`: Aus, 2, 3, 4, 6, 8), unabhängig von jupiter3d_pixelate.
 
 ## Ausprobiert und wieder entfernt

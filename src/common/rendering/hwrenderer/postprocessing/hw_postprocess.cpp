@@ -905,7 +905,7 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 {
 	// hudModelDrawn is reset by the weapon pixel pass that runs after this one
 	int outer = clamp((int)gl_weapon_outer_outline, 0, 8);
-	if (!hudModelDrawn || outer == 0 || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!hudModelDrawn || !hudModelOutlineAllowed || outer == 0 || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 
 	PalEntry color = PalEntry(gl_weapon_outline_color);

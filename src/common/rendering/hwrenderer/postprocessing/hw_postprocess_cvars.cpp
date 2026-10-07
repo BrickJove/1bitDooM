@@ -85,6 +85,7 @@ CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max 
 CVARD(Int, gl_weapon_pixel, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Pixel size of the player's 3D weapon (0 = off, 2 and up = pixel size)")
 // Weapon: contour outwards in pixels (0 = off).
 CVARD(Int, gl_weapon_outer_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Outer contour of the player's 3D weapon in pixels (0 = off)")
+bool hudModelOutlineAllowed = false;	// a HUD model without forcecullbackfaces was drawn this frame (the weapon outline pass only runs then)
 bool hudModelDrawn = false;	// set by EndDrawScene when a HUD model was drawn, read by the weapon pixel pass
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)

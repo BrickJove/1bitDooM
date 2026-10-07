@@ -943,6 +943,7 @@ void HWDrawInfo::EndDrawScene(sector_t * viewsector, FRenderState &state)
 		// [BB] The HUD model should be drawn over everything else already drawn.
 		state.Clear(CT_Depth);
 		screen->mBones->Map();
+		hudModelOutlineAllowed = false;	// set again by every HUD model that may be outlined
 		DrawPlayerSprites(true, state);
 		screen->mBones->Unmap();
 		hudModelDrawn = true;
