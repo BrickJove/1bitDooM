@@ -995,7 +995,7 @@ OptionMenu "VideoOptions" protected
 	StaticText "player weapon", 1
 	Option "Weapon outline",                     "gl_weapon_outline", "OnOff"
 	Slider "Weapon outline width (pixels)",      "gl_weapon_outline_width", 1, 8, 1, 0
-	Slider "Weapon inner contour (pixels, 0 = off)", "gl_weapon_inner_outline", 0, 8, 1, 0
+	Slider "Weapon outer contour (pixels, 0 = off)", "gl_weapon_outer_outline", 0, 8, 1, 0
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1

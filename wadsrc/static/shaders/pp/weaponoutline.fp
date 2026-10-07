@@ -6,7 +6,7 @@
 **
 ** The HUD model is drawn last after the depth buffer was cleared, so every pixel whose depth is not
 ** on the far plane belongs to the weapon. Weapon pixels near the silhouette get a contour line of
-** InnerWidth pixels (inwards). Everything else is copied.
+** OuterWidth pixels (outwards, on the background). Everything else is copied.
 */
 
 layout(location=0) in vec2 TexCoord;
@@ -64,7 +64,8 @@ void main()
 	ivec2 p = ivec2(TexCoord * vec2(gTexSize));
 	vec4 color = texelFetch(InputTexture, ClampPos(p), 0);
 
-	if (!IsSolid(p))
+	// only the background gets the line; weapon pixels (including the hull) stay as they are
+	if (IsWeapon(p))
 	{
 		FragColor = color;
 		return;
@@ -72,15 +73,16 @@ void main()
 
 	bool line = false;
 
-	// contour inwards: weapon pixels within InnerWidth pixels of the background
-	int w = int(InnerWidth);
+	// contour outwards: background pixels within OuterWidth pixels of the solid model. Hull pixels
+	// do not count as solid, so a model that already has a hull is not outlined twice.
+	int w = int(OuterWidth);
 	for (int j = -w; j <= w && !line && w > 0; j++)
 	{
 		for (int i = -w; i <= w; i++)
 		{
 			if (i * i + j * j > w * w)
 				continue;
-			if (!IsSolid(p + ivec2(i, j)))
+			if (IsSolid(p + ivec2(i, j)))
 			{
 				line = true;
 				break;

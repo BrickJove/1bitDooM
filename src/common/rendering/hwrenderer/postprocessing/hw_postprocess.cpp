@@ -904,8 +904,8 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	// hudModelDrawn is reset by the weapon pixel pass that runs after this one
-	int inner = clamp((int)gl_weapon_inner_outline, 0, 8);
-	if (!hudModelDrawn || inner == 0 || sceneWidth <= 0 || sceneHeight <= 0)
+	int outer = clamp((int)gl_weapon_outer_outline, 0, 8);
+	if (!hudModelDrawn || outer == 0 || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 
 	PalEntry color = PalEntry(gl_weapon_outline_color);
@@ -913,7 +913,7 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 	WeaponOutlineUniforms uniforms;
 	uniforms.LinearizeDepthA = 1.0f / screen->GetZFar() - 1.0f / screen->GetZNear();
 	uniforms.LinearizeDepthB = max(1.0f / screen->GetZNear(), 1.e-8f);
-	uniforms.InnerWidth = (float)inner;
+	uniforms.OuterWidth = (float)outer;
 	uniforms.LineR = color.r / 255.0f;
 	uniforms.LineG = color.g / 255.0f;
 	uniforms.LineB = color.b / 255.0f;

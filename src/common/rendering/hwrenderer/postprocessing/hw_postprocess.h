@@ -966,7 +966,7 @@ struct WeaponOutlineUniforms
 {
 	float LinearizeDepthA;
 	float LinearizeDepthB;
-	float InnerWidth;	// contour inwards in pixels, 0 = off
+	float OuterWidth;	// contour outwards in pixels, 0 = off
 	float LineR;
 	float LineG;
 	float LineB;
@@ -978,7 +978,7 @@ struct WeaponOutlineUniforms
 		{
 			{ "LinearizeDepthA", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthA) },
 			{ "LinearizeDepthB", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthB) },
-			{ "InnerWidth", UniformType::Float, offsetof(WeaponOutlineUniforms, InnerWidth) },
+			{ "OuterWidth", UniformType::Float, offsetof(WeaponOutlineUniforms, OuterWidth) },
 			{ "LineR", UniformType::Float, offsetof(WeaponOutlineUniforms, LineR) },
 			{ "LineG", UniformType::Float, offsetof(WeaponOutlineUniforms, LineG) },
 			{ "LineB", UniformType::Float, offsetof(WeaponOutlineUniforms, LineB) },
