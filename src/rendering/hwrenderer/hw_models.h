@@ -52,7 +52,7 @@ public:
 	void DrawArrays(int start, int count) override;
 	void DrawElements(int numIndices, size_t offset) override;
 	void SetupFrame(FModel *model, unsigned int frame1, unsigned int frame2, unsigned int size, int boneStartIndex) override;
-	void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color) override;
+	void BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color, bool pixels) override;
 	void EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud) override;
 	void BeginBlack() override { blackActive = true; }
 	void EndBlack() override;
@@ -63,6 +63,7 @@ private:
 	bool shadowActive = false;
 	bool blackActive = false;
 	float outlineWidth = 0.f;
+	bool outlinePixels = false;	// outlineWidth is in screen pixels, not map units
 	uint32_t outlineColor = 0xff000000;
 	float savedAlphaThreshold = 0.5f;
 

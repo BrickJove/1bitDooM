@@ -993,6 +993,9 @@ OptionMenu "VideoOptions" protected
 	Slider "Monsters black beyond (0 = off)",    "gl_model_black_distance", 0, 4096, 128, 0
 	StaticText " "
 	StaticText "player weapon", 1
+	Option "Weapon outline",                     "gl_weapon_outline", "OnOff"
+	Slider "Weapon outline width (pixels)",      "gl_weapon_outline_width", 1, 8, 1, 0
+	Option "Weapon outline: flip hull faces",    "gl_weapon_outline_flip", "OnOff"
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1

@@ -15,6 +15,7 @@
 **
 */
 
+#include "c_cvars.h"
 #include "filesystem.h"
 #include "g_game.h"
 #include "doomstat.h"
@@ -42,6 +43,8 @@ VSMatrix FHWModelRenderer::GetViewToWorldMatrix()
 	di->VPUniforms.ViewMatrix.inverseMatrix(objectToWorldMatrix);
 	return objectToWorldMatrix;
 }
+
+EXTERN_CVAR(Bool, gl_weapon_outline_flip)
 
 void FHWModelRenderer::BeginDrawModel(FRenderStyle style, int smf_flags, const VSMatrix &objectToWorldMatrix, bool mirrored)
 {
@@ -120,10 +123,13 @@ void FHWModelRenderer::SetMaterial(FGameTexture *skin, bool clampNoFilter, FTran
 	if (outlineWidth > 0.f)
 	{
 		// Outline pass: a negative alpha threshold tells main.vp to push the vertices
-		// out along their normals by that many map units, and main.fp to output a flat colour.
+		// out along their normals by that many map units (or screen pixels), and main.fp to output a flat colour.
 		state.SetTextureMode(TM_STENCIL);
 		state.SetObjectColor(PalEntry(outlineColor));
-		state.SetOutlineHull(outlineWidth);
+		if (outlinePixels)
+			state.SetOutlineHull(0.f, 0.5f, outlineWidth * 2.f / max(1, screen->mSceneViewport.height));
+		else
+			state.SetOutlineHull(outlineWidth);
 
 		// Skins with transparent areas get no hull outline: the inflated shell would be
 		// drawn as a solid rim behind the cut-out parts. Draw nothing for this surface.
@@ -172,12 +178,15 @@ void FHWModelRenderer::EndShadow(const VSMatrix& objectToWorldMatrix, FRenderSty
 
 // draws the model a second time, inflated along its normals with front faces culled,
 // so that only a rim of back faces is left visible around the silhouette.
-void FHWModelRenderer::BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color)
+void FHWModelRenderer::BeginOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud, float width, uint32_t color, bool pixels)
 {
 	outlineWidth = width;
+	outlinePixels = pixels;
 	outlineColor = color;
 	savedAlphaThreshold = state.GetAlphaThreshold();
-	state.SetCulling((mirrored ^ portalState.isMirrored()) ? Cull_CW : Cull_CCW);	// cull front faces
+	bool cullCW = (mirrored ^ portalState.isMirrored());
+	if (hud && pixels && gl_weapon_outline_flip) cullCW = !cullCW;	// weapon models with the opposite hull winding
+	state.SetCulling(cullCW ? Cull_CW : Cull_CCW);	// cull front faces
 }
 
 void FHWModelRenderer::EndOutline(FRenderStyle style, int smf_flags, bool mirrored, bool hud)

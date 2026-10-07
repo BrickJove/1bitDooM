@@ -47,6 +47,13 @@ CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
+// Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
+// gl_weapon_outline_flip swaps which faces of the hull are culled, for weapon models whose hull shows up as solid colour.
+CVARD(Bool, gl_weapon_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Hull outline of the player's 3D weapon")
+CVARD(Int, gl_weapon_outline_width, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Weapon outline width in screen pixels (1..8)")
+CVAR(Color, gl_weapon_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Bool, gl_weapon_outline_flip, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+
 // Returns the outline width to use for this model (0 = none) and its colour.
 static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color)
 {
@@ -123,7 +130,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor);
 	if (outlineWidth > 0.f)
 	{
-		renderer->BeginOutline(actor->RenderStyle, smf_flags, orientation < 0, false, outlineWidth, outlineColor);
+		renderer->BeginOutline(actor->RenderStyle, smf_flags, orientation < 0, false, outlineWidth, outlineColor, false);
 		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 		renderer->EndOutline(actor->RenderStyle, smf_flags, orientation < 0, false);
 	}
@@ -386,10 +393,24 @@ void RenderHUDModel(FModelRenderer *renderer, DPSprite *psp, FVector3 translatio
 	if ((psp->Flags & PSPF_PLAYERTRANSLATED)) trans = psp->Owner->mo->Translation;
 
 	uint32_t outlineColor = 0xff000000;
-	float outlineWidth = GetModelOutline(smf, smf_flags, playermo->RenderStyle, true, outlineColor);
+	// The player's weapon has its own outline settings, in screen pixels (inverted hull, so it also
+	// draws the lines where parts of the weapon overlap, e.g. the hand around the gun).
+	bool outlinePixels = false;
+	float outlineWidth = 0.f;
+	if (gl_weapon_outline && playermo->RenderStyle == DefaultRenderStyle())
+	{
+		outlineWidth = (float)clamp((int)gl_weapon_outline_width, 1, 8);
+		outlineColor = 0xff000000 | (PalEntry(gl_weapon_outline_color) & 0xffffff);
+		outlinePixels = true;
+	}
+	else if (smf->outlineWidth > 0.f)
+	{
+		outlineWidth = smf->outlineWidth;	// MODELDEF Outline, map units
+		outlineColor = smf->outlineColor;
+	}
 	if (outlineWidth > 0.f)
 	{
-		renderer->BeginOutline(playermo->RenderStyle, smf_flags, orientation < 0, true, outlineWidth, outlineColor);
+		renderer->BeginOutline(playermo->RenderStyle, smf_flags, orientation < 0, true, outlineWidth, outlineColor, outlinePixels);
 		RenderFrameModels(renderer, playermo->Level, smf, psp->GetState(), psp->GetTics(), ticFrac, trans, psp->Caller);
 		renderer->EndOutline(playermo->RenderStyle, smf_flags, orientation < 0, true);
 	}
