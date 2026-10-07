@@ -44,8 +44,6 @@ VSMatrix FHWModelRenderer::GetViewToWorldMatrix()
 	return objectToWorldMatrix;
 }
 
-EXTERN_CVAR(Bool, gl_weapon_outline_flip)
-
 void FHWModelRenderer::BeginDrawModel(FRenderStyle style, int smf_flags, const VSMatrix &objectToWorldMatrix, bool mirrored)
 {
 	state.SetDepthFunc(DF_LEqual);
@@ -185,7 +183,7 @@ void FHWModelRenderer::BeginOutline(FRenderStyle style, int smf_flags, bool mirr
 	outlineColor = color;
 	savedAlphaThreshold = state.GetAlphaThreshold();
 	bool cullCW = (mirrored ^ portalState.isMirrored());
-	if (hud && pixels && gl_weapon_outline_flip) cullCW = !cullCW;	// weapon models with the opposite hull winding
+	if (hud && pixels) cullCW = !cullCW;	// the weapon hull always uses the flipped faces
 	state.SetCulling(cullCW ? Cull_CW : Cull_CCW);	// cull front faces
 }
 

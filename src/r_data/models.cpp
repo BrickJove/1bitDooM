@@ -48,11 +48,9 @@ CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
 // Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
-// gl_weapon_outline_flip swaps which faces of the hull are culled, for weapon models whose hull shows up as solid colour.
 CVARD(Bool, gl_weapon_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Hull outline of the player's 3D weapon")
 CVARD(Int, gl_weapon_outline_width, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Weapon outline width in screen pixels (1..8)")
 CVAR(Color, gl_weapon_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Bool, gl_weapon_outline_flip, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 // Returns the outline width to use for this model (0 = none) and its colour.
 static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color)
