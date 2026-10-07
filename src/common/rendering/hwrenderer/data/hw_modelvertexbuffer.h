@@ -26,6 +26,8 @@ class FModelVertexBuffer : public IModelVertexBuffer
 {
 	IVertexBuffer *mVertexBuffer;
 	IIndexBuffer *mIndexBuffer;
+	FModelVertex *mLockedVertices = nullptr;
+	unsigned int mLockedCount = 0;
 
 public:
 

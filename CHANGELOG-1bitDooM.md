@@ -21,6 +21,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 ## 3D-Modelle
 - Model-Outline (Hull) über Menü (`gl_model_outline`, Breite `gl_model_outline_width` in Karteneinheiten); Hull wird bei Skins mit transparenten Pixeln übersprungen.
 - Modell-Schatten: flache schwarze Silhouette am Boden, wählbar für Gegner/Dekoration, Spieler-Schalter, Filter (Shootable/nicht-solide überspringen).
+- Hüllen-Outline mit geglätteten Normalen (an Vertices gleicher Position gemittelt, im Lightmap-Attribut abgelegt) und Gehrung: keine Lücken mehr an harten Kanten (Würfel).
 - Modelle über TEXF_Model/NoOutline-Flags im Normalpuffer markiert (OpenGL wie Vulkan).
 - Innere Outline für Modelle (`gl_model_inner_outline`, Abstand `gl_model_inner_outline_distance`, Standard 512): 1 px Linie innen an der Silhouette. Modell-Markierung im 2-Bit-Alpha: Alpha 0 + Normale (1,1,1).
 - Ferne Monster komplett schwarz ab Abstand (`gl_model_black_distance`).

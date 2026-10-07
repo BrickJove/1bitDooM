@@ -19,6 +19,7 @@ struct BonesResult
 {
 	vec3 Normal;
 	vec4 Position;
+	vec3 HullNormal;	// smoothed normal for the outline hull (see hw_modelvertexbuffer.cpp)
 };
 
 BonesResult ApplyBones();
@@ -49,12 +50,17 @@ void main()
 	vec3 hullNormal = vec3(0.0);
 	if (uAlphaThreshold <= -1.0)
 	{
-		hullNormal = normalize((NormalModelMatrix * vec4(normalize(bones.Normal), 1.0)).xyz);
+		hullNormal = normalize((NormalModelMatrix * vec4(normalize(bones.HullNormal), 1.0)).xyz);
+		vec3 faceNormal = normalize((NormalModelMatrix * vec4(normalize(bones.Normal), 1.0)).xyz);
 		float hullWidth = -1.0 - uAlphaThreshold;
 		if (hullWidth >= 100.0)
 			pixelHull = hullWidth - 100.0;
 		else
-			worldcoord.xyz += hullNormal * hullWidth;
+		{
+			// miter: keep the distance to the face constant where the smoothed normal leans away from it
+			float miter = 1.0 / clamp(dot(hullNormal, faceNormal), 0.5, 1.0);
+			worldcoord.xyz += hullNormal * hullWidth * miter;
+		}
 	}
 
 	vec4 eyeCoordPos = ViewMatrix * worldcoord;
@@ -189,7 +195,15 @@ vec3 GetAttrNormal()
 	#endif
 }
 
-void AddWeightedBone(uint boneIndex, float weight, inout vec4 position, inout vec3 normal)
+vec3 DecodeHullNormal(vec2 e)
+{
+	vec3 n = vec3(e.x, e.y, 1.0 - abs(e.x) - abs(e.y));
+	if (n.z < 0.0)
+		n.xy = (1.0 - abs(n.yx)) * vec2(n.x >= 0.0 ? 1.0 : -1.0, n.y >= 0.0 ? 1.0 : -1.0);
+	return normalize(n);
+}
+
+void AddWeightedBone(uint boneIndex, float weight, inout vec4 position, inout vec3 normal, inout vec3 hullNormal)
 {
 	if (weight != 0.0)
 	{
@@ -197,6 +211,7 @@ void AddWeightedBone(uint boneIndex, float weight, inout vec4 position, inout ve
 		mat3 rotation = mat3(transform);
 		position += (transform * aPosition) * weight;
 		normal += (rotation * aNormal.xyz) * weight;
+		hullNormal += (rotation * DecodeHullNormal(aLightmap.xy)) * weight;
 	}
 }
 
@@ -207,16 +222,17 @@ BonesResult ApplyBones()
 	{
 		result.Position = vec4(0.0);
 		result.Normal = vec3(0.0);
+		result.HullNormal = vec3(0.0);
 
 		// We use low precision input for our bone weights. Rescale so the sum still is 1.0
 		float totalWeight = aBoneWeight.x + aBoneWeight.y + aBoneWeight.z + aBoneWeight.w;
 		float weightMultiplier = 1.0 / totalWeight;
 		vec4 boneWeight = aBoneWeight * weightMultiplier;
 
-		AddWeightedBone(aBoneSelector.x, boneWeight.x, result.Position, result.Normal);
-		AddWeightedBone(aBoneSelector.y, boneWeight.y, result.Position, result.Normal);
-		AddWeightedBone(aBoneSelector.z, boneWeight.z, result.Position, result.Normal);
-		AddWeightedBone(aBoneSelector.w, boneWeight.w, result.Position, result.Normal);
+		AddWeightedBone(aBoneSelector.x, boneWeight.x, result.Position, result.Normal, result.HullNormal);
+		AddWeightedBone(aBoneSelector.y, boneWeight.y, result.Position, result.Normal, result.HullNormal);
+		AddWeightedBone(aBoneSelector.z, boneWeight.z, result.Position, result.Normal, result.HullNormal);
+		AddWeightedBone(aBoneSelector.w, boneWeight.w, result.Position, result.Normal, result.HullNormal);
 
 		result.Position.w = 1.0; // For numerical stability
 	}
@@ -224,6 +240,7 @@ BonesResult ApplyBones()
 	{
 		result.Position = aPosition;
 		result.Normal = GetAttrNormal();
+		result.HullNormal = DecodeHullNormal(aLightmap.xy);
 	}
 	return result;
 }
@@ -234,6 +251,7 @@ BonesResult ApplyBones()
 {
 	BonesResult result;
 	result.Position = aPosition;
+	result.HullNormal = vec3(0.0, 0.0, 1.0);
 	return result;
 }
 
