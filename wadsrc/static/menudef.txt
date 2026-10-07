@@ -997,7 +997,6 @@ OptionMenu "VideoOptions" protected
 	Slider "Weapon outline width (pixels)",      "gl_weapon_outline_width", 1, 8, 1, 0
 	Option "Weapon outline: flip hull faces",    "gl_weapon_outline_flip", "OnOff"
 	Slider "Weapon inner contour (pixels, 0 = off)", "gl_weapon_inner_outline", 0, 8, 1, 0
-	Slider "Weapon detail lines (0 = off, low = more)", "gl_weapon_detail", 0, 0.5, 0.02, 2
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1

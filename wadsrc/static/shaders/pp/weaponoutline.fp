@@ -6,8 +6,7 @@
 **
 ** The HUD model is drawn last after the depth buffer was cleared, so every pixel whose depth is not
 ** on the far plane belongs to the weapon. Weapon pixels near the silhouette get a contour line of
-** InnerWidth pixels (inwards), and depth steps / creases inside the weapon get detail lines.
-** Everything else is copied.
+** InnerWidth pixels (inwards). Everything else is copied.
 */
 
 layout(location=0) in vec2 TexCoord;
@@ -59,20 +58,6 @@ float InvAt(ivec2 p)
 	return d * LinearizeDepthA + LinearizeDepthB;
 }
 
-// Detail line inside the weapon: change of the slope of inverse depth (second derivative), both signs.
-// That catches a part lying in front of another one (hand around the gun) as well as creases and
-// ridges on the weapon. An axis with a background neighbour is skipped (that is the silhouette).
-float DetailEdge(ivec2 p)
-{
-	float ic = InvAt(p);
-	float e = 0.0;
-	if (IsSolid(p + ivec2(1, 0)) && IsSolid(p - ivec2(1, 0)))
-		e = max(e, abs(InvAt(p + ivec2(1, 0)) + InvAt(p - ivec2(1, 0)) - 2.0 * ic));
-	if (IsSolid(p + ivec2(0, 1)) && IsSolid(p - ivec2(0, 1)))
-		e = max(e, abs(InvAt(p + ivec2(0, 1)) + InvAt(p - ivec2(0, 1)) - 2.0 * ic));
-	return e / max(ic, 1.0e-8);
-}
-
 void main()
 {
 	gTexSize = textureSize(InputTexture, 0);
@@ -102,10 +87,6 @@ void main()
 			}
 		}
 	}
-
-	// details inside the weapon
-	if (!line && Detail > 0.0 && DetailEdge(p) > Detail)
-		line = true;
 
 	if (line)
 		color.rgb = vec3(LineR, LineG, LineB);

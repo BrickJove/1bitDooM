@@ -961,13 +961,12 @@ struct WeaponPixelUniforms
 	}
 };
 
-// Jupiter3D: inner contour and detail lines for the player's 3D weapon (same depth mask)
+// Jupiter3D: inner contour for the player's 3D weapon (same depth mask)
 struct WeaponOutlineUniforms
 {
 	float LinearizeDepthA;
 	float LinearizeDepthB;
 	float InnerWidth;	// contour inwards in pixels, 0 = off
-	float Detail;		// sensitivity of lines inside the weapon, 0 = off
 	float LineR;
 	float LineG;
 	float LineB;
@@ -980,7 +979,6 @@ struct WeaponOutlineUniforms
 			{ "LinearizeDepthA", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthA) },
 			{ "LinearizeDepthB", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthB) },
 			{ "InnerWidth", UniformType::Float, offsetof(WeaponOutlineUniforms, InnerWidth) },
-			{ "Detail", UniformType::Float, offsetof(WeaponOutlineUniforms, Detail) },
 			{ "LineR", UniformType::Float, offsetof(WeaponOutlineUniforms, LineR) },
 			{ "LineG", UniformType::Float, offsetof(WeaponOutlineUniforms, LineG) },
 			{ "LineB", UniformType::Float, offsetof(WeaponOutlineUniforms, LineB) },
