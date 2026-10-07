@@ -919,7 +919,7 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 	uniforms.LineR = color.r / 255.0f;
 	uniforms.LineG = color.g / 255.0f;
 	uniforms.LineB = color.b / 255.0f;
-	uniforms.Padding1 = 0.0f;
+	uniforms.HullActive = gl_weapon_outline ? 1.0f : 0.0f;
 
 	renderstate->PushGroup("weaponoutline");
 

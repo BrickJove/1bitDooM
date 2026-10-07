@@ -76,6 +76,7 @@ EXTERN_CVAR(Int, gl_weapon_pixel)
 EXTERN_CVAR(Int, gl_weapon_inner_outline)
 EXTERN_CVAR(Float, gl_weapon_detail)
 EXTERN_CVAR(Color, gl_weapon_outline_color)
+EXTERN_CVAR(Bool, gl_weapon_outline)
 extern bool hudModelDrawn;
 EXTERN_CVAR(Float, gl_ssao_radius)
 EXTERN_CVAR(Float, gl_ssao_blur)

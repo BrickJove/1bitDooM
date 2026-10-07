@@ -37,6 +37,22 @@ bool IsWeapon(ivec2 p)
 	return inv > (LinearizeDepthA + LinearizeDepthB) * 1.05;
 }
 
+// A weapon pixel that is not the hull: the hull is drawn flat in the outline colour, so a weapon
+// pixel with exactly that colour counts as hull. Only the solid model gets the inner contour,
+// otherwise the contour would just paint over the (already coloured) hull.
+bool IsSolid(ivec2 p)
+{
+	if (!IsWeapon(p))
+		return false;
+	if (HullActive > 0.5)
+	{
+		vec3 c = texelFetch(InputTexture, p, 0).rgb;
+		if (distance(c, vec3(LineR, LineG, LineB)) < 0.03)
+			return false;
+	}
+	return true;
+}
+
 float InvAt(ivec2 p)
 {
 	float d = texelFetch(DepthTexture, p, 0).x;
@@ -50,9 +66,9 @@ float DetailEdge(ivec2 p)
 {
 	float ic = InvAt(p);
 	float e = 0.0;
-	if (IsWeapon(p + ivec2(1, 0)) && IsWeapon(p - ivec2(1, 0)))
+	if (IsSolid(p + ivec2(1, 0)) && IsSolid(p - ivec2(1, 0)))
 		e = max(e, abs(InvAt(p + ivec2(1, 0)) + InvAt(p - ivec2(1, 0)) - 2.0 * ic));
-	if (IsWeapon(p + ivec2(0, 1)) && IsWeapon(p - ivec2(0, 1)))
+	if (IsSolid(p + ivec2(0, 1)) && IsSolid(p - ivec2(0, 1)))
 		e = max(e, abs(InvAt(p + ivec2(0, 1)) + InvAt(p - ivec2(0, 1)) - 2.0 * ic));
 	return e / max(ic, 1.0e-8);
 }
@@ -63,7 +79,7 @@ void main()
 	ivec2 p = ivec2(TexCoord * vec2(gTexSize));
 	vec4 color = texelFetch(InputTexture, ClampPos(p), 0);
 
-	if (!IsWeapon(p))
+	if (!IsSolid(p))
 	{
 		FragColor = color;
 		return;
@@ -73,13 +89,13 @@ void main()
 
 	// contour inwards: weapon pixels within InnerWidth pixels of the background
 	int w = int(InnerWidth);
-	for (int j = -w; j <= w && !line; j++)
+	for (int j = -w; j <= w && !line && w > 0; j++)
 	{
 		for (int i = -w; i <= w; i++)
 		{
 			if (i * i + j * j > w * w)
 				continue;
-			if (!IsWeapon(p + ivec2(i, j)))
+			if (!IsSolid(p + ivec2(i, j)))
 			{
 				line = true;
 				break;

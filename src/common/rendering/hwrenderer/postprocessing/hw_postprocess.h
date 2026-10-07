@@ -971,7 +971,7 @@ struct WeaponOutlineUniforms
 	float LineR;
 	float LineG;
 	float LineB;
-	float Padding1;
+	float HullActive;	// 1 = the weapon has a hull in the outline colour, those pixels are not part of the solid model
 
 	static std::vector<UniformFieldDesc> Desc()
 	{
@@ -984,7 +984,7 @@ struct WeaponOutlineUniforms
 			{ "LineR", UniformType::Float, offsetof(WeaponOutlineUniforms, LineR) },
 			{ "LineG", UniformType::Float, offsetof(WeaponOutlineUniforms, LineG) },
 			{ "LineB", UniformType::Float, offsetof(WeaponOutlineUniforms, LineB) },
-			{ "Padding1", UniformType::Float, offsetof(WeaponOutlineUniforms, Padding1) }
+			{ "HullActive", UniformType::Float, offsetof(WeaponOutlineUniforms, HullActive) }
 		};
 	}
 };
