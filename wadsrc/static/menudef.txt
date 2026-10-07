@@ -1004,7 +1004,6 @@ OptionMenu "VideoOptions" protected
 	Option "Weapon outline",                     "gl_weapon_outline", "WeaponOutlineMode"
 	Slider "Weapon outline width (pixels)",      "gl_weapon_outline_width", 1, 8, 1, 0
 	Slider "Weapon outline strength",            "gl_weapon_outline_alpha", 0.1, 1.0, 0.1, 1
-	Slider "Weapon inner lines (0 = off, low = more)", "gl_weapon_outline_detail", 0, 0.5, 0.02, 2
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1

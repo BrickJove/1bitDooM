@@ -36,28 +36,6 @@ bool IsWeapon(ivec2 p)
 	return inv > (LinearizeDepthA + LinearizeDepthB) * 1.05;
 }
 
-float InvAt(ivec2 p)
-{
-	float d = texelFetch(DepthTexture, p, 0).x;
-	return d * LinearizeDepthA + LinearizeDepthB;
-}
-
-// Depth step inside the weapon: a pixel that lies behind a nearer part of the weapon (second
-// derivative of inverse depth, like the map outline). Drawn on the far side, about Width pixels thick.
-// An axis with a background neighbour is skipped: that is the silhouette, handled by Mode.
-float InnerEdge(ivec2 p, int w)
-{
-	ivec2 dx = ivec2(w, 0);
-	ivec2 dy = ivec2(0, w);
-	float ic = InvAt(p);
-	float e = 0.0;
-	if (IsWeapon(p + dx) && IsWeapon(p - dx))
-		e = max(e, InvAt(p + dx) + InvAt(p - dx) - 2.0 * ic);
-	if (IsWeapon(p + dy) && IsWeapon(p - dy))
-		e = max(e, InvAt(p + dy) + InvAt(p - dy) - 2.0 * ic);
-	return e / max(ic, 1.0e-8);
-}
-
 void main()
 {
 	gTexSize = textureSize(InputTexture, 0);
@@ -66,14 +44,6 @@ void main()
 
 	int w = int(Width);
 	bool self = IsWeapon(p);
-
-	// Lines between parts of the weapon (hand over gun, ...), independent of the silhouette mode
-	if (self && Detail > 0.0 && InnerEdge(p, w) > Detail)
-	{
-		color.rgb = mix(color.rgb, vec3(LineR, LineG, LineB), LineAlpha);
-		FragColor = color;
-		return;
-	}
 
 	// Mode: 1 = outside, 2 = inside, 3 = both
 	bool wantOutside = (Mode == 1.0 || Mode == 3.0) && !self;
