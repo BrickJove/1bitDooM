@@ -26,7 +26,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Ferne Monster komplett schwarz ab Abstand (`gl_model_black_distance`).
 
 ## Spielerwaffe
-- Eigene Waffen-Outline (`gl_weapon_outline` Aus/Außen/Innen/Beides, Breite 1-8 px, Stärke, Farbe) als Post-Process nur auf dem HUD-Modell; HUD-Modelle bekommen keine Hull-Outline mehr.
+- Eigene Waffen-Outline (`gl_weapon_outline` Aus/Außen/Innen/Beides, Breite 1-8 px, Stärke, Farbe, Innenlinien `gl_weapon_outline_detail`) als Post-Process nur auf dem HUD-Modell; HUD-Modelle bekommen keine Hull-Outline mehr.
 - Waffen-Pixelung nur für das HUD-Modell (`gl_weapon_pixel`: Aus, 2, 3, 4, 6, 8), unabhängig von jupiter3d_pixelate.
 
 ## Ausprobiert und wieder entfernt

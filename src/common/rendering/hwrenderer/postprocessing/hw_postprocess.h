@@ -972,6 +972,10 @@ struct WeaponOutlineUniforms
 	float LineG;
 	float LineB;
 	float LineAlpha;
+	float Detail;	// sensitivity for lines inside the weapon (depth steps), 0 = off
+	float Padding1;
+	float Padding2;
+	float Padding3;
 
 	static std::vector<UniformFieldDesc> Desc()
 	{
@@ -984,7 +988,11 @@ struct WeaponOutlineUniforms
 			{ "LineR", UniformType::Float, offsetof(WeaponOutlineUniforms, LineR) },
 			{ "LineG", UniformType::Float, offsetof(WeaponOutlineUniforms, LineG) },
 			{ "LineB", UniformType::Float, offsetof(WeaponOutlineUniforms, LineB) },
-			{ "LineAlpha", UniformType::Float, offsetof(WeaponOutlineUniforms, LineAlpha) }
+			{ "LineAlpha", UniformType::Float, offsetof(WeaponOutlineUniforms, LineAlpha) },
+			{ "Detail", UniformType::Float, offsetof(WeaponOutlineUniforms, Detail) },
+			{ "Padding1", UniformType::Float, offsetof(WeaponOutlineUniforms, Padding1) },
+			{ "Padding2", UniformType::Float, offsetof(WeaponOutlineUniforms, Padding2) },
+			{ "Padding3", UniformType::Float, offsetof(WeaponOutlineUniforms, Padding3) }
 		};
 	}
 };
