@@ -83,11 +83,6 @@ CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max 
 
 // Pixel size for the player's 3D weapon only (2 = every 2x2 screen pixels, ...), 0 = off.
 CVARD(Int, gl_weapon_pixel, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Pixel size of the player's 3D weapon (0 = off, 2 and up = pixel size)")
-// Outline for the player's 3D weapon only: 0 = off, 1 = outside, 2 = inside, 3 = both; width in pixels.
-CVARD(Int, gl_weapon_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Outline of the player's 3D weapon (0 = off, 1 = outside, 2 = inside, 3 = both)")
-CVARD(Int, gl_weapon_outline_width, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Weapon outline width in pixels (1..8)")
-CVAR(Float, gl_weapon_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Color, gl_weapon_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 bool hudModelDrawn = false;	// set by EndDrawScene when a HUD model was drawn, read by the weapon pixel pass
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)

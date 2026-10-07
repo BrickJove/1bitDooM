@@ -50,9 +50,6 @@ CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// m
 // Returns the outline width to use for this model (0 = none) and its colour.
 static float GetModelOutline(FSpriteModelFrame* smf, int smf_flags, FRenderStyle style, bool hud, uint32_t& color)
 {
-	// The player's weapon never gets a geometry hull: it has its own screen space outline (gl_weapon_outline).
-	if (hud)
-		return 0.f;
 	if (smf->outlineWidth > 0.f)
 	{
 		color = smf->outlineColor;

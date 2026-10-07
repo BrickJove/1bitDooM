@@ -961,44 +961,6 @@ struct WeaponPixelUniforms
 	}
 };
 
-// Jupiter3D: outline for the player's 3D weapon only (same depth mask as above)
-struct WeaponOutlineUniforms
-{
-	float LinearizeDepthA;
-	float LinearizeDepthB;
-	float Width;	// line width in pixels
-	float Mode;		// 1 = outside, 2 = inside, 3 = both
-	float LineR;
-	float LineG;
-	float LineB;
-	float LineAlpha;
-
-	static std::vector<UniformFieldDesc> Desc()
-	{
-		return
-		{
-			{ "LinearizeDepthA", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthA) },
-			{ "LinearizeDepthB", UniformType::Float, offsetof(WeaponOutlineUniforms, LinearizeDepthB) },
-			{ "Width", UniformType::Float, offsetof(WeaponOutlineUniforms, Width) },
-			{ "Mode", UniformType::Float, offsetof(WeaponOutlineUniforms, Mode) },
-			{ "LineR", UniformType::Float, offsetof(WeaponOutlineUniforms, LineR) },
-			{ "LineG", UniformType::Float, offsetof(WeaponOutlineUniforms, LineG) },
-			{ "LineB", UniformType::Float, offsetof(WeaponOutlineUniforms, LineB) },
-			{ "LineAlpha", UniformType::Float, offsetof(WeaponOutlineUniforms, LineAlpha) }
-		};
-	}
-};
-
-class PPWeaponOutline
-{
-public:
-	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
-
-private:
-	PPShader WeaponOutline = { "shaders/pp/weaponoutline.fp", "", WeaponOutlineUniforms::Desc() };
-	PPShader WeaponOutlineMS = { "shaders/pp/weaponoutline.fp", "#define MULTISAMPLE\n", WeaponOutlineUniforms::Desc() };
-};
-
 class PPWeaponPixel
 {
 public:
@@ -1022,7 +984,6 @@ public:
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
 	PPOutline outline;
-	PPWeaponOutline weaponOutline;
 	PPWeaponPixel weaponPixel;
 	PPPresent present;
 	PPShadowMap shadowmap;

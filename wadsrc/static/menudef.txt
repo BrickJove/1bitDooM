@@ -333,14 +333,6 @@ OptionValue "OutlineMode"
 	2, "Extended (sky border, inner corners)"
 }
 
-OptionValue "WeaponOutlineMode"
-{
-	0, "Off"
-	1, "Outside"
-	2, "Inside"
-	3, "Both"
-}
-
 OptionValue "WeaponPixelSize"
 {
 	0, "Off"
@@ -1001,9 +993,6 @@ OptionMenu "VideoOptions" protected
 	Slider "Monsters black beyond (0 = off)",    "gl_model_black_distance", 0, 4096, 128, 0
 	StaticText " "
 	StaticText "player weapon", 1
-	Option "Weapon outline",                     "gl_weapon_outline", "WeaponOutlineMode"
-	Slider "Weapon outline width (pixels)",      "gl_weapon_outline_width", 1, 8, 1, 0
-	Slider "Weapon outline strength",            "gl_weapon_outline_alpha", 0.1, 1.0, 0.1, 1
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1
