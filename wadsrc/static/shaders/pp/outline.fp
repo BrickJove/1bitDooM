@@ -171,10 +171,37 @@ float MapEdge(ivec2 ipos)
 	return max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
 }
 
-// Two lines running parallel and only 1-2 pixels apart merge into a smeared, broken line.
-// Keep only one of them: a line pixel is dropped when a stronger (or, on a tie, lower) line pixel runs
-// parallel to it at a distance of 2 or 3 pixels. The direction is taken from the neighbouring line pixels;
-// diagonal staircases (line pixels on both axes) are left alone.
+// ---- line clean up (gl_outline_merge) -------------------------------------------------------------
+// Goal: every straight line is exactly one pixel wide, without gaps and without a second line next to it.
+//  1. hard lines: a pixel is a line or not (no half transparent pixels that the 1-bit conversion drops)
+//  2. hysteresis: a weak pixel next to a strong one belongs to the line (depth noise makes lines flicker)
+//  3. gap filling: a gap of 1-2 pixels between two line pixels of the same row / column is closed
+//  4. thinning: a band two pixels thick keeps only its upper / left row
+//  5. parallel lines 2-3 pixels apart: only one of them is kept
+
+bool Strong(ivec2 p)
+{
+	return MapEdge(p) >= 0.5 * LineAlpha;
+}
+
+bool GapAlong(ivec2 p, ivec2 axis)
+{
+	if (Strong(p - axis))
+		return Strong(p + axis) || Strong(p + axis * 2);
+	return Strong(p - axis * 2) && Strong(p + axis);
+}
+
+// two pixels thick: this pixel is part of a run and the pixel above / left of it is part of a run too
+bool Thick(ivec2 p)
+{
+	ivec2 x = ivec2(1, 0), y = ivec2(0, 1);
+	if (Strong(p - x) && Strong(p + x) && Strong(p - y) && Strong(p - y - x) && Strong(p - y + x))
+		return true;
+	if (Strong(p - y) && Strong(p + y) && Strong(p - x) && Strong(p - x - y) && Strong(p - x + y))
+		return true;
+	return false;
+}
+
 bool ParallelNeighbour(ivec2 p, float e)
 {
 	bool runH = MapEdge(p + ivec2(1, 0)) > 0.05 || MapEdge(p - ivec2(1, 0)) > 0.05;
@@ -222,8 +249,21 @@ void main()
 	}
 
 	float edge = MapEdge(ipos);
-	if (MergeLines > 0.5 && edge > 0.05 && ParallelNeighbour(ipos, edge))
-		edge = 0.0;
+	if (MergeLines > 0.5)
+	{
+		bool line = edge >= 0.5 * LineAlpha;
+		// hysteresis: weak pixel next to a strong one
+		if (!line && edge > 0.15 * LineAlpha)
+			line = Strong(ipos + ivec2(1, 0)) || Strong(ipos - ivec2(1, 0)) || Strong(ipos + ivec2(0, 1)) || Strong(ipos - ivec2(0, 1));
+		// gaps of 1-2 pixels along a row or a column
+		if (!line)
+			line = GapAlong(ipos, ivec2(1, 0)) || GapAlong(ipos, ivec2(0, 1));
+		if (line && Thick(ipos))
+			line = false;
+		if (line && ParallelNeighbour(ipos, max(edge, 0.5 * LineAlpha)))
+			line = false;
+		edge = line ? LineAlpha : 0.0;
+	}
 
 	vec3 lineColor = vec3(LineR, LineG, LineB);
 	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
