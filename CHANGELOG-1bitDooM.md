@@ -40,3 +40,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Distanz-Unschärfe (Disc, Gauss), Fern-Texturen schwarz/weiß, halbe Auflösung, ganzzahliger Faktor.
 - Modell-Outline in Pixeldicke, Stufen nach Auflösung, fließender Übergang.
 - Crash-Fix (Zugriff auf veraltetes Material) vor der Entfernung der Fern-Textur-Features.
+
+- Clean lines: lines are now fully opaque and pure black/white (no blended colour fringes in the 1-bit conversion); white-on-dark decision uses the brightest pixel of the 3x3 neighbourhood so line colour no longer flickers along a line.

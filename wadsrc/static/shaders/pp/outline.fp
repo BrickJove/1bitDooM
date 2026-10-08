@@ -262,12 +262,24 @@ void main()
 			line = false;
 		if (line && ParallelNeighbour(ipos, max(edge, 0.5 * LineAlpha)))
 			line = false;
-		edge = line ? LineAlpha : 0.0;
+		// fully opaque: half transparent pixels become coloured fringes in the 1-bit conversion
+		edge = line ? 1.0 : 0.0;
 	}
 
 	vec3 lineColor = vec3(LineR, LineG, LineB);
-	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
-	if (DarkLines > 0.0 && texelFetch(FogTexture, ClampPos(ipos), 0).a < DarkLines)
-		lineColor = vec3(1.0);
+	if (MergeLines > 0.5)
+		lineColor = floor(lineColor + 0.5); // pure black / white, no grey or tinted lines
+	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line.
+	// Decided from the brightest pixel of the 3x3 neighbourhood, so the colour of a line does not
+	// flip between black and white along its length when the texture varies.
+	if (DarkLines > 0.0 && edge > 0.0)
+	{
+		float m = 0.0;
+		for (int y = -1; y <= 1; y++)
+			for (int x = -1; x <= 1; x++)
+				m = max(m, texelFetch(FogTexture, ClampPos(ipos + ivec2(x, y)), 0).a);
+		if (m < DarkLines)
+			lineColor = vec3(1.0);
+	}
 	FragColor = vec4(lineColor, edge);
 }
