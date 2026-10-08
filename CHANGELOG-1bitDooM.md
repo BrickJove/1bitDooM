@@ -3,6 +3,7 @@
 Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Fork / Menü
+- Version "0.1 alpha" statt Git-Beschreibung (Konsole, Fenstertitel); Start-Logo (bootlogo.png) entfernt.
 - Eigenständiger Fork "1bitDooM": Windows-Build-Workflow, eigenes README, Umbenennung (Fenstertitel, Config-/Savordner, exe-Metadaten).
 - Optionsmenü: Auswahlpfeil in der Menü-Auswahlfarbe statt festem Rot; GAMEINFO `MenuFont` und `MenuSelector`; ohne `MenuSelector` wird Zeichen 13 der MenuFont genutzt.
 - MODELDEF-Keyword `Outline` (Hull-Outline pro Modell).

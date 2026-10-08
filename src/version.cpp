@@ -40,9 +40,10 @@
 //
 //==========================================================================
 
+// 1bitDooM shows its own version instead of the UZDoom git description (GetGitHash / GetGitTime stay as they are).
 const char *GetVersionString()
 {
-	return GIT_DESCRIPTION;
+	return "0.1 alpha";
 }
 
 //==========================================================================
