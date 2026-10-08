@@ -200,7 +200,16 @@ void main()
 	float edge = max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
 	vec3 lineColor = vec3(LineR, LineG, LineB);
 	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
-	if (DarkLines > 0.0 && texelFetch(FogTexture, ClampPos(ipos), 0).a < DarkLines)
-		lineColor = vec3(1.0);
+	// The brightness is averaged over 5x5 pixels so the colour does not flip from pixel to pixel
+	// (text, thin parts, two lines close together), which would break the line up.
+	if (DarkLines > 0.0)
+	{
+		float sum = 0.0;
+		for (int j = -2; j <= 2; j++)
+			for (int i = -2; i <= 2; i++)
+				sum += texelFetch(FogTexture, ClampPos(ipos + ivec2(i, j)), 0).a;
+		if (sum / 25.0 < DarkLines)
+			lineColor = vec3(1.0);
+	}
 	FragColor = vec4(lineColor, edge);
 }
