@@ -981,6 +981,7 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "map geometry outlines", 1
 	Option "Map outlines",                       "gl_outline", "OutlineMode"
+	Option "Merge close parallel lines",         "gl_outline_merge", "OnOff"
 	Option "White lines on black surfaces",      "gl_outline_dark", "OnOff"
 	Slider "Black surface brightness limit",     "gl_outline_dark_level", 0.02, 0.5, 0.02, 2
 	Slider "Outline range (0 = unlimited)",      "gl_outline_range", 0, 8192, 128, 0

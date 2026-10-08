@@ -92,53 +92,24 @@ float SkyQuadNeighbour(float ic, ivec2 p)
 	return (a > 0.2 && a < 0.45 && !IsSky(ni) && abs(ni - ic) < 0.12 * ic) ? 1.0 : 0.0;
 }
 
-void main()
+// Strength (0..1) of the map geometry line at a pixel.
+float MapEdge(ivec2 ipos)
 {
-	vec2 uv = Offset + TexCoord * Scale;
-
-#if defined(MULTISAMPLE)
-	gTexSize = textureSize(DepthTexture);
-#else
-	gTexSize = textureSize(DepthTexture, 0);
-#endif
-
-	ivec2 ipos = ivec2(uv * vec2(gTexSize));
 	int w = int(LineWidth);
 
 	ivec2 dx = ivec2(w, 0);
 	ivec2 dy = ivec2(0, w);
 
-	// Only map geometry gets lines: models carry alpha 0, sprites have no normal.
 	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
 	float ic = InvDepth(ipos);
 	float dist = 1.0 / max(ic, 1.0e-8);
-	// 3D models (surface class ~0.1667) beyond ModelInnerDist: 1 pixel line on the inside of the silhouette,
-	// i.e. on model pixels that touch something that is not a model.
-	if (ModelInnerDist > 0.0 && IsModelClass(centerSample) && dist > ModelInnerDist)
-	{
-		bool inner = !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(1, 0)), 0))
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(1, 0)), 0))
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(0, 1)), 0))
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(0, 1)), 0));
-		FragColor = vec4(LineR, LineG, LineB, inner ? LineAlpha : 0.0);
-		return;
-	}
 	if (MapLines < 0.5)
-	{
-		FragColor = vec4(0.0);
-		return;
-	}
+		return 0.0;
 
 	if (centerSample.a < 0.5 || !HasNormal(centerSample.xyz * 2.0 - 1.0) || (LineRange > 0.0 && dist > LineRange))
-	{
-		FragColor = vec4(0.0);
-		return;
-	}
+		return 0.0;
 	if (SkyAt(ipos, ic))
-	{
-		FragColor = vec4(0.0);
-		return;
-	}
+		return 0.0;
 	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
 
 	// depth silhouettes / convex edges
@@ -197,7 +168,63 @@ void main()
 		}
 	}
 
-	float edge = max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
+	return max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
+}
+
+// Two lines running parallel and only 1-2 pixels apart merge into a smeared, broken line.
+// Keep only one of them: a line pixel is dropped when a stronger (or, on a tie, lower) line pixel runs
+// parallel to it at a distance of 2 or 3 pixels. The direction is taken from the neighbouring line pixels;
+// diagonal staircases (line pixels on both axes) are left alone.
+bool ParallelNeighbour(ivec2 p, float e)
+{
+	bool runH = MapEdge(p + ivec2(1, 0)) > 0.05 || MapEdge(p - ivec2(1, 0)) > 0.05;
+	bool runV = MapEdge(p + ivec2(0, 1)) > 0.05 || MapEdge(p - ivec2(0, 1)) > 0.05;
+	if (runH == runV)
+		return false;
+	ivec2 axis = runH ? ivec2(0, 1) : ivec2(1, 0);
+	for (int d = 2; d <= 3; d++)
+	{
+		float up = MapEdge(p + axis * d);
+		float down = MapEdge(p - axis * d);
+		if (up > 0.05 && up >= e)
+			return true;
+		if (down > 0.05 && down > e)
+			return true;
+	}
+	return false;
+}
+
+void main()
+{
+	vec2 uv = Offset + TexCoord * Scale;
+
+#if defined(MULTISAMPLE)
+	gTexSize = textureSize(DepthTexture);
+#else
+	gTexSize = textureSize(DepthTexture, 0);
+#endif
+
+	ivec2 ipos = ivec2(uv * vec2(gTexSize));
+
+	// Only map geometry gets lines: models carry alpha 0, sprites have no normal.
+	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
+	float dist = 1.0 / max(InvDepth(ipos), 1.0e-8);
+	// 3D models (surface class ~0.1667) beyond ModelInnerDist: 1 pixel line on the inside of the silhouette,
+	// i.e. on model pixels that touch something that is not a model.
+	if (ModelInnerDist > 0.0 && IsModelClass(centerSample) && dist > ModelInnerDist)
+	{
+		bool inner = !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(1, 0)), 0))
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(1, 0)), 0))
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(0, 1)), 0))
+		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(0, 1)), 0));
+		FragColor = vec4(LineR, LineG, LineB, inner ? LineAlpha : 0.0);
+		return;
+	}
+
+	float edge = MapEdge(ipos);
+	if (MergeLines > 0.5 && edge > 0.05 && ParallelNeighbour(ipos, edge))
+		edge = 0.0;
+
 	vec3 lineColor = vec3(LineR, LineG, LineB);
 	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
 	if (DarkLines > 0.0 && texelFetch(FogTexture, ClampPos(ipos), 0).a < DarkLines)

@@ -80,6 +80,8 @@ CVAR(Float, gl_outline_width, 1.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// pixels 
 CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth discontinuity sensitivity (lower = more lines)
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
 // White lines on dark (black) surfaces: surfaces darker than the level (0..1 brightness) get a white outline.
+// Of two close parallel map lines (1-2 pixels apart) only one is drawn.
+CVAR(Bool, gl_outline_merge, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_outline_dark, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_outline_dark_level, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited

@@ -880,6 +880,8 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.MapLines = gl_outline != 0 ? 1.0f : 0.0f;
 	uniforms.ExtraLines = gl_outline >= 2 ? 1.0f : 0.0f;
 	uniforms.DarkLines = gl_outline_dark ? clamp((float)gl_outline_dark_level, 0.01f, 1.0f) : 0.0f;
+	uniforms.MergeLines = gl_outline_merge ? 1.0f : 0.0f;
+	uniforms.Padding1 = 0.0f;
 	uniforms.Scale = screen->SceneScale();
 	uniforms.Offset = screen->SceneOffset();
 

@@ -766,6 +766,8 @@ struct OutlineUniforms
 	float MapLines;		// 1 = draw the map geometry lines
 	float ExtraLines;	// 1 = additionally draw sky borders and inner wall corners
 	float DarkLines;	// surfaces darker than this get a white line, 0 = off
+	float MergeLines;	// 1 = drop one of two close parallel lines
+	float Padding1;
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -787,6 +789,8 @@ struct OutlineUniforms
 			{ "MapLines", UniformType::Float, offsetof(OutlineUniforms, MapLines) },
 			{ "ExtraLines", UniformType::Float, offsetof(OutlineUniforms, ExtraLines) },
 			{ "DarkLines", UniformType::Float, offsetof(OutlineUniforms, DarkLines) },
+			{ "MergeLines", UniformType::Float, offsetof(OutlineUniforms, MergeLines) },
+			{ "Padding1", UniformType::Float, offsetof(OutlineUniforms, Padding1) },
 			{ "Scale", UniformType::Vec2, offsetof(OutlineUniforms, Scale) },
 			{ "Offset", UniformType::Vec2, offsetof(OutlineUniforms, Offset) }
 		};
