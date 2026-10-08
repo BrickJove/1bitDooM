@@ -947,7 +947,8 @@ void main()
 #endif
 
 #ifdef GBUFFER_PASS
-	FragFog = vec4(AmbientOcclusionColor(), 1.0);
+	// alpha = brightness of the lit surface colour; the outline pass draws white lines on dark surfaces (gl_outline_dark)
+	FragFog = vec4(AmbientOcclusionColor(), dot(FragColor.rgb, vec3(0.299, 0.587, 0.114)));
 	// Surface class for the outline pass, in alpha (the buffer may have only 2 alpha bits, so 4 levels):
 	// 0 = model / sprite / masked (no outlines), 1/3 = sky, 2/3 = wall (steep surface), 1 = floor or ceiling.
 	// TEXF_NoOutline works on every backend.

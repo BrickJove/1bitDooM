@@ -15,9 +15,11 @@ layout(location=0) out vec4 FragColor;
 #if defined(MULTISAMPLE)
 layout(binding=0) uniform sampler2DMS DepthTexture;
 layout(binding=1) uniform sampler2DMS NormalTexture;
+layout(binding=2) uniform sampler2DMS FogTexture;
 #else
 layout(binding=0) uniform sampler2D DepthTexture;
 layout(binding=1) uniform sampler2D NormalTexture;
+layout(binding=2) uniform sampler2D FogTexture;
 #endif
 
 ivec2 gTexSize;
@@ -196,5 +198,9 @@ void main()
 	}
 
 	float edge = max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
-	FragColor = vec4(LineR, LineG, LineB, edge);
+	vec3 lineColor = vec3(LineR, LineG, LineB);
+	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
+	if (DarkLines > 0.0 && texelFetch(FogTexture, ClampPos(ipos), 0).a < DarkLines)
+		lineColor = vec3(1.0);
+	FragColor = vec4(lineColor, edge);
 }

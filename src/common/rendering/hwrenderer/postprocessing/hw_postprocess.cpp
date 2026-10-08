@@ -879,7 +879,7 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.ModelInnerDist = gl_model_inner_outline ? max((float)gl_model_inner_outline_distance, 1.0f) : 0.0f;
 	uniforms.MapLines = gl_outline != 0 ? 1.0f : 0.0f;
 	uniforms.ExtraLines = gl_outline >= 2 ? 1.0f : 0.0f;
-	uniforms.Padding1 = 0.0f;
+	uniforms.DarkLines = gl_outline_dark ? clamp((float)gl_outline_dark_level, 0.01f, 1.0f) : 0.0f;
 	uniforms.Scale = screen->SceneScale();
 	uniforms.Offset = screen->SceneOffset();
 
@@ -891,6 +891,7 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	renderstate->Viewport = screen->mSceneViewport;
 	renderstate->SetInputSceneDepth(0);
 	renderstate->SetInputSceneNormal(1);
+	renderstate->SetInputSceneFog(2);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();

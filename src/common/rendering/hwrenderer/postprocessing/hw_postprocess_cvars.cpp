@@ -79,6 +79,9 @@ CVAR(Float, gl_model_inner_outline_distance, 512.0f, CVAR_ARCHIVE | CVAR_GLOBALC
 CVAR(Float, gl_outline_width, 1.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// pixels at 1080p, scales with resolution
 CVAR(Float, gl_outline_depth, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// depth discontinuity sensitivity (lower = more lines)
 CVAR(Float, gl_outline_normal, 50.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// crease angle in degrees, 0 = off
+// White lines on dark (black) surfaces: surfaces darker than the level (0..1 brightness) get a white outline.
+CVAR(Bool, gl_outline_dark, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVAR(Float, gl_outline_dark_level, 0.15f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_outline_range, 2048.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// max distance in map units, 0 = unlimited
 
 // Pixel size for the player's 3D weapon only (2 = every 2x2 screen pixels, ...), 0 = off.
