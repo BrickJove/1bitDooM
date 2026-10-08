@@ -171,29 +171,6 @@ float MapEdge(ivec2 ipos)
 	return max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
 }
 
-// Two lines running parallel and only 1-2 pixels apart merge into a smeared, broken line.
-// Keep only one of them: a line pixel is dropped when a stronger (or, on a tie, lower) line pixel runs
-// parallel to it at a distance of 2 or 3 pixels. The direction is taken from the neighbouring line pixels;
-// diagonal staircases (line pixels on both axes) are left alone.
-bool ParallelNeighbour(ivec2 p, float e)
-{
-	bool runH = MapEdge(p + ivec2(1, 0)) > 0.05 || MapEdge(p - ivec2(1, 0)) > 0.05;
-	bool runV = MapEdge(p + ivec2(0, 1)) > 0.05 || MapEdge(p - ivec2(0, 1)) > 0.05;
-	if (runH == runV)
-		return false;
-	ivec2 axis = runH ? ivec2(0, 1) : ivec2(1, 0);
-	for (int d = 2; d <= 3; d++)
-	{
-		float up = MapEdge(p + axis * d);
-		float down = MapEdge(p - axis * d);
-		if (up > 0.05 && up >= e)
-			return true;
-		if (down > 0.05 && down > e)
-			return true;
-	}
-	return false;
-}
-
 void main()
 {
 	vec2 uv = Offset + TexCoord * Scale;
@@ -222,9 +199,6 @@ void main()
 	}
 
 	float edge = MapEdge(ipos);
-	if (MergeLines > 0.5 && edge > 0.05 && ParallelNeighbour(ipos, edge))
-		edge = 0.0;
-
 	vec3 lineColor = vec3(LineR, LineG, LineB);
 	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
 	if (DarkLines > 0.0 && texelFetch(FogTexture, ClampPos(ipos), 0).a < DarkLines)

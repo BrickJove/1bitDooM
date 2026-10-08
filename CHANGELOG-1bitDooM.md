@@ -17,7 +17,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Kein Sky: keine Linien zum Sky hin, Sky-Wände (Sky-Hack) und Portal-Tiefenpass als Sky markiert; Oberkante unter Sky-Decke bleibt erhalten.
 - Keine Outlines an Wänden von Linien mit "Not shown on map" (ML_DONTDRAW).
 - Keine Outlines an Wänden mit Sky-Textur, ohne gültige Textur sowie Farb-, Nebel- und Spiegelwänden.
-- Nahe parallele Linien (2-3 px Abstand) zusammenfassen (`gl_outline_merge`): nur eine der beiden wird gezeichnet.
+- (entfernt) Zusammenfassen naher paralleler Linien (`gl_outline_merge`) wurde wieder entfernt.
 - Weiße Linien auf schwarzen Flächen (`gl_outline_dark`, Helligkeitsgrenze `gl_outline_dark_level`): Helligkeit der Fläche steckt im Alpha des Fog-Puffers.
 - `gl_outline` = 0 Aus / 1 Normal / 2 Erweitert. Erweitert zeichnet zusätzlich die Wand-Sky-Grenze und konkave Wand-Innenecken (1 px). Menü-Auswahl "OutlineMode".
 
@@ -41,4 +41,3 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modell-Outline in Pixeldicke, Stufen nach Auflösung, fließender Übergang.
 - Crash-Fix (Zugriff auf veraltetes Material) vor der Entfernung der Fern-Textur-Features.
 
-- Reverted the "clean lines" rework (hard lines/hysteresis/gap fill); back to the simple variant: only one of two close parallel lines is drawn (gl_outline_merge).
