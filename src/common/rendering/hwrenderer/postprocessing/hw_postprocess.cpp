@@ -870,7 +870,7 @@ void PPOutline::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeig
 	uniforms.DepthThreshold = max((float)gl_outline_depth, 0.001f);
 	float angle = gl_outline_normal;
 	uniforms.NormalThreshold = angle <= 0.0f ? -2.0f : (float)cos(clamp(angle, 1.0f, 179.0f) * (M_PI / 180.0));
-	uniforms.LineWidth = 1.0f;	// always exactly one pixel of the render resolution (gl_outline_width is no longer used)
+	uniforms.LineWidth = (float)clamp((int)gl_outline_width, 1, 4);	// width in pixels of the render resolution
 	uniforms.LineAlpha = clamp((float)gl_outline_alpha, 0.0f, 1.0f);
 	uniforms.LineR = color.r / 255.0f;
 	uniforms.LineG = color.g / 255.0f;
