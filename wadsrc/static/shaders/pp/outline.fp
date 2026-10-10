@@ -95,18 +95,14 @@ float SkyQuadNeighbour(float ic, ivec2 p)
 // Strength (0..1) of the map geometry line at a pixel.
 float MapEdge(ivec2 ipos)
 {
-	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
-	float ic = InvDepth(ipos);
-	float dist = 1.0 / max(ic, 1.0e-8);
-
-	// line width in pixels: LineWidth up close, shrinking linearly to 1 pixel at ShrinkDist
-	float wf = LineWidth;
-	if (ShrinkDist > 0.0)
-		wf = mix(LineWidth, 1.0, clamp(dist / ShrinkDist, 0.0, 1.0));
-	int w = max(int(wf + 0.5), 1);
+	int w = int(LineWidth);
 
 	ivec2 dx = ivec2(w, 0);
 	ivec2 dy = ivec2(0, w);
+
+	vec4 centerSample = texelFetch(NormalTexture, ClampPos(ipos), 0);
+	float ic = InvDepth(ipos);
+	float dist = 1.0 / max(ic, 1.0e-8);
 	if (MapLines < 0.5)
 		return 0.0;
 

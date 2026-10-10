@@ -43,5 +43,3 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 
 - Map outline width is adjustable again (gl_outline_width, Int 1..4 render pixels, menu slider "Outline width (pixels)").
-
-- Map outline width shrinks with distance to 1px (gl_outline_shrink, map units, 0 = never; menu slider).
