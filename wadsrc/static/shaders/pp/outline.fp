@@ -110,7 +110,8 @@ float MapEdge(ivec2 ipos)
 		return 0.0;
 	if (SkyAt(ipos, ic))
 		return 0.0;
-	float rangeFade = LineRange > 0.0 ? 1.0 - smoothstep(LineRange * 0.7, LineRange, dist) : 1.0;
+	// no fading with distance: full strength up to the range, then cut (a fade only produces half transparent pixels)
+	float rangeFade = 1.0;
 
 	// depth silhouettes / convex edges
 	// (an axis with a sky neighbour is skipped: the edge towards the sky gets no line)
@@ -168,7 +169,9 @@ float MapEdge(ivec2 ipos)
 		}
 	}
 
-	return max(max(depthEdge, creaseEdge), extraEdge) * LineAlpha * rangeFade;
+	// steepen: weak responses (distant, thin geometry) still give a full line instead of a faint one
+	float strength = clamp(max(max(depthEdge, creaseEdge), extraEdge) * 2.5, 0.0, 1.0);
+	return strength * LineAlpha * rangeFade;
 }
 
 void main()

@@ -43,3 +43,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 
 - Map outline width is adjustable again (gl_outline_width, Int 1..4 render pixels, menu slider "Outline width (pixels)").
+
+- Map outline: no distance fade any more (hard cut at gl_outline_range); weak line responses are boosted so distant lines stay full strength.
