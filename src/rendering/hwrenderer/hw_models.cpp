@@ -36,6 +36,7 @@
 #include "actor.h"
 
 CVAR(Bool, gl_light_models, true, CVAR_ARCHIVE)
+extern bool modelInnerOutlineClass;
 
 VSMatrix FHWModelRenderer::GetViewToWorldMatrix()
 {
@@ -60,7 +61,7 @@ void FHWModelRenderer::BeginDrawModel(FRenderStyle style, int smf_flags, const V
 	state.mModelMatrix = objectToWorldMatrix;
 	state.EnableModelMatrix(true);
 	state.SetNoOutline(true);
-	state.SetModelClass(true);
+	state.SetModelClass(modelInnerOutlineClass);
 }
 
 void FHWModelRenderer::EndDrawModel(FRenderStyle style, int smf_flags)
@@ -163,7 +164,7 @@ void FHWModelRenderer::BeginShadow(const VSMatrix& flatMatrix)
 void FHWModelRenderer::EndShadow(const VSMatrix& objectToWorldMatrix, FRenderStyle style, int smf_flags, bool mirrored)
 {
 	shadowActive = false;
-	state.SetModelClass(true);
+	state.SetModelClass(modelInnerOutlineClass);
 	state.ClearDepthBias();
 	state.SetObjectColor(0xffffffff);
 	state.SetTextureMode(TM_NORMAL);

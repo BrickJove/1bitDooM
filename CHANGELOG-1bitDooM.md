@@ -49,3 +49,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Map outline: lines flagged "Not shown on map" are fully ignored by the outline pass: no line on their walls and no depth lines on the neighbouring pixels (new surface marker TEXF_HiddenLine).
 
 - Inner outline for far models: only drawn where the neighbouring non-model pixel is at least 24 map units farther away (real silhouette); no more lines along the alpha edge of decal / cut-out models lying on a wall.
+
+- Far-model inner outline now only applies to monsters and players (not to decals, cut-out models, items, decoration).
