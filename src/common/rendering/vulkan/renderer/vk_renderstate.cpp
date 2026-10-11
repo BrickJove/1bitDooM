@@ -106,6 +106,12 @@ void VkRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 	mNeedApply = true;
 }
 
+void VkRenderState::SetPortalMark(bool on)
+{
+	mPortalMark = on;
+	mNeedApply = true;
+}
+
 void VkRenderState::SetStencil(int offs, int op, int flags)
 {
 	mStencilRef = screen->stencilValue + offs;
@@ -229,6 +235,7 @@ void VkRenderState::ApplyRenderPass(int dt)
 	pipelineKey.StencilTest = mStencilTest;
 	pipelineKey.StencilPassOp = mStencilOp;
 	pipelineKey.ColorMask = mColorMask;
+	pipelineKey.PortalMark = mPortalMark;
 	pipelineKey.CullMode = mCullMode;
 	pipelineKey.NumTextureLayers = mMaterial.mMaterial ? mMaterial.mMaterial->NumLayers() : 0;
 	pipelineKey.NumTextureLayers = max(pipelineKey.NumTextureLayers, SHADER_MIN_REQUIRED_TEXTURE_LAYERS);// Always force minimum 8 textures as the shader requires it

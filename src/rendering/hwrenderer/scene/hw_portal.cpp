@@ -370,7 +370,19 @@ void HWPortal::RemoveStencil(HWDrawInfo *di, FRenderState &state, bool usestenci
 		state.SetDepthFunc(DF_LEqual);
 		state.SetDepthRange(0, 1);
 		state.SetStencil(0, SOP_Decrement);
+		// Line portals: mark the portal area in the outline buffers as "not shown on map" (no lines on or next to it).
+		const bool markNoOutline = GetHWPortalType() == HWP_LINETOLINE;
+		if (markNoOutline)
+		{
+			state.SetHiddenLine(true);
+			state.SetPortalMark(true);
+		}
 		DrawPortalStencil(state, STP_DepthRestore);
+		if (markNoOutline)
+		{
+			state.SetPortalMark(false);
+			state.SetHiddenLine(false);
+		}
 		state.SetDepthFunc(DF_Less);
 
 

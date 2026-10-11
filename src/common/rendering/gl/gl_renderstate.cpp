@@ -451,6 +451,21 @@ void FGLRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 	glColorMask(r, g, b, a);
 }
 
+void FGLRenderState::SetPortalMark(bool on)
+{
+	// Called with the colour mask fully off: the scene colour stays untouched, the fog and normal buffers of the G-buffer pass get written.
+	if (on)
+	{
+		glColorMaski(0, GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glColorMaski(1, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glColorMaski(2, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	}
+	else
+	{
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+	}
+}
+
 void FGLRenderState::SetStencil(int offs, int op, int flags = -1)
 {
 	static int op2gl[] = { GL_KEEP, GL_INCR, GL_DECR };

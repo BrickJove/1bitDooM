@@ -47,3 +47,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Map outline: no distance fade any more (hard cut at gl_outline_range); weak line responses are boosted so distant lines stay full strength.
 
 - Map outline: lines flagged "Not shown on map" are fully ignored by the outline pass: no line on their walls and no depth lines on the neighbouring pixels (new surface marker TEXF_HiddenLine).
+
+- Map outline: the area of line portals (Line_SetPortal) is marked in the outline buffers like "not shown on map" lines: no lines on the portal area or at its border (GL: glColorMaski, Vulkan: per attachment write mask while the portal depth is restored).
