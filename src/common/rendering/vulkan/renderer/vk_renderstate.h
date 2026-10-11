@@ -53,7 +53,6 @@ public:
 	void SetDepthFunc(int func) override;
 	void SetDepthRange(float min, float max) override;
 	void SetColorMask(bool r, bool g, bool b, bool a) override;
-	void SetPortalMark(bool on) override;
 	void SetStencil(int offs, int op, int flags = -1) override;
 	void SetCulling(int mode) override;
 	void EnableClipDistance(int num, bool state) override;
@@ -113,7 +112,6 @@ protected:
 	int mStencilOp = 0;
 	int mDepthFunc = 0;
 	int mColorMask = 15;
-	bool mPortalMark = false;
 	int mCullMode = 0;
 
 	PushConstants mPushConstants = {};

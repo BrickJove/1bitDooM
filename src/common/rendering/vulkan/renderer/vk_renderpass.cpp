@@ -326,11 +326,7 @@ std::unique_ptr<VulkanPipeline> VkRenderPassSetup::CreatePipeline(const VkPipeli
 	BlendMode(blendbuilder, key.RenderStyle);
 
 	for (int i = 0; i < PassKey.DrawBuffers; i++)
-	{
-		if (i == 1 && key.PortalMark)
-			blendbuilder.ColorWriteMask(15);	// portal marker: the fog / normal buffers are written, the scene colour (attachment 0) is not
 		builder.AddColorBlendAttachment(blendbuilder.Create());
-	}
 
 	builder.RasterizationSamples((VkSampleCountFlagBits)PassKey.Samples);
 

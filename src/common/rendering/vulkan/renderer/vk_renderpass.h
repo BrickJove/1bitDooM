@@ -50,7 +50,6 @@ public:
 	int StencilTest;
 	int StencilPassOp;
 	int ColorMask;
-	int PortalMark;
 	int CullMode;
 	int VertexFormat;
 	int DrawType;
