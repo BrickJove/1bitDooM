@@ -47,3 +47,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Map outline: no distance fade any more (hard cut at gl_outline_range); weak line responses are boosted so distant lines stay full strength.
 
 - Map outline: lines flagged "Not shown on map" are fully ignored by the outline pass: no line on their walls and no depth lines on the neighbouring pixels (new surface marker TEXF_HiddenLine).
+
+- Inner outline for far models: only drawn where the neighbouring non-model pixel is clearly farther away (real silhouette); no more lines along the alpha edge of decal / cut-out models lying on a wall.

@@ -69,6 +69,12 @@ bool IsHiddenLine(ivec2 p)
 	return s.a < 0.1 && s.r < 0.01 && s.g < 0.01 && s.b < 0.01;
 }
 
+// model pixel at depth ic next to p: p is a non-model pixel that is clearly farther away
+bool ModelEdgeTo(ivec2 p, float ic)
+{
+	return !IsModelClass(texelFetch(NormalTexture, ClampPos(p), 0)) && InvDepth(p) < ic * 0.985;
+}
+
 bool HasNormal(vec3 n)
 {
 	return dot(n, n) > 0.01;
@@ -201,10 +207,11 @@ void main()
 	// i.e. on model pixels that touch something that is not a model.
 	if (ModelInnerDist > 0.0 && IsModelClass(centerSample) && dist > ModelInnerDist)
 	{
-		bool inner = !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(1, 0)), 0))
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(1, 0)), 0))
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos + ivec2(0, 1)), 0))
-		          || !IsModelClass(texelFetch(NormalTexture, ClampPos(ipos - ivec2(0, 1)), 0));
+		// Only a real silhouette counts: the neighbour is no model AND clearly farther away. A neighbour at (almost) the
+		// same depth is the wall a flat decal / cut-out texture model lies on: no line along its alpha edge.
+		float icModel = InvDepth(ipos);
+		bool inner = ModelEdgeTo(ipos + ivec2(1, 0), icModel) || ModelEdgeTo(ipos - ivec2(1, 0), icModel)
+		          || ModelEdgeTo(ipos + ivec2(0, 1), icModel) || ModelEdgeTo(ipos - ivec2(0, 1), icModel);
 		FragColor = vec4(LineR, LineG, LineB, inner ? LineAlpha : 0.0);
 		return;
 	}
