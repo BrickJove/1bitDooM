@@ -220,7 +220,18 @@ void main()
 	float edge = MapEdge(ipos);
 	vec3 lineColor = vec3(LineR, LineG, LineB);
 	// dark surfaces (the alpha of the fog buffer holds the surface brightness) get a white line
-	if (DarkLines > 0.0 && texelFetch(FogTexture, ClampPos(ipos), 0).a < DarkLines)
-		lineColor = vec3(1.0);
+	// The decision looks at the surroundings, not at the single pixel: 25 taps over about 9x9 pixels. A graphic that is
+	// mostly bright keeps its black line even when a few dark pixels sit right at the edge; only a (nearly) completely
+	// dark area gets a white line.
+	if (DarkLines > 0.0 && edge > 0.0)
+	{
+		int bright = 0;
+		for (int y = -2; y <= 2; y++)
+			for (int x = -2; x <= 2; x++)
+				if (texelFetch(FogTexture, ClampPos(ipos + ivec2(x, y) * 2), 0).a >= DarkLines)
+					bright++;
+		if (bright <= 3)
+			lineColor = vec3(1.0);
+	}
 	FragColor = vec4(lineColor, edge);
 }
