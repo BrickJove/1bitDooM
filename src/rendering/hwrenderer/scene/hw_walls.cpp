@@ -367,14 +367,15 @@ void HWWall::DrawWall(HWWallDispatcher*di, FRenderState &state, bool translucent
 	struct NoOutlineScope
 	{
 		FRenderState &s;
-		bool saved;
-		NoOutlineScope(FRenderState &st, bool hide) : s(st), saved(st.GetNoOutline()) { if (hide) s.SetNoOutline(true); }
-		~NoOutlineScope() { s.SetNoOutline(saved); }
+		bool saved, savedHidden;
+		NoOutlineScope(FRenderState &st, bool hide, bool hidden) : s(st), saved(st.GetNoOutline()), savedHidden(st.GetHiddenLine()) { if (hide) s.SetNoOutline(true); if (hidden) s.SetHiddenLine(true); }
+		~NoOutlineScope() { s.SetNoOutline(saved); s.SetHiddenLine(savedHidden); }
 	} noOutlineScope(state,
 		(seg != nullptr && seg->linedef != nullptr && (seg->linedef->flags & ML_DONTDRAW)) ||
 		texture == nullptr || !texture->isValid() ||
 		(di->Level != nullptr && texture->GetID() == skyflatnum) ||
-		type == RENDERWALL_COLOR || type == RENDERWALL_FOGBOUNDARY || type == RENDERWALL_MIRRORSURFACE);
+		type == RENDERWALL_COLOR || type == RENDERWALL_FOGBOUNDARY || type == RENDERWALL_MIRRORSURFACE,
+		seg != nullptr && seg->linedef != nullptr && (seg->linedef->flags & ML_DONTDRAW));
 
 	if (screen->BuffersArePersistent())
 	{

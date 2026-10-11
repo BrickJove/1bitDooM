@@ -62,6 +62,13 @@ bool IsModelClass(vec4 s)
 	return s.a < 0.1 && s.r > 0.99 && s.g > 0.99 && s.b > 0.99;
 }
 
+// Walls of lines flagged "not shown on map": alpha 0 and the impossible normal (-1,-1,-1)
+bool IsHiddenLine(ivec2 p)
+{
+	vec4 s = texelFetch(NormalTexture, ClampPos(p), 0);
+	return s.a < 0.1 && s.r < 0.01 && s.g < 0.01 && s.b < 0.01;
+}
+
 bool HasNormal(vec3 n)
 {
 	return dot(n, n) > 0.01;
@@ -117,8 +124,9 @@ float MapEdge(ivec2 ipos)
 	// (an axis with a sky neighbour is skipped: the edge towards the sky gets no line)
 	float ix1 = InvDepth(ipos + dx), ix2 = InvDepth(ipos - dx);
 	float iy1 = InvDepth(ipos + dy), iy2 = InvDepth(ipos - dy);
-	float lapX = (SkyAt(ipos + dx, ix1) || SkyAt(ipos - dx, ix2)) ? 0.0 : ix1 + ix2 - 2.0 * ic;
-	float lapY = (SkyAt(ipos + dy, iy1) || SkyAt(ipos - dy, iy2)) ? 0.0 : iy1 + iy2 - 2.0 * ic;
+	// (an axis with a hidden line wall neighbour is skipped as well)
+	float lapX = (SkyAt(ipos + dx, ix1) || SkyAt(ipos - dx, ix2) || IsHiddenLine(ipos + dx) || IsHiddenLine(ipos - dx)) ? 0.0 : ix1 + ix2 - 2.0 * ic;
+	float lapY = (SkyAt(ipos + dy, iy1) || SkyAt(ipos - dy, iy2) || IsHiddenLine(ipos + dy) || IsHiddenLine(ipos - dy)) ? 0.0 : iy1 + iy2 - 2.0 * ic;
 	float ridge = max(-lapX, -lapY) / max(ic, 1.0e-8);
 	float depthEdge = smoothstep(DepthThreshold, DepthThreshold * 1.5, ridge);
 

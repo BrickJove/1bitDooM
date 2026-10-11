@@ -242,6 +242,7 @@ protected:
 	bool mNoOutline;
 	bool mIsModel;
 	bool mSky;
+	bool mHiddenLine;
 	int mTextureModeFlags;
 	int mSoftLight;
 	float mLightParms[4];
@@ -286,6 +287,7 @@ public:
 		mNoOutline = false;
 		mIsModel = false;
 		mSky = false;
+		mHiddenLine = false;
 		mTextureModeFlags = 0;
 		mStreamData.uDesaturationFactor = 0.0f;
 		mAlphaThreshold = 0.5f;
@@ -412,7 +414,18 @@ public:
 		if (mNoOutline) f |= TEXF_NoOutline;
 		if (mIsModel) f |= TEXF_Model;
 		if (mSky) f |= TEXF_Sky;
+		if (mHiddenLine) f |= TEXF_HiddenLine;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
+	}
+
+	bool GetHiddenLine() const
+	{
+		return mHiddenLine;
+	}
+
+	void SetHiddenLine(bool on)
+	{
+		mHiddenLine = on;
 	}
 
 	void SetSky(bool on)
