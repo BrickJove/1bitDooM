@@ -48,8 +48,7 @@ CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
 extern bool hudModelOutlineAllowed;
-// Only real objects (monsters, players, solid or shootable actors = decoration, vehicles) are marked as "model" for the
-// far-model inner outline; non-solid, non-shootable models (decals, graffiti, blood, items) are not (their alpha edges would get lines).
+// The far-model inner outline is off for non-solid actors only (decals, graffiti, blood, corpses, items); every solid actor gets it.
 bool modelInnerOutlineClass = false;
 
 // Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
@@ -123,7 +122,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	float scaleFactorZ = scale.Y * smf->zscale;
 	float orientation = scaleFactorX * scaleFactorY * scaleFactorZ;
 
-	modelInnerOutlineClass = actor->player != nullptr || (actor->flags3 & MF3_ISMONSTER) || (actor->flags & (MF_SOLID | MF_SHOOTABLE));
+	modelInnerOutlineClass = (actor->flags & MF_SOLID) != 0;
 	renderer->BeginDrawModel(actor->RenderStyle, smf_flags, objectToWorldMatrix, orientation < 0);
 
 	// far away monsters become flat black silhouettes

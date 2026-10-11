@@ -50,6 +50,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 - Inner outline for far models: only drawn where the neighbouring non-model pixel is at least 24 map units farther away (real silhouette); no more lines along the alpha edge of decal / cut-out models lying on a wall.
 
-- Far-model inner outline applies to monsters, players and solid or shootable actors (decoration); non-solid, non-shootable models (decals, cut-out graffiti, blood, items) are excluded.
+- Far-model inner outline is switched off only for non-solid actors (decals, cut-out graffiti, blood, corpses, items); all solid actors keep it.
 
 - White lines on black surfaces: the colour is decided from a 9x9 neighbourhood (25 taps): white only if nearly everything around is dark, so mostly bright graphics keep black lines even with dark pixels at the edge.
