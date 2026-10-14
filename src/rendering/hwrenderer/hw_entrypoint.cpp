@@ -134,7 +134,7 @@ sector_t* RenderViewpoint(FRenderViewpoint& mainvp, AActor* camera, IntRect* bou
 
 		if (mainview) // Bind the scene frame buffer and turn on draw buffers used by ssao
 		{
-			bool useSSAO = (gl_ssao != 0 || gl_outline != 0 || gl_model_inner_outline);
+			bool useSSAO = (gl_ssao != 0 || gl_outline != 0 || gl_model_inner_outline || gl_actor_tint);
 			screen->SetSceneRenderTarget(useSSAO);
 			RenderState.SetPassType(useSSAO ? GBUFFER_PASS : NORMAL_PASS);
 			RenderState.EnableDrawBuffers(RenderState.GetPassDrawBufferCount(), true);

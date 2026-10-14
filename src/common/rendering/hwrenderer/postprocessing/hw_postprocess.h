@@ -1032,9 +1032,13 @@ struct ActorTintUniforms
 class PPActorTint
 {
 public:
+	// A 3D scene (with a normal buffer of this frame) was post processed: the tint may run in the final screen stage.
+	void SceneRendered() { mSceneValid = true; }
+	// Runs after the "screen" custom shaders (the last effect before the picture is presented), once per 3D scene.
 	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
 
 private:
+	bool mSceneValid = false;
 	PPShader ActorTint = { "shaders/pp/actortint.fp", "", ActorTintUniforms::Desc() };
 	PPShader ActorTintMS = { "shaders/pp/actortint.fp", "#define MULTISAMPLE\n", ActorTintUniforms::Desc() };
 };

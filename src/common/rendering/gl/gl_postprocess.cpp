@@ -157,6 +157,7 @@ void FGLRenderer::CopyToBackbuffer(const IntRect *bounds, bool applyGamma)
 
 	GLPPRenderState renderstate(mBuffers);
 	hw_postprocess.customShaders.Run(&renderstate, "screen");
+	hw_postprocess.actorTint.Render(&renderstate, mBuffers->GetSceneWidth(), mBuffers->GetSceneHeight());
 
 	FGLDebug::PushGroup("CopyToBackbuffer");
 	FGLPostProcessState savedState;

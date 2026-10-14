@@ -938,7 +938,10 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 
 void PPActorTint::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
-	if (!gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
+	// only right after a 3D scene was drawn: menus, console and title screens have no fresh normal buffer
+	bool valid = mSceneValid;
+	mSceneValid = false;
+	if (!valid || !gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 
 	PalEntry light = PalEntry(gl_actor_tint_light);
@@ -1359,6 +1362,6 @@ void Postprocess::Pass2(PPRenderState* state, int fixedcm, float flash, int scen
 
 	customShaders.UpdateLastInputTexture(state);
 
-	// last: the actor colour must come after every other effect, including the 1 bit shader
-	actorTint.Render(state, sceneWidth, sceneHeight);
+	// the actor colour itself runs later, after the "screen" custom shaders (see PPActorTint::Render)
+	actorTint.SceneRendered();
 }
