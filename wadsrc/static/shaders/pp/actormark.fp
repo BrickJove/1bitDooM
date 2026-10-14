@@ -16,8 +16,10 @@ layout(location=0) out vec4 FragColor;
 layout(binding=0) uniform sampler2D InputTexture;
 #if defined(MULTISAMPLE)
 layout(binding=1) uniform sampler2DMS NormalTexture;
+layout(binding=2) uniform sampler2DMS DepthTexture;
 #else
 layout(binding=1) uniform sampler2D NormalTexture;
+layout(binding=2) uniform sampler2D DepthTexture;
 #endif
 
 void main()
@@ -33,5 +35,15 @@ void main()
 	vec4 s = texelFetch(NormalTexture, p, 0);
 
 	bool actor = s.a < 0.1 && s.r > 0.9 && s.g > 0.9;
+
+	// The player's 3D weapon is drawn without normals, so an actor behind it would still be marked. When a HUD model
+	// was drawn, the depth buffer holds only the weapon (it was cleared before): every pixel not on the far plane is weapon.
+	if (actor && WeaponDepth > 0.5)
+	{
+		float d = texelFetch(DepthTexture, clamp(ivec2(TexCoord * vec2(nsize)), ivec2(0), nsize - ivec2(1)), 0).x;
+		float inv = d * LinearizeDepthA + LinearizeDepthB;
+		if (inv > (LinearizeDepthA + LinearizeDepthB) * 1.05)
+			actor = false;
+	}
 	FragColor = vec4(color.rgb, actor ? 0.0 : 1.0);
 }

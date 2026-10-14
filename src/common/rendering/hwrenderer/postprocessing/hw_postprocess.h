@@ -1029,21 +1029,41 @@ struct ActorTintUniforms
 	}
 };
 
+// the mark pass needs the depth buffer to leave out the player's 3D weapon
+struct ActorMarkUniforms
+{
+	float LinearizeDepthA;
+	float LinearizeDepthB;
+	float WeaponDepth;	// 1 = the depth buffer holds only the HUD model (weapon pixels are the ones that are not on the far plane)
+	float Padding0;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "LinearizeDepthA", UniformType::Float, offsetof(ActorMarkUniforms, LinearizeDepthA) },
+			{ "LinearizeDepthB", UniformType::Float, offsetof(ActorMarkUniforms, LinearizeDepthB) },
+			{ "WeaponDepth", UniformType::Float, offsetof(ActorMarkUniforms, WeaponDepth) },
+			{ "Padding0", UniformType::Float, offsetof(ActorMarkUniforms, Padding0) }
+		};
+	}
+};
+
 class PPActorTint
 {
 public:
 	// Step 1, right after the scene was post processed and BEFORE weapon, HUD and menu are drawn on top: actor pixels get
 	// alpha 0 in the colour buffer, everything else alpha 1. What is drawn later (opaque) overwrites that alpha again,
 	// so only actor pixels that stay visible keep the mark.
-	void Mark(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+	void Mark(PPRenderState *renderstate, int sceneWidth, int sceneHeight, bool weaponDepth);
 	// Step 2, after the "screen" custom shaders (the last effect before the picture is presented): pixels with the mark get
 	// the two colours (a custom shader must keep the alpha of its input).
 	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
 
 private:
 	bool mSceneValid = false;
-	PPShader ActorMark = { "shaders/pp/actormark.fp", "", ActorTintUniforms::Desc() };
-	PPShader ActorMarkMS = { "shaders/pp/actormark.fp", "#define MULTISAMPLE\n", ActorTintUniforms::Desc() };
+	PPShader ActorMark = { "shaders/pp/actormark.fp", "", ActorMarkUniforms::Desc() };
+	PPShader ActorMarkMS = { "shaders/pp/actormark.fp", "#define MULTISAMPLE\n", ActorMarkUniforms::Desc() };
 	PPShader ActorTint = { "shaders/pp/actortint.fp", "", ActorTintUniforms::Desc() };
 };
 
