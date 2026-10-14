@@ -53,3 +53,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Far-model inner outline is switched off only for non-solid actors (decals, cut-out graffiti, blood, corpses, items); all solid actors keep it.
 
 - White lines on black surfaces: the colour is decided from a 9x9 neighbourhood (25 taps): white only if nearly everything around is dark, so mostly bright graphics keep black lines even with dark pixels at the edge.
+
+- Actor colour (gl_actor_tint, gl_actor_tint_light #9bbc0f, gl_actor_tint_dark #0f380f): after the whole post process chain (including custom 1 bit shaders) pixels of actors (sprites + models, via new marker TEXF_Actor / normal (1,1,0)) are remapped to two colours by brightness; the rest of the scene is untouched. Menu: "actor colour". HUD weapon is not covered.

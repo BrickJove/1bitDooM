@@ -936,6 +936,39 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 	renderstate->PopGroup();
 }
 
+void PPActorTint::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	if (!gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	PalEntry light = PalEntry(gl_actor_tint_light);
+	PalEntry dark = PalEntry(gl_actor_tint_dark);
+
+	ActorTintUniforms uniforms;
+	uniforms.LightR = light.r / 255.0f;
+	uniforms.LightG = light.g / 255.0f;
+	uniforms.LightB = light.b / 255.0f;
+	uniforms.Padding0 = 0.0f;
+	uniforms.DarkR = dark.r / 255.0f;
+	uniforms.DarkG = dark.g / 255.0f;
+	uniforms.DarkB = dark.b / 255.0f;
+	uniforms.Padding1 = 0.0f;
+
+	renderstate->PushGroup("actortint");
+
+	renderstate->Clear();
+	renderstate->Shader = gl_multisample > 1 ? &ActorTintMS : &ActorTint;
+	renderstate->Uniforms.Set(uniforms);
+	renderstate->Viewport = screen->mScreenViewport;
+	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
+	renderstate->SetInputSceneNormal(1);
+	renderstate->SetOutputNext();
+	renderstate->SetNoBlend();
+	renderstate->Draw();
+
+	renderstate->PopGroup();
+}
+
 void PPWeaponPixel::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	// Only when a HUD model was drawn this frame: otherwise the depth buffer still holds the whole world.
@@ -1325,4 +1358,7 @@ void Postprocess::Pass2(PPRenderState* state, int fixedcm, float flash, int scen
 	customShaders.Run(state, "scene");
 
 	customShaders.UpdateLastInputTexture(state);
+
+	// last: the actor colour must come after every other effect, including the 1 bit shader
+	actorTint.Render(state, sceneWidth, sceneHeight);
 }

@@ -1001,6 +1001,11 @@ OptionMenu "VideoOptions" protected
 	Slider "Weapon outer contour (pixels, 0 = off)", "gl_weapon_outer_outline", 0, 8, 1, 0
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
+	StaticText "actor colour (after 1 bit shader)", 1
+	Option "Colour actors",                      "gl_actor_tint", "OnOff"
+	ColorPicker "  light colour",                "gl_actor_tint_light"
+	ColorPicker "  dark colour",                 "gl_actor_tint_dark"
+	StaticText " "
 	StaticText "3d model shadows", 1
 	Option "Shadows: enemies",                   "gl_model_shadow_monsters", "OnOff"
 	Option "Shadows: decoration",                "gl_model_shadow_decor", "OnOff"

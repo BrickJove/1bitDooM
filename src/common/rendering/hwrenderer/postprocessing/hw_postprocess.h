@@ -1001,6 +1001,44 @@ private:
 	PPShader WeaponOutlineMS = { "shaders/pp/weaponoutline.fp", "#define MULTISAMPLE\n", WeaponOutlineUniforms::Desc() };
 };
 
+// Jupiter3D: actor colour (two colour remap of actor pixels after the final post process)
+struct ActorTintUniforms
+{
+	float LightR;
+	float LightG;
+	float LightB;
+	float Padding0;
+	float DarkR;
+	float DarkG;
+	float DarkB;
+	float Padding1;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "LightR", UniformType::Float, offsetof(ActorTintUniforms, LightR) },
+			{ "LightG", UniformType::Float, offsetof(ActorTintUniforms, LightG) },
+			{ "LightB", UniformType::Float, offsetof(ActorTintUniforms, LightB) },
+			{ "Padding0", UniformType::Float, offsetof(ActorTintUniforms, Padding0) },
+			{ "DarkR", UniformType::Float, offsetof(ActorTintUniforms, DarkR) },
+			{ "DarkG", UniformType::Float, offsetof(ActorTintUniforms, DarkG) },
+			{ "DarkB", UniformType::Float, offsetof(ActorTintUniforms, DarkB) },
+			{ "Padding1", UniformType::Float, offsetof(ActorTintUniforms, Padding1) }
+		};
+	}
+};
+
+class PPActorTint
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+
+private:
+	PPShader ActorTint = { "shaders/pp/actortint.fp", "", ActorTintUniforms::Desc() };
+	PPShader ActorTintMS = { "shaders/pp/actortint.fp", "#define MULTISAMPLE\n", ActorTintUniforms::Desc() };
+};
+
 class PPWeaponPixel
 {
 public:
@@ -1026,6 +1064,7 @@ public:
 	PPOutline outline;
 	PPWeaponOutline weaponOutline;
 	PPWeaponPixel weaponPixel;
+	PPActorTint actorTint;
 	PPPresent present;
 	PPShadowMap shadowmap;
 	PPCustomShaders customShaders;

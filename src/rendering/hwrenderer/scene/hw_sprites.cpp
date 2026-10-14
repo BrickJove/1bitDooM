@@ -98,6 +98,15 @@ CUSTOM_CVAR(Int, gl_fuzztype, 8, CVAR_ARCHIVE)
 
 void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 {
+	// mark actors (sprites and their 3D models, not particles) in the normal buffer for the actor colour pass
+	struct ActorScope
+	{
+		FRenderState &s;
+		bool saved;
+		ActorScope(FRenderState &st, bool on) : s(st), saved(st.GetActor()) { s.SetActor(on); }
+		~ActorScope() { s.SetActor(saved); }
+	} actorScope(state, actor != nullptr);
+
 	bool additivefog = false;
 	bool foglayer = false;
 	int rel = fullbright ? 0 : getExtraLight();

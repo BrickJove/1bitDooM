@@ -68,6 +68,7 @@ const int TEXF_ClampY = 0x80000;
 const int TEXF_NoOutline = 0x100000;
 const int TEXF_Sky = 0x200000;
 const int TEXF_Model = 0x400000;
+const int TEXF_Actor = 0x1000000;
 const int TEXF_HiddenLine = 0x800000;
 
 //===========================================================================
@@ -958,6 +959,8 @@ void main()
 	if ((uTextureMode & TEXF_Sky) != 0) surfaceClass = 0.3333;
 	if ((uTextureMode & TEXF_NoOutline) != 0) surfaceClass = 0.0;
 	vec3 normalOut = vEyeNormal.xyz * 0.5 + 0.5;
+	// actor sprites: alpha 0 and the impossible normal (1,1,0) for the actor colour pass (models override this with (1,1,1))
+	if ((uTextureMode & TEXF_Actor) != 0) { surfaceClass = 0.0; normalOut = vec3(1.0, 1.0, 0.0); }
 	if ((uTextureMode & TEXF_Model) != 0) { surfaceClass = 0.0; normalOut = vec3(1.0); }	// 3D model marker for the outline pass
 	// walls of lines flagged "not shown on map": alpha 0 and normal (-1,-1,-1) (encoded 0,0,0), no outline around them
 	if ((uTextureMode & TEXF_HiddenLine) != 0) { surfaceClass = 0.0; normalOut = vec3(0.0); }
