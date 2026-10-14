@@ -91,13 +91,6 @@ CVARD(Int, gl_weapon_pixel, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Pixel size of 
 CVARD(Int, gl_weapon_outer_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Outer contour of the player's 3D weapon in pixels (0 = off)")
 bool hudModelOutlineAllowed = false;	// a HUD model without forcecullbackfaces was drawn this frame (the weapon outline pass only runs then)
 bool hudModelDrawn = false;	// set by EndDrawScene when a HUD model was drawn, read by the weapon pixel pass
-// Actor colour: after all other post processing, pixels of actors (sprites and models) are drawn in two colours
-// (dark / light, chosen by the brightness of the finished image). The rest of the scene is not touched.
-CVARD(Bool, gl_actor_tint, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Draw actors in two colours after the final post process")
-CVARD(Bool, gl_actor_tint_attackers, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Actor colour only for living monsters that attack a player")
-CVARD(Bool, gl_actor_tint_follow, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Take the actor colours from the 1 bit shader's custom colour cvars (jupiter3d_custom_*)")
-CVAR(Color, gl_actor_tint_light, 0x9bbc0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVAR(Color, gl_actor_tint_dark, 0x0f380f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_outline_alpha, 1.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Color, gl_outline_color, 0x000000, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 

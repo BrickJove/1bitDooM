@@ -53,15 +53,3 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Far-model inner outline is switched off only for non-solid actors (decals, cut-out graffiti, blood, corpses, items); all solid actors keep it.
 
 - White lines on black surfaces: the colour is decided from a 9x9 neighbourhood (25 taps): white only if nearly everything around is dark, so mostly bright graphics keep black lines even with dark pixels at the edge.
-
-- Actor colour (gl_actor_tint, gl_actor_tint_light #9bbc0f, gl_actor_tint_dark #0f380f): after the whole post process chain (including custom 1 bit shaders) pixels of actors (sprites + models, via new marker TEXF_Actor / normal (1,1,0)) are remapped to two colours by brightness; the rest of the scene is untouched. Menu: "actor colour". HUD weapon is not covered.
-
-- Actor colour now runs after the "screen" custom shaders (the last stage before presenting), so it works on top of a 1 bit shader that uses Target screen. It only runs on frames with a 3D scene, and turns on the scene normal buffer by itself (gl_actor_tint).
-
-- Actor colour: two steps. Right after the scene post process (before weapon / HUD / menu are drawn) actor pixels get alpha 0 in the colour buffer (actormark.fp), later opaque drawing overwrites that alpha; after the "screen" custom shaders the remaining alpha-0 pixels get the two colours (actortint.fp). So the colour lies behind weapon, HUD and menu. Custom shaders must pass the alpha of their input through.
-
-- Actor colour: the player's 3D weapon lies in front of the colour (mark pass skips weapon pixels via the depth buffer); new option gl_actor_tint_follow takes the colours from the 1 bit shader's cvars jupiter3d_custom_dark_*/light_*.
-
-- Actor colour: new option gl_actor_tint_attackers (default on): only living monsters whose target is a player (MF3_ISMONSTER, health > 0). Everything else keeps the normal 1 bit look.
-
-- Actor colour affects only living monsters and collectible items (MF_SPECIAL); decoration, corpses and projectiles are left alone. gl_actor_tint_attackers now only restricts the monsters (items are always included).

@@ -251,10 +251,7 @@ void VkPostprocess::DrawPresentTexture(const IntRect &box, bool applyGamma, bool
 	VkPPRenderState renderstate(fb);
 
 	if (!screenshot) // Already applied as we are actually copying the last frame here (GetScreenshotBuffer is called after swap)
-	{
 		hw_postprocess.customShaders.Run(&renderstate, "screen");
-		hw_postprocess.actorTint.Render(&renderstate, fb->GetBuffers()->GetSceneWidth(), fb->GetBuffers()->GetSceneHeight());
-	}
 
 	PresentUniforms uniforms;
 	if (!applyGamma)

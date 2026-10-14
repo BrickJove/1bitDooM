@@ -115,7 +115,6 @@ enum texflags
 	TEXF_Model = 0x400000,	// set while 3D models are drawn: their surface class in the normal buffer is "model" (inner outline)
 	TEXF_Sky = 0x200000,	// set while the sky is drawn (outline pass: never outlined, not a silhouette)
 	TEXF_HiddenLine = 0x800000,	// set while walls of lines flagged "not shown on map" are drawn: the outline pass leaves their surroundings alone
-	TEXF_Actor = 0x1000000,	// set while sprites / models of actors are drawn: marks them in the normal buffer for the actor colour pass
 	TEXF_NoOutline = 0x100000,	// set while models and masked / translucent geometry are drawn: no screen space outlines there
 };
 

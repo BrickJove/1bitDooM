@@ -96,29 +96,8 @@ CUSTOM_CVAR(Int, gl_fuzztype, 8, CVAR_ARCHIVE)
 //
 //==========================================================================
 
-// Jupiter3D actor colour: only living monsters (with gl_actor_tint_attackers: only those that have a player as their target)
-// and collectible items (MF_SPECIAL: pickups). Decoration, corpses, projectiles and everything else keep the normal look.
-static bool ActorGetsTint(AActor *a)
-{
-	if (a->flags3 & MF3_ISMONSTER)
-	{
-		if (a->health <= 0) return false;
-		return !gl_actor_tint_attackers || (a->target != nullptr && a->target->player != nullptr);
-	}
-	return (a->flags & MF_SPECIAL) != 0;
-}
-
 void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 {
-	// mark actors (sprites and their 3D models, not particles) in the normal buffer for the actor colour pass
-	struct ActorScope
-	{
-		FRenderState &s;
-		bool saved;
-		ActorScope(FRenderState &st, bool on) : s(st), saved(st.GetActor()) { s.SetActor(on); }
-		~ActorScope() { s.SetActor(saved); }
-	} actorScope(state, actor != nullptr && ActorGetsTint(actor));
-
 	bool additivefog = false;
 	bool foglayer = false;
 	int rel = fullbright ? 0 : getExtraLight();

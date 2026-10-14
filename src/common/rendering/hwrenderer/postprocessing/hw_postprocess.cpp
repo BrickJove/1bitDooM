@@ -936,91 +936,6 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 	renderstate->PopGroup();
 }
 
-static void FillActorTintUniforms(ActorTintUniforms &uniforms)
-{
-	PalEntry light = PalEntry(gl_actor_tint_light);
-	PalEntry dark = PalEntry(gl_actor_tint_dark);
-	uniforms.LightR = light.r / 255.0f;
-	uniforms.LightG = light.g / 255.0f;
-	uniforms.LightB = light.b / 255.0f;
-	uniforms.Padding0 = 0.0f;
-	uniforms.DarkR = dark.r / 255.0f;
-	uniforms.DarkG = dark.g / 255.0f;
-	uniforms.DarkB = dark.b / 255.0f;
-	uniforms.Padding1 = 0.0f;
-
-	// optionally take the colours of the 1 bit shader (its user cvars jupiter3d_custom_dark_* / jupiter3d_custom_light_*)
-	if (gl_actor_tint_follow)
-	{
-		auto get = [](const char *name, float &out)
-		{
-			FBaseCVar *cv = FindCVar(name, nullptr);
-			if (cv != nullptr)
-				out = clamp(cv->GetGenericRep(CVAR_Float).Float, 0.0f, 1.0f);
-		};
-		get("jupiter3d_custom_light_r", uniforms.LightR);
-		get("jupiter3d_custom_light_g", uniforms.LightG);
-		get("jupiter3d_custom_light_b", uniforms.LightB);
-		get("jupiter3d_custom_dark_r", uniforms.DarkR);
-		get("jupiter3d_custom_dark_g", uniforms.DarkG);
-		get("jupiter3d_custom_dark_b", uniforms.DarkB);
-	}
-}
-
-void PPActorTint::Mark(PPRenderState *renderstate, int sceneWidth, int sceneHeight, bool weaponDepth)
-{
-	mSceneValid = false;
-	if (!gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
-		return;
-
-	ActorMarkUniforms uniforms;
-	uniforms.LinearizeDepthA = 1.0f / screen->GetZFar() - 1.0f / screen->GetZNear();
-	uniforms.LinearizeDepthB = max(1.0f / screen->GetZNear(), 1.e-8f);
-	uniforms.WeaponDepth = weaponDepth ? 1.0f : 0.0f;
-	uniforms.Padding0 = 0.0f;
-
-	renderstate->PushGroup("actormark");
-
-	renderstate->Clear();
-	renderstate->Shader = gl_multisample > 1 ? &ActorMarkMS : &ActorMark;
-	renderstate->Uniforms.Set(uniforms);
-	renderstate->Viewport = screen->mScreenViewport;
-	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
-	renderstate->SetInputSceneNormal(1);
-	renderstate->SetInputSceneDepth(2);
-	renderstate->SetOutputNext();
-	renderstate->SetNoBlend();
-	renderstate->Draw();
-
-	renderstate->PopGroup();
-	mSceneValid = true;
-}
-
-void PPActorTint::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
-{
-	// only right after a marked 3D scene: menus, console and title screens carry no mark
-	bool valid = mSceneValid;
-	mSceneValid = false;
-	if (!valid || !gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
-		return;
-
-	ActorTintUniforms uniforms;
-	FillActorTintUniforms(uniforms);
-
-	renderstate->PushGroup("actortint");
-
-	renderstate->Clear();
-	renderstate->Shader = &ActorTint;
-	renderstate->Uniforms.Set(uniforms);
-	renderstate->Viewport = screen->mScreenViewport;
-	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
-	renderstate->SetOutputNext();
-	renderstate->SetNoBlend();
-	renderstate->Draw();
-
-	renderstate->PopGroup();
-}
-
 void PPWeaponPixel::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	// Only when a HUD model was drawn this frame: otherwise the depth buffer still holds the whole world.
@@ -1393,14 +1308,11 @@ void PPCustomShaderInstance::AddUniformField(size_t &offset, const FString &name
 
 void Postprocess::Pass1(PPRenderState* state, int fixedcm, int sceneWidth, int sceneHeight)
 {
-	bool hudModel = hudModelDrawn;	// the weapon pixel pass below resets it; the mark pass needs it
 	weaponOutline.Render(state, sceneWidth, sceneHeight);
 	weaponPixel.Render(state, sceneWidth, sceneHeight);
 	exposure.Render(state, sceneWidth, sceneHeight);
 	customShaders.Run(state, "beforebloom");
 	bloom.RenderBloom(state, sceneWidth, sceneHeight, fixedcm);
-	// mark actor pixels now: weapon, HUD and menu are drawn after this and cover the mark
-	actorTint.Mark(state, sceneWidth, sceneHeight, hudModel);
 }
 
 void Postprocess::Pass2(PPRenderState* state, int fixedcm, float flash, int sceneWidth, int sceneHeight)

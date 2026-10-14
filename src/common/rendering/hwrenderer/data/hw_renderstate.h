@@ -243,7 +243,6 @@ protected:
 	bool mIsModel;
 	bool mSky;
 	bool mHiddenLine;
-	bool mActor;
 	int mTextureModeFlags;
 	int mSoftLight;
 	float mLightParms[4];
@@ -289,7 +288,6 @@ public:
 		mIsModel = false;
 		mSky = false;
 		mHiddenLine = false;
-		mActor = false;
 		mTextureModeFlags = 0;
 		mStreamData.uDesaturationFactor = 0.0f;
 		mAlphaThreshold = 0.5f;
@@ -417,18 +415,7 @@ public:
 		if (mIsModel) f |= TEXF_Model;
 		if (mSky) f |= TEXF_Sky;
 		if (mHiddenLine) f |= TEXF_HiddenLine;
-		if (mActor) f |= TEXF_Actor;
 		return (mTextureMode == TM_NORMAL && tempTM == TM_OPAQUE ? TM_OPAQUE : mTextureMode) | f;
-	}
-
-	bool GetActor() const
-	{
-		return mActor;
-	}
-
-	void SetActor(bool on)
-	{
-		mActor = on;
 	}
 
 	bool GetHiddenLine() const

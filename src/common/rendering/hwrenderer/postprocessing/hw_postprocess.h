@@ -1001,72 +1001,6 @@ private:
 	PPShader WeaponOutlineMS = { "shaders/pp/weaponoutline.fp", "#define MULTISAMPLE\n", WeaponOutlineUniforms::Desc() };
 };
 
-// Jupiter3D: actor colour (two colour remap of actor pixels after the final post process)
-struct ActorTintUniforms
-{
-	float LightR;
-	float LightG;
-	float LightB;
-	float Padding0;
-	float DarkR;
-	float DarkG;
-	float DarkB;
-	float Padding1;
-
-	static std::vector<UniformFieldDesc> Desc()
-	{
-		return
-		{
-			{ "LightR", UniformType::Float, offsetof(ActorTintUniforms, LightR) },
-			{ "LightG", UniformType::Float, offsetof(ActorTintUniforms, LightG) },
-			{ "LightB", UniformType::Float, offsetof(ActorTintUniforms, LightB) },
-			{ "Padding0", UniformType::Float, offsetof(ActorTintUniforms, Padding0) },
-			{ "DarkR", UniformType::Float, offsetof(ActorTintUniforms, DarkR) },
-			{ "DarkG", UniformType::Float, offsetof(ActorTintUniforms, DarkG) },
-			{ "DarkB", UniformType::Float, offsetof(ActorTintUniforms, DarkB) },
-			{ "Padding1", UniformType::Float, offsetof(ActorTintUniforms, Padding1) }
-		};
-	}
-};
-
-// the mark pass needs the depth buffer to leave out the player's 3D weapon
-struct ActorMarkUniforms
-{
-	float LinearizeDepthA;
-	float LinearizeDepthB;
-	float WeaponDepth;	// 1 = the depth buffer holds only the HUD model (weapon pixels are the ones that are not on the far plane)
-	float Padding0;
-
-	static std::vector<UniformFieldDesc> Desc()
-	{
-		return
-		{
-			{ "LinearizeDepthA", UniformType::Float, offsetof(ActorMarkUniforms, LinearizeDepthA) },
-			{ "LinearizeDepthB", UniformType::Float, offsetof(ActorMarkUniforms, LinearizeDepthB) },
-			{ "WeaponDepth", UniformType::Float, offsetof(ActorMarkUniforms, WeaponDepth) },
-			{ "Padding0", UniformType::Float, offsetof(ActorMarkUniforms, Padding0) }
-		};
-	}
-};
-
-class PPActorTint
-{
-public:
-	// Step 1, right after the scene was post processed and BEFORE weapon, HUD and menu are drawn on top: actor pixels get
-	// alpha 0 in the colour buffer, everything else alpha 1. What is drawn later (opaque) overwrites that alpha again,
-	// so only actor pixels that stay visible keep the mark.
-	void Mark(PPRenderState *renderstate, int sceneWidth, int sceneHeight, bool weaponDepth);
-	// Step 2, after the "screen" custom shaders (the last effect before the picture is presented): pixels with the mark get
-	// the two colours (a custom shader must keep the alpha of its input).
-	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
-
-private:
-	bool mSceneValid = false;
-	PPShader ActorMark = { "shaders/pp/actormark.fp", "", ActorMarkUniforms::Desc() };
-	PPShader ActorMarkMS = { "shaders/pp/actormark.fp", "#define MULTISAMPLE\n", ActorMarkUniforms::Desc() };
-	PPShader ActorTint = { "shaders/pp/actortint.fp", "", ActorTintUniforms::Desc() };
-};
-
 class PPWeaponPixel
 {
 public:
@@ -1092,7 +1026,6 @@ public:
 	PPOutline outline;
 	PPWeaponOutline weaponOutline;
 	PPWeaponPixel weaponPixel;
-	PPActorTint actorTint;
 	PPPresent present;
 	PPShadowMap shadowmap;
 	PPCustomShaders customShaders;
