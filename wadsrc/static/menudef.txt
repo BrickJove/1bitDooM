@@ -1003,7 +1003,7 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "actor colour (after 1 bit shader)", 1
 	Option "Colour actors",                      "gl_actor_tint", "OnOff"
-	Option "Only monsters that attack me",       "gl_actor_tint_attackers", "OnOff"
+	Option "Monsters: only those attacking me",   "gl_actor_tint_attackers", "OnOff"
 	Option "Use colours of the 1 bit shader",    "gl_actor_tint_follow", "OnOff"
 	ColorPicker "  light colour",                "gl_actor_tint_light"
 	ColorPicker "  dark colour",                 "gl_actor_tint_dark"

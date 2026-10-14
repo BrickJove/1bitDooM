@@ -63,3 +63,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Actor colour: the player's 3D weapon lies in front of the colour (mark pass skips weapon pixels via the depth buffer); new option gl_actor_tint_follow takes the colours from the 1 bit shader's cvars jupiter3d_custom_dark_*/light_*.
 
 - Actor colour: new option gl_actor_tint_attackers (default on): only living monsters whose target is a player (MF3_ISMONSTER, health > 0). Everything else keeps the normal 1 bit look.
+
+- Actor colour affects only living monsters and collectible items (MF_SPECIAL); decoration, corpses and projectiles are left alone. gl_actor_tint_attackers now only restricts the monsters (items are always included).
