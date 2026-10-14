@@ -936,18 +936,10 @@ void PPWeaponOutline::Render(PPRenderState *renderstate, int sceneWidth, int sce
 	renderstate->PopGroup();
 }
 
-void PPActorTint::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+static void FillActorTintUniforms(ActorTintUniforms &uniforms)
 {
-	// only right after a 3D scene was drawn: menus, console and title screens have no fresh normal buffer
-	bool valid = mSceneValid;
-	mSceneValid = false;
-	if (!valid || !gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
-		return;
-
 	PalEntry light = PalEntry(gl_actor_tint_light);
 	PalEntry dark = PalEntry(gl_actor_tint_dark);
-
-	ActorTintUniforms uniforms;
 	uniforms.LightR = light.r / 255.0f;
 	uniforms.LightG = light.g / 255.0f;
 	uniforms.LightB = light.b / 255.0f;
@@ -956,15 +948,51 @@ void PPActorTint::Render(PPRenderState *renderstate, int sceneWidth, int sceneHe
 	uniforms.DarkG = dark.g / 255.0f;
 	uniforms.DarkB = dark.b / 255.0f;
 	uniforms.Padding1 = 0.0f;
+}
 
-	renderstate->PushGroup("actortint");
+void PPActorTint::Mark(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	mSceneValid = false;
+	if (!gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	ActorTintUniforms uniforms;
+	FillActorTintUniforms(uniforms);
+
+	renderstate->PushGroup("actormark");
 
 	renderstate->Clear();
-	renderstate->Shader = gl_multisample > 1 ? &ActorTintMS : &ActorTint;
+	renderstate->Shader = gl_multisample > 1 ? &ActorMarkMS : &ActorMark;
 	renderstate->Uniforms.Set(uniforms);
 	renderstate->Viewport = screen->mScreenViewport;
 	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
 	renderstate->SetInputSceneNormal(1);
+	renderstate->SetOutputNext();
+	renderstate->SetNoBlend();
+	renderstate->Draw();
+
+	renderstate->PopGroup();
+	mSceneValid = true;
+}
+
+void PPActorTint::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	// only right after a marked 3D scene: menus, console and title screens carry no mark
+	bool valid = mSceneValid;
+	mSceneValid = false;
+	if (!valid || !gl_actor_tint || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	ActorTintUniforms uniforms;
+	FillActorTintUniforms(uniforms);
+
+	renderstate->PushGroup("actortint");
+
+	renderstate->Clear();
+	renderstate->Shader = &ActorTint;
+	renderstate->Uniforms.Set(uniforms);
+	renderstate->Viewport = screen->mScreenViewport;
+	renderstate->SetInputCurrent(0, PPFilterMode::Nearest);
 	renderstate->SetOutputNext();
 	renderstate->SetNoBlend();
 	renderstate->Draw();
@@ -1349,6 +1377,8 @@ void Postprocess::Pass1(PPRenderState* state, int fixedcm, int sceneWidth, int s
 	exposure.Render(state, sceneWidth, sceneHeight);
 	customShaders.Run(state, "beforebloom");
 	bloom.RenderBloom(state, sceneWidth, sceneHeight, fixedcm);
+	// mark actor pixels now: weapon, HUD and menu are drawn after this and cover the mark
+	actorTint.Mark(state, sceneWidth, sceneHeight);
 }
 
 void Postprocess::Pass2(PPRenderState* state, int fixedcm, float flash, int sceneWidth, int sceneHeight)
@@ -1361,7 +1391,4 @@ void Postprocess::Pass2(PPRenderState* state, int fixedcm, float flash, int scen
 	customShaders.Run(state, "scene");
 
 	customShaders.UpdateLastInputTexture(state);
-
-	// the actor colour itself runs later, after the "screen" custom shaders (see PPActorTint::Render)
-	actorTint.SceneRendered();
 }

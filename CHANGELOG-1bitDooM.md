@@ -57,3 +57,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Actor colour (gl_actor_tint, gl_actor_tint_light #9bbc0f, gl_actor_tint_dark #0f380f): after the whole post process chain (including custom 1 bit shaders) pixels of actors (sprites + models, via new marker TEXF_Actor / normal (1,1,0)) are remapped to two colours by brightness; the rest of the scene is untouched. Menu: "actor colour". HUD weapon is not covered.
 
 - Actor colour now runs after the "screen" custom shaders (the last stage before presenting), so it works on top of a 1 bit shader that uses Target screen. It only runs on frames with a 3D scene, and turns on the scene normal buffer by itself (gl_actor_tint).
+
+- Actor colour: two steps. Right after the scene post process (before weapon / HUD / menu are drawn) actor pixels get alpha 0 in the colour buffer (actormark.fp), later opaque drawing overwrites that alpha; after the "screen" custom shaders the remaining alpha-0 pixels get the two colours (actortint.fp). So the colour lies behind weapon, HUD and menu. Custom shaders must pass the alpha of their input through.

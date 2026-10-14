@@ -1032,15 +1032,19 @@ struct ActorTintUniforms
 class PPActorTint
 {
 public:
-	// A 3D scene (with a normal buffer of this frame) was post processed: the tint may run in the final screen stage.
-	void SceneRendered() { mSceneValid = true; }
-	// Runs after the "screen" custom shaders (the last effect before the picture is presented), once per 3D scene.
+	// Step 1, right after the scene was post processed and BEFORE weapon, HUD and menu are drawn on top: actor pixels get
+	// alpha 0 in the colour buffer, everything else alpha 1. What is drawn later (opaque) overwrites that alpha again,
+	// so only actor pixels that stay visible keep the mark.
+	void Mark(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+	// Step 2, after the "screen" custom shaders (the last effect before the picture is presented): pixels with the mark get
+	// the two colours (a custom shader must keep the alpha of its input).
 	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
 
 private:
 	bool mSceneValid = false;
+	PPShader ActorMark = { "shaders/pp/actormark.fp", "", ActorTintUniforms::Desc() };
+	PPShader ActorMarkMS = { "shaders/pp/actormark.fp", "#define MULTISAMPLE\n", ActorTintUniforms::Desc() };
 	PPShader ActorTint = { "shaders/pp/actortint.fp", "", ActorTintUniforms::Desc() };
-	PPShader ActorTintMS = { "shaders/pp/actortint.fp", "#define MULTISAMPLE\n", ActorTintUniforms::Desc() };
 };
 
 class PPWeaponPixel
