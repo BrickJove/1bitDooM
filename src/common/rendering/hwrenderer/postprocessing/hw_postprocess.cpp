@@ -903,6 +903,47 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->PopGroup();
 }
 
+// shadows of the models: pure black where a model lies between the pixel and a dynamic light
+void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
+{
+	const SceneShadowFrame &f = sceneShadowFrame;
+	if (!gl_scene_shadow || !f.Valid || !f.ModelShadowActive || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+
+	ModelShadowUniforms u;
+	u.CamX = FVector4(f.InvView[0][0], f.InvView[0][1], f.InvView[0][2], f.InvView[0][3]);
+	u.CamY = FVector4(f.InvView[1][0], f.InvView[1][1], f.InvView[1][2], f.InvView[1][3]);
+	u.CamZ = FVector4(f.InvView[2][0], f.InvView[2][1], f.InvView[2][2], f.InvView[2][3]);
+	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
+	u.Light0 = FVector4(f.ModelLight[0][0], f.ModelLight[0][1], f.ModelLight[0][2], f.ModelLight[0][3]);
+	u.Light1 = FVector4(f.ModelLight[1][0], f.ModelLight[1][1], f.ModelLight[1][2], f.ModelLight[1][3]);
+	u.NearFar = FVector4(f.ModelNearFar[0][0], f.ModelNearFar[0][1], f.ModelNearFar[1][0], f.ModelNearFar[1][1]);
+	// the matrices are column major: row r of the matrix = elements r, r + 4, r + 8, r + 12
+	FVector4 *rows0[4] = { &u.VP0_0, &u.VP0_1, &u.VP0_2, &u.VP0_3 };
+	FVector4 *rows1[4] = { &u.VP1_0, &u.VP1_1, &u.VP1_2, &u.VP1_3 };
+	for (int r = 0; r < 4; r++)
+	{
+		*rows0[r] = FVector4(f.ModelVP[0][r], f.ModelVP[0][r + 4], f.ModelVP[0][r + 8], f.ModelVP[0][r + 12]);
+		*rows1[r] = FVector4(f.ModelVP[1][r], f.ModelVP[1][r + 4], f.ModelVP[1][r + 8], f.ModelVP[1][r + 12]);
+	}
+	u.Scale = screen->SceneScale();
+	u.Offset = screen->SceneOffset();
+
+	renderstate->PushGroup("modelshadow");
+	renderstate->Clear();
+	renderstate->Shader = &ModelShadow;
+	renderstate->Uniforms.Set(u);
+	renderstate->Viewport = screen->mSceneViewport;
+	renderstate->SetInputSceneDepth(0);
+	renderstate->SetInputSceneNormal(1);
+	renderstate->SetInputModelShadow(2, 0);
+	renderstate->SetInputModelShadow(3, 1);
+	renderstate->SetOutputSceneColor();
+	renderstate->SetAlphaBlend();
+	renderstate->Draw();
+	renderstate->PopGroup();
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Jupiter3D: screen space geometry outlines
 

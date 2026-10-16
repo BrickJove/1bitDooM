@@ -56,7 +56,7 @@ enum class ETonemapMode : uint8_t
 
 enum class PPFilterMode { Nearest, Linear };
 enum class PPWrapMode { Clamp, Repeat };
-enum class PPTextureType { CurrentPipelineTexture, NextPipelineTexture, PPTexture, SceneColor, SceneFog, SceneNormal, SceneDepth, SwapChain, ShadowMap };
+enum class PPTextureType { CurrentPipelineTexture, NextPipelineTexture, PPTexture, SceneColor, SceneFog, SceneNormal, SceneDepth, SwapChain, ShadowMap, ModelShadow0, ModelShadow1 };
 
 class PPTextureInput
 {
@@ -171,6 +171,11 @@ public:
 	void SetInputSceneDepth(int index, PPFilterMode filter = PPFilterMode::Nearest, PPWrapMode wrap = PPWrapMode::Clamp)
 	{
 		SetInputSpecialType(index, PPTextureType::SceneDepth, filter, wrap);
+	}
+
+	void SetInputModelShadow(int index, int map)
+	{
+		SetInputSpecialType(index, map == 0 ? PPTextureType::ModelShadow0 : PPTextureType::ModelShadow1, PPFilterMode::Nearest, PPWrapMode::Clamp);
 	}
 
 	void SetInputSpecialType(int index, PPTextureType type, PPFilterMode filter = PPFilterMode::Nearest, PPWrapMode wrap = PPWrapMode::Clamp)
@@ -817,8 +822,6 @@ struct SceneShadowFrame
 	bool SunPosValid = false;		// kept between frames (model shadows use it)
 	float Light[3][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
 	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
-	float ViewProj[16] = {};		// projection * view (render space -> clip space), column major
-	const struct ShadowVolumeGeometry *Volumes = nullptr;	// occluders for the stencil shadow volumes (Doom 3 algorithm)
 	// height map of the level (hw_shadowheightmap.cpp)
 	PPTexture *CellTex = nullptr;		// 4 floats per cell: floor, ceiling, list start, list count (see hw_shadowheightmap.cpp)
 	PPTexture *ListTex = nullptr;		// line indices per cell
@@ -829,6 +832,11 @@ struct SceneShadowFrame
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
 	float MidX = 0, MidY = 0;		// centre of the bounding box of the level
 	float TopLimit = 0;			// highest floor / ceiling: rays above it are free
+	// shadow maps of the models (OpenGL only, hw_modelshadow.cpp)
+	bool ModelShadowActive = false;		// the maps of this frame are valid
+	float ModelLight[2][4] = {};		// render space position + radius of the light of each map, radius 0 = map unused
+	float ModelVP[2][16] = {};		// light projection * view (render space -> clip space), column major
+	float ModelNearFar[2][2] = {};
 };
 extern SceneShadowFrame sceneShadowFrame;
 
@@ -862,6 +870,55 @@ struct SceneShadowUniforms
 	}
 };
 static_assert(sizeof(SceneShadowUniforms) == 128, "SceneShadowUniforms must stay within 128 bytes (Vulkan push constants)");
+
+// shadows of the models, from the depth maps seen from the dynamic lights (OpenGL only, any size: no push constants)
+struct ModelShadowUniforms
+{
+	FVector4 CamX;
+	FVector4 CamY;
+	FVector4 CamZ;
+	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]
+	FVector4 Light0;	// xyz = position, w = radius (0 = unused)
+	FVector4 Light1;
+	FVector4 NearFar;	// x, y = near, far of map 0; z, w = of map 1
+	FVector4 VP0_0, VP0_1, VP0_2, VP0_3;	// rows of the light projection * view of map 0
+	FVector4 VP1_0, VP1_1, VP1_2, VP1_3;
+	FVector2 Scale;
+	FVector2 Offset;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "CamX", UniformType::Vec4, offsetof(ModelShadowUniforms, CamX) },
+			{ "CamY", UniformType::Vec4, offsetof(ModelShadowUniforms, CamY) },
+			{ "CamZ", UniformType::Vec4, offsetof(ModelShadowUniforms, CamZ) },
+			{ "ProjParams", UniformType::Vec4, offsetof(ModelShadowUniforms, ProjParams) },
+			{ "Light0", UniformType::Vec4, offsetof(ModelShadowUniforms, Light0) },
+			{ "Light1", UniformType::Vec4, offsetof(ModelShadowUniforms, Light1) },
+			{ "NearFar", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar) },
+			{ "VP0_0", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_0) },
+			{ "VP0_1", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_1) },
+			{ "VP0_2", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_2) },
+			{ "VP0_3", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_3) },
+			{ "VP1_0", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_0) },
+			{ "VP1_1", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_1) },
+			{ "VP1_2", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_2) },
+			{ "VP1_3", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_3) },
+			{ "Scale", UniformType::Vec2, offsetof(ModelShadowUniforms, Scale) },
+			{ "Offset", UniformType::Vec2, offsetof(ModelShadowUniforms, Offset) }
+		};
+	}
+};
+
+class PPModelShadow
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+
+private:
+	PPShader ModelShadow = { "shaders/pp/modelshadow.fp", "", ModelShadowUniforms::Desc() };
+};
 
 class PPSceneShadow
 {
@@ -1090,6 +1147,7 @@ public:
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
 	PPSceneShadow sceneShadow;
+	PPModelShadow modelShadow;
 	PPOutline outline;
 	PPWeaponOutline weaponOutline;
 	PPWeaponPixel weaponPixel;

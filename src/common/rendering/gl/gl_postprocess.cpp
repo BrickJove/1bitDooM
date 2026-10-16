@@ -29,7 +29,6 @@
 #include "gl_renderer.h"
 #include "gl_postprocessstate.h"
 #include "gl_shaderprogram.h"
-#include "gl_shadowvolumes.h"
 #include "hwrenderer/postprocessing/hw_postprocess.h"
 #include "hwrenderer/postprocessing/hw_postprocess_cvars.h"
 #include "flatvertices.h"
@@ -87,8 +86,8 @@ void FGLRenderer::AmbientOccludeScene(float m5)
 
 	GLPPRenderState renderstate(mBuffers);
 	hw_postprocess.ssao.Render(&renderstate, m5, sceneWidth, sceneHeight);
-	if (!RenderSceneShadowVolumes(mBuffers))
-		hw_postprocess.sceneShadow.Render(&renderstate, sceneWidth, sceneHeight);
+	hw_postprocess.sceneShadow.Render(&renderstate, sceneWidth, sceneHeight);
+	hw_postprocess.modelShadow.Render(&renderstate, sceneWidth, sceneHeight);
 	hw_postprocess.outline.Render(&renderstate, sceneWidth, sceneHeight);
 }
 

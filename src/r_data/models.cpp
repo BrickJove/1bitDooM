@@ -51,6 +51,7 @@ CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// m
 extern bool hudModelOutlineAllowed;
 // The far-model inner outline is off for non-solid actors only (decals, graffiti, blood, corpses, items); every solid actor gets it.
 bool modelInnerOutlineClass = false;
+TArray<ModelShadowCaster> modelShadowCasters;
 bool modelShadowOnly = false;	// set while drawing the first person player: only the drop shadow is drawn
 
 // Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
@@ -93,6 +94,7 @@ CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 
 EXTERN_CVAR(Bool, gl_scene_shadow)
 EXTERN_CVAR(Bool, gl_scene_shadow_sun)
+EXTERN_CVAR(Bool, gl_model_shadow_map)
 
 static bool WantsModelShadow(AActor* actor)
 {
@@ -154,6 +156,10 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		if (blackModel) renderer->EndBlack();
 	}
 
+	// shadow map of the dynamic lights: replayed by hw_modelshadow.cpp after the scene
+	if (gl_model_shadow_map && gl_scene_shadow && (gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor) && modelShadowCasters.Size() < 256)
+		modelShadowCasters.Push({ x, y, z, smf, actor, ticFrac });
+
 	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
 	{
 		// Style 1: the shadow is projected onto the floor along the direction from the nearest dynamic light through the
@@ -164,7 +170,9 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		bool sunLit = gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
 			&& actor->Sector != nullptr && (actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum
 				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
-		bool lit = !sunLit && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
+		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
+		bool mapShadow = gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive;
+		bool lit = !sunLit && !mapShadow && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
 		float shadowScale = 1.f;
 		if (!lit && !sunLit && gl_model_shadow_fade_height > 0.f)
 		{
@@ -219,6 +227,22 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		renderer->EndShadow(objectToWorldMatrix, actor->RenderStyle, smf_flags, orientation < 0);
 		}
 	}
+	renderer->EndDrawModel(actor->RenderStyle, smf_flags);
+}
+
+void RenderModelShadowCaster(FModelRenderer *renderer, float x, float y, float z, FSpriteModelFrame *smf, AActor *actor, double ticFrac)
+{
+	int smf_flags = smf->getFlags(actor->modelData);
+	FTranslationID translation = NO_TRANSLATION;
+	if (!(smf_flags & MDL_IGNORETRANSLATION))
+		translation = actor->Translation;
+
+	VSMatrix objectToWorldMatrix = smf->ObjectToWorldMatrix(actor, x, y, z, ticFrac);
+	const DVector2 scale = actor->InterpolatedScale(ticFrac);
+	float orientation = scale.X * smf->xscale * scale.X * smf->yscale * scale.Y * smf->zscale;
+
+	renderer->BeginDrawModel(actor->RenderStyle, smf_flags, objectToWorldMatrix, orientation < 0);
+	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 	renderer->EndDrawModel(actor->RenderStyle, smf_flags);
 }
 

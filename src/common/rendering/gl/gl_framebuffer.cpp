@@ -49,6 +49,7 @@
 
 #include "flatvertices.h"
 #include "hw_cvars.h"
+#include "gl_modelshadow.h"
 
 EXTERN_CVAR (Bool, vid_vsync)
 EXTERN_CVAR(Int, gl_tonemap)
@@ -403,6 +404,16 @@ void OpenGLFrameBuffer::AmbientOccludeScene(float m5)
 	GLRenderer->mBuffers->BindSceneFB(true);
 	gl_RenderState.EnableDrawBuffers(gl_RenderState.GetPassDrawBufferCount());
 	gl_RenderState.Apply();
+}
+
+bool OpenGLFrameBuffer::BeginModelShadowMap(int index)
+{
+	return GLModelShadow_Begin(index);
+}
+
+void OpenGLFrameBuffer::EndModelShadowMap()
+{
+	GLModelShadow_End();
 }
 
 void OpenGLFrameBuffer::FirstEye()

@@ -1024,12 +1024,13 @@ OptionMenu "VideoOptions" protected
 	StaticText " "
 	StaticText "Scene shadows (sun + lights)", 1
 	Option "Scene shadows",                      "gl_scene_shadow", "OnOff"
-	Option "  stencil shadow volumes (OpenGL)", "gl_scene_shadow_volumes", "OnOff"
 	Option "  style",                            "gl_scene_shadow_style", "SceneShadowStyle"
 	Slider "  dither density",                   "gl_scene_shadow_strength", 0.1, 1.0, 0.05, 2
 	Option "  sun",                              "gl_scene_shadow_sun", "OnOff"
 	Slider "  sun height (map units)",           "gl_scene_shadow_sun_height", 128, 8192, 64, 0
 	Slider "  dynamic lights (0-3)",             "gl_scene_shadow_lights", 0, 3, 1, 0
+	Option "Models cast shadows (map lights)", "gl_model_shadow_map", "OnOff"
+	Slider "  lights for model shadows (1-2)", "gl_model_shadow_map_lights", 1, 2, 1, 0
 	Option "  fences cast shadows",              "gl_scene_shadow_fences", "OnOff"
 	Option "  walls facing away are black",    "gl_scene_shadow_facing", "OnOff"
 	StaticText " "

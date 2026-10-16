@@ -39,7 +39,7 @@
 #include "a_corona.h"
 #include "a_dynlight.h"
 #include "hw_shadowheightmap.h"
-#include "hw_shadowvolumes.h"
+#include "hw_modelshadow.h"
 #include "texturemanager.h"
 #include "actorinlines.h"
 #include "g_levellocals.h"
@@ -1046,14 +1046,6 @@ void HWDrawInfo::PrepareSceneShadow()
 		for (int c = 0; c < 4; c++)
 			f.InvView[r][c] = m[r + 4 * c];
 
-	{
-		// projection * view for the shadow volumes
-		VSMatrix vp;
-		vp.loadMatrix(VPUniforms.ProjectionMatrix.get());
-		vp.multMatrix(VPUniforms.ViewMatrix.get());
-		memcpy(f.ViewProj, vp.get(), sizeof(f.ViewProj));
-		f.Volumes = gl_scene_shadow_volumes ? hw_UpdateShadowVolumes(Level) : nullptr;
-	}
 
 	// the nearest dynamic lights (distance to the light's reach)
 	struct Cand { double score; DVector3 pos; float radius; };
@@ -1141,6 +1133,9 @@ void HWDrawInfo::DrawScene(int drawmode)
 	}
 	auto& RenderState = *screen->RenderState();
 
+	if (drawmode == DM_MAINVIEW && recursion == 0)
+		modelShadowCasters.Clear();
+
 	RenderState.SetDepthMask(true);
 	if (!gl_no_skyclear) portalState.RenderFirstSkyPortal(recursion, this, RenderState);
 
@@ -1149,6 +1144,7 @@ void HWDrawInfo::DrawScene(int drawmode)
 	if (applySSAO && RenderState.GetPassType() == GBUFFER_PASS)
 	{
 		PrepareSceneShadow();
+		hw_RenderModelShadowMaps(this, RenderState);
 		screen->AmbientOccludeScene(VPUniforms.ProjectionMatrix.get()[5]);
 		screen->mViewpoints->Bind(RenderState, vpIndex);
 	}

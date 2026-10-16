@@ -31,6 +31,7 @@
 #include "gl_postprocessstate.h"
 #include "gl_shaderprogram.h"
 #include "gl_buffers.h"
+#include "gl_modelshadow.h"
 
 #include <random>
 
@@ -898,6 +899,14 @@ void GLPPRenderState::Draw()
 
 		case PPTextureType::SceneDepth:
 			buffers->BindSceneDepthTexture(index);
+			break;
+
+		case PPTextureType::ModelShadow0:
+			GLModelShadow_BindTexture(0, index);
+			break;
+
+		case PPTextureType::ModelShadow1:
+			GLModelShadow_BindTexture(1, index);
 			break;
 		}
 	}
