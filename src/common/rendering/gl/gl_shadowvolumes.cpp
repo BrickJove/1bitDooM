@@ -204,6 +204,16 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 	glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, &prevStZPass);
 	GLint prevViewport[4];
 	glGetIntegerv(GL_VIEWPORT, prevViewport);
+	// The volume vertex shader does not write gl_ClipDistance: clip planes left enabled by the scene (portals, clip
+	// heights) would clip the volumes at random.
+	GLboolean prevClip[8];
+	for (int i = 0; i < 8; i++)
+	{
+		prevClip[i] = glIsEnabled(GL_CLIP_DISTANCE0 + i);
+		glDisable(GL_CLIP_DISTANCE0 + i);
+	}
+	GLboolean prevOffset = glIsEnabled(GL_POLYGON_OFFSET_FILL);
+	glDisable(GL_POLYGON_OFFSET_FILL);
 
 	FGLPostProcessState savedState;		// saves and disables depth test, blend, scissor
 	savedState.SaveTextureBindings(2);
@@ -339,6 +349,9 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 	if (!prevStencilTest) glDisable(GL_STENCIL_TEST);
 	if (prevCull) glEnable(GL_CULL_FACE);
 	glViewport(prevViewport[0], prevViewport[1], prevViewport[2], prevViewport[3]);
+	for (int i = 0; i < 8; i++)
+		if (prevClip[i]) glEnable(GL_CLIP_DISTANCE0 + i);
+	if (prevOffset) glEnable(GL_POLYGON_OFFSET_FILL);
 
 	FGLDebug::PopGroup();
 	return true;
