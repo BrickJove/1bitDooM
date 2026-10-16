@@ -59,3 +59,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Soft model drop shadow (gl_model_shadow_style 1, default): dithered black blob (texture SHDWBLOB) on the floor below the actor, always the same strength, shrinking with the height above the floor (gl_model_shadow_fade_height). Style 0 is the old flat silhouette. Which actors get a shadow is still chosen with gl_model_shadow_monsters / _decor / _player.
 
 - Soft shadow is now a smooth black-to-transparent gradient (no dither pattern), drawn with alpha blending and linear filtering.
+
+- Shadow style 2 "Sun": in sectors with a sky ceiling the actor casts a projected (sheared, flat black) shadow on the floor, as if the sun stood above the middle of the map (bounding box of all vertices; height gl_model_shadow_sun_height, 0 = automatic = half the map size, at least 1024). Actors in sectors without sky get the soft blob. A flying actor's shadow is displaced by its height.

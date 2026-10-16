@@ -67,6 +67,7 @@ EXTERN_CVAR(Float, r_actorspriteshadowalpha)
 bool ModelWantsShadow(AActor* actor);
 float ModelShadowScale(AActor* actor, float z);
 EXTERN_CVAR(Int, gl_model_shadow_style)
+bool ModelShadowUsesBlob(AActor* actor);
 EXTERN_CVAR(Float, r_actorspriteshadowfadeheight)
 EXTERN_CVAR(Int, r_distance_cull_type)
 
@@ -323,7 +324,7 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 			state.SetVertexBuffer(screen->mVertexData);
 
 			// soft drop shadow (black blob with a smooth alpha fall-off, texture SHDWBLOB)
-			if (gl_model_shadow_style == 1 && actor != nullptr && !modelframe->isVoxel)
+			if (actor != nullptr && !modelframe->isVoxel && ModelShadowUsesBlob(actor))
 			{
 				if (screen->BuffersArePersistent())
 					CreateVertices(di);
@@ -663,7 +664,7 @@ inline void HWSprite::PutSprite(HWDrawInfo *di, bool translucent)
 void HWSprite::CreateVertices(HWDrawInfo *di)
 {
 	shadowvertex = -1;
-	if (modelframe != nullptr && actor != nullptr && gl_model_shadow_style == 1 && !modelframe->isVoxel && ModelWantsShadow(actor))
+	if (modelframe != nullptr && actor != nullptr && ModelShadowUsesBlob(actor) && !modelframe->isVoxel && ModelWantsShadow(actor))
 	{
 		// soft drop shadow: a square on the floor below the actor, shrinking with the height above the floor
 		float scale = ModelShadowScale(actor, z);

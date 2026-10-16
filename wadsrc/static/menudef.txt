@@ -970,6 +970,7 @@ OptionValue "ModelShadowStyle"
 {
 	0, "Flat silhouette"
 	1, "Soft blob"
+	2, "Sun (sky sectors)"
 }
 
 OptionMenu "VideoOptions" protected
@@ -1015,6 +1016,7 @@ OptionMenu "VideoOptions" protected
 	Option "  decoration: skip non-solid",       "gl_model_shadow_skip_nonsolid", "OnOff"
 	Option "Shadows: player",                    "gl_model_shadow_player", "OnOff"
 	Slider "Shadow gone at height (0 = no shrink)", "gl_model_shadow_fade_height", 0, 512, 16, 0
+	Slider "Sun height (0 = automatic)",         "gl_model_shadow_sun_height", 0, 8192, 256, 0
 	StaticText " "
 	Slider "$DSPLYMNU_SCREENSIZE",             screenblocks,           3.0, 12.0, 1.0, 0
 	StaticText " "
