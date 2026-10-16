@@ -61,7 +61,7 @@ bool InModelShadow(vec3 P, vec4 L, vec4 r0, vec4 r1, vec4 r2, vec4 r3, vec2 nf, 
 	if (stored >= 1.0)
 		return false;	// nothing was drawn here
 	float occluder = LinearLightDepth(stored, nf.x, nf.y);
-	float texel = 2.0 * clip.w / (float(size.x) * max(abs(r0.x), 1.0e-4));	// world size of one depth map texel at this distance
+	float texel = 2.0 * clip.w / (float(size.x) * max(length(r0.xyz), 1.0e-4));	// world size of one depth map texel at this distance (length of the row = 1 / tan(fov / 2))
 	return clip.w > occluder + 2.0 * texel + 1.0;
 }
 
