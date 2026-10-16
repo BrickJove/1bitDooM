@@ -37,6 +37,7 @@ const float NearSkyMark = 90000.0;
 
 ivec2 gTexSize;
 ivec2 gGridSize;
+bool gFences = true;
 
 ivec2 ClampPos(ivec2 p)
 {
@@ -150,7 +151,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
 			return true;
 		int fence = int(texelFetch(LineTexture, base + ivec2(6, 0), 0).x + 0.5) - 1;
-		if (fence >= 0 && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
+		if (fence >= 0 && gFences && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
 			return true;
 	}
 	return false;
@@ -241,7 +242,8 @@ void main()
 	}
 
 	int packedBits = int(Grid.w + 0.5);
-	int flags = packedBits & 3;
+	int flags = packedBits & 7;
+	gFences = (flags & 4) == 0;
 	bool facingShade = (flags & 1) != 0;
 	bool dither = (flags & 2) != 0;
 
@@ -259,6 +261,10 @@ void main()
 		n = vec3(0.0);
 
 	float cell = 1.0 / Grid.z;
+
+	// floors and ceilings face exactly up / down (the normal buffer is only 10 bit: noisy facing tests)
+	if (hasNormal && abs(n.y) > 0.95)
+		n = vec3(0.0, n.y > 0.0 ? 1.0 : -1.0, 0.0);
 
 	// Floors and ceilings: the depth buffer is imprecise at grazing angles (moire along shadow edges). The height of the
 	// surface is known from the height map, so move the position along the view ray onto that exact height.
@@ -284,7 +290,7 @@ void main()
 	}
 	vec3 Q = P + n * (cell * 1.5);	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
-	float topLimit = float(packedBits >> 9);
+	float topLimit = float(packedBits >> 10);
 
 	// A pixel is black when at least one source reaches it (sun: pixel under an open sky, light: within its radius)
 	// and every source that reaches it is blocked (the surface faces away, or the ray hits the map).
@@ -343,7 +349,7 @@ void main()
 	float shadow = (reached > 0 && lit == 0) ? 1.0 : 0.0;
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
-	float density = float((packedBits >> 2) & 127) / 100.0;
+	float density = float((packedBits >> 3) & 127) / 100.0;
 	float a = dither ? ((shadow > 0.15 ? density : 0.0) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
 	FragColor = vec4(0.0, 0.0, 0.0, a);
 }

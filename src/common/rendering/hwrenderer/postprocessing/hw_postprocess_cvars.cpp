@@ -82,6 +82,7 @@ CVARD(Float, gl_scene_shadow_sun_height, 1024.f, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 CVARD(Int, gl_scene_shadow_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..3) that cast screen space shadows")
 CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
 CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = hard black shadow, 1 = binary dither pattern with gl_scene_shadow_strength as coverage")
+CVARD(Bool, gl_scene_shadow_fences, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Fences (transparent middle textures) cast the silhouette of their texture")
 CVARD(Bool, gl_scene_shadow_facing, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Surfaces that face away from the light are in shadow as well")
 CVAR(Float, gl_model_inner_outline_distance, 512.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
