@@ -63,16 +63,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			if (radius <= 0.f)
 				continue;
 			DVector3 lp = light->PosRelative(group);
-			float height = (float)lp.Z;
-			if (light->Sector != nullptr)
-			{
-				// a light on or near the floor would only shadow the lowest part of a model and cast grazing shadows:
-				// shadows are cast as if it hung higher (not above the ceiling)
-				float floorz = (float)light->Sector->floorplane.ZatPoint(lp.X, lp.Y);
-				float ceilz = (float)light->Sector->ceilingplane.ZatPoint(lp.X, lp.Y);
-				float wanted = min(floorz + (float)gl_model_shadow_map_light_height, ceilz - 4.f);
-				height = max(height, wanted);
-			}
+			float height = (float)lp.Z;	// as the light is placed in the map
 			Lt lt = { (float)lp.X, height, (float)lp.Y, radius };
 			lights.Push(lt);
 			if (lights.Size() >= 512)
@@ -108,7 +99,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				continue;
 			nWanted++;
 			DVector3 pos = a->InterpolatedPosition(di->Viewpoint.TicFrac);
-			float r = (float)max(a->radius, a->Height * 0.5) + 8.f;
+			float r = (float)max(a->radius * 1.5, a->Height * 0.75) + 16.f;	// generous: arms and weapons stick out of the radius
 			float cx = (float)pos.X, cy = (float)(pos.Z + a->Height * 0.5), cz = (float)pos.Y;
 			bool near = false;
 			for (unsigned li = 0; li < lights.Size() && !near; li++)
@@ -191,7 +182,6 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 
 		// the models this light reaches
 		TArray<int> picked;
-		float ax = 0, ay = 0, az = 0;
 		for (unsigned i = 0; i < infos.Size(); i++)
 		{
 			float dx = infos[i].cx - lx, dy = infos[i].cy - ly, dz = infos[i].cz - lz;
@@ -199,27 +189,60 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			if (d > radius + infos[i].r || d < infos[i].r * 0.5f)
 				continue;	// out of reach, or the light is inside the model
 			picked.Push(i);
-			ax += dx; ay += dy; az += dz;
 		}
 		if (picked.Size() == 0)
 			continue;
 
-		// axis: towards the middle of the models, field of view wide enough for all of them
+		// axis: towards the middle of the models (the player's own model does not steer it, so the view does not jump
+		// when the player walks around), field of view wide enough for all of them but not wider than maxFov:
+		// models outside of it are left out
+		bool haveOthers = false;
+		for (unsigned k = 0; k < picked.Size(); k++)
+			if (infos[picked[k]].actor->player == nullptr)
+				haveOthers = true;
+		float ax = 0, ay = 0, az = 0;
+		for (unsigned k = 0; k < picked.Size(); k++)
+		{
+			const Info &in = infos[picked[k]];
+			if (haveOthers && in.actor->player != nullptr)
+				continue;
+			float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
+			float d = sqrtf(dx * dx + dy * dy + dz * dz);
+			ax += dx / d; ay += dy / d; az += dz / d;
+		}
 		float alen = sqrtf(ax * ax + ay * ay + az * az);
 		if (alen < 1e-3f)
 			continue;
 		ax /= alen; ay /= alen; az /= alen;
+		const float maxFov = 130.f;
 		float maxAngle = 0.f;
 		for (unsigned k = 0; k < picked.Size(); k++)
 		{
 			const Info &in = infos[picked[k]];
+			if (haveOthers && in.actor->player != nullptr)
+				continue;
 			float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
 			float d = sqrtf(dx * dx + dy * dy + dz * dz);
 			float cosA = clamp((dx * ax + dy * ay + dz * az) / d, -1.f, 1.f);
 			float ang = acosf(cosA) + asinf(clamp(in.r / d, 0.f, 0.99f));
 			maxAngle = max(maxAngle, ang);
 		}
-		float fov = clamp(2.f * maxAngle * 1.1f * (180.f / (float)M_PI) + 4.f, 10.f, 140.f);
+		float fov = clamp(2.f * maxAngle * 1.15f * (180.f / (float)M_PI) + 4.f, 10.f, maxFov);
+		// the models outside of the field of view are not drawn (the player's model, if it is far off the others)
+		{
+			TArray<int> inside;
+			float halfFov = fov * 0.5f * ((float)M_PI / 180.f);
+			for (unsigned k = 0; k < picked.Size(); k++)
+			{
+				const Info &in = infos[picked[k]];
+				float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
+				float d = sqrtf(dx * dx + dy * dy + dz * dz);
+				float cosA = clamp((dx * ax + dy * ay + dz * az) / d, -1.f, 1.f);
+				if (acosf(cosA) - asinf(clamp(in.r / d, 0.f, 0.99f)) < halfFov)
+					inside.Push(picked[k]);
+			}
+			picked = inside;
+		}
 		float nearp = 4.f, farp = radius + 128.f;
 
 		bool upAxis = fabsf(ay) > 0.95f;

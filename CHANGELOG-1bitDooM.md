@@ -112,3 +112,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modell-Schattenkarte: Lichter, die niedriger als `gl_model_shadow_map_light_height` (Standard 128) über dem Boden ihres Sektors hängen, werfen die Modellschatten, als hingen sie so hoch (nie über der Decke). Ein Sector Light auf Bodenhöhe (hier: Höhe 16) beschattet sonst nur die Beine der Modelle und wirft nur streifende Schatten, die je nach Blickposition kaum zu sehen sind.
 
 - Modell-Schattenkarte: die Entfernungsgrenze zum Spieler (4096) entfällt; schattenwerfend sind alle Modelle in Reichweite eines Lichts (höchstens 128).
+
+- Modell-Schattenkarte: die Lichthöhe kommt wieder allein aus der Map (Cvar `gl_model_shadow_map_light_height` entfernt). Die Blickrichtung der Karte hängt nicht mehr vom Spieler-Modell ab (es lenkt Achse und Sichtfeld nicht, nur andere Modelle), das Sichtfeld ist auf 130° begrenzt, Modelle außerhalb werden weggelassen, Hüllkugeln der Modelle sind großzügiger (Arme/Waffen), damit Schatten nicht abgeschnitten werden.
