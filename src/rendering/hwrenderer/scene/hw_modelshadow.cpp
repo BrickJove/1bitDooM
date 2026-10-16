@@ -20,6 +20,7 @@
 #include "actor.h"
 #include "actorinlines.h"
 #include "g_levellocals.h"
+#include "a_dynlight.h"
 #include "d_net.h"
 #include "d_player.h"
 #include "r_utility.h"
@@ -36,6 +37,28 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		f.ModelLight[i][3] = 0.f;
 
 	if (!gl_model_shadow_map || !gl_scene_shadow || !f.Valid)
+		return;
+
+	// the lights of the map (not only the ones nearest to the camera: the model that casts can be far away from it)
+	struct Lt { float x, y, z, radius; };
+	TArray<Lt> lights;
+	{
+		int group = (di->Viewpoint.camera && di->Viewpoint.camera->Sector) ? di->Viewpoint.camera->Sector->PortalGroup : 0;
+		for (auto light = di->Level->lights; light; light = light->next)
+		{
+			if (!light->IsActive() || light->IsSubtractive() || light->IsSpot())
+				continue;
+			float radius = light->GetRadius();
+			if (radius <= 0.f)
+				continue;
+			DVector3 lp = light->PosRelative(group);
+			Lt lt = { (float)lp.X, (float)lp.Z, (float)lp.Y, radius };
+			lights.Push(lt);
+			if (lights.Size() >= 512)
+				break;
+		}
+	}
+	if (lights.Size() == 0)
 		return;
 
 	// all models that can cast a shadow, near one of the lights (also those that are not on the screen: their shadow can be)
@@ -62,12 +85,10 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			float r = (float)max(a->radius, a->Height * 0.5) + 8.f;
 			float cx = (float)pos.X, cy = (float)(pos.Z + a->Height * 0.5), cz = (float)pos.Y;
 			bool near = false;
-			for (int li = 0; li < 3 && !near; li++)
+			for (unsigned li = 0; li < lights.Size() && !near; li++)
 			{
-				if (f.Light[li][3] <= 0.f)
-					continue;
-				float dx = cx - f.Light[li][0], dy = cy - f.Light[li][1], dz = cz - f.Light[li][2];
-				near = dx * dx + dy * dy + dz * dz < (f.Light[li][3] + r) * (f.Light[li][3] + r);
+				float dx = cx - lights[li].x, dy = cy - lights[li].y, dz = cz - lights[li].z;
+				near = dx * dx + dy * dy + dz * dz < (lights[li].radius + r) * (lights[li].radius + r);
 			}
 			if (!near)
 				continue;
@@ -93,11 +114,36 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 
 	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 2);
 	int usedMaps = 0;
-	for (int li = 0; li < 3 && usedMaps < maxMaps; li++)
+
+	// the lights that reach a model, the closest ones first (distance to the nearest model minus the radius of the light)
+	TArray<int> order;
+	TArray<float> scores;
+	for (unsigned li = 0; li < lights.Size(); li++)
 	{
-		if (f.Light[li][3] <= 0.f)
-			continue;
-		const float lx = f.Light[li][0], ly = f.Light[li][1], lz = f.Light[li][2], radius = f.Light[li][3];
+		float best = 1e30f;
+		for (unsigned i = 0; i < infos.Size(); i++)
+		{
+			float dx = infos[i].cx - lights[li].x, dy = infos[i].cy - lights[li].y, dz = infos[i].cz - lights[li].z;
+			best = min(best, sqrtf(dx * dx + dy * dy + dz * dz) - lights[li].radius - infos[i].r);
+		}
+		if (best < 0.f)
+		{
+			unsigned pos = order.Size();
+			order.Push((int)li);
+			scores.Push(best);
+			while (pos > 0 && scores[pos - 1] > best)
+			{
+				scores[pos] = scores[pos - 1]; order[pos] = order[pos - 1];
+				pos--;
+				scores[pos] = best; order[pos] = (int)li;
+			}
+		}
+	}
+
+	for (unsigned oi = 0; oi < order.Size() && usedMaps < maxMaps; oi++)
+	{
+		const Lt &L = lights[order[oi]];
+		const float lx = L.x, ly = L.y, lz = L.z, radius = L.radius;
 
 		// the models this light reaches
 		TArray<int> picked;
