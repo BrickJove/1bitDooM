@@ -807,28 +807,32 @@ private:
 	PPShader OutlineMS = { "shaders/pp/outline.fp", "#define MULTISAMPLE\n", OutlineUniforms::Desc() };
 };
 
-// Jupiter3D: screen space shadows (sun + dynamic lights), see sceneshadow.fp
-// Per frame data, filled by hw_PrepareSceneShadow (hw_drawinfo.cpp) before the post pass runs.
+// Jupiter3D: view independent shadows (sun + dynamic lights), see sceneshadow.fp
+// Per frame data, filled by HWDrawInfo::PrepareSceneShadow (hw_drawinfo.cpp) before the post pass runs.
 struct SceneShadowFrame
 {
 	bool Valid = false;
-	float SunEye[3] = { 0, 0, 0 };	// eye space direction towards the sun
-	float DownEye[3] = { 0, 0, 0 };	// eye space normal of a ceiling (pointing down)
-	float Light[3][4] = {};			// eye space position + radius, radius 0 = unused
+	float InvView[3][4] = {};	// rows of the eye -> world (render space) transform, translation in column 3
+	float SunDir[3] = { 0, 1, 0 };	// direction towards the sun in render space (x = X, y = Z up, z = Y)
+	float Light[3][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
 	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
+	// height map of the level (hw_shadowheightmap.cpp)
+	PPTexture *FloorTex = nullptr;
+	PPTexture *CeilTex = nullptr;
+	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
 };
 extern SceneShadowFrame sceneShadowFrame;
 
 // exactly 128 bytes: Vulkan passes the post process uniforms as push constants
 struct SceneShadowUniforms
 {
-	FVector4 Sun;		// xyz = eye space direction to the sun, w = ray length (0 = no sun)
-	FVector4 Light0;	// xyz = eye space position, w = radius (0 = unused)
-	FVector4 Light1;
-	FVector4 Light2;
-	FVector4 Down;		// xyz = eye space ceiling normal, w = flags (1 = shade surfaces facing away, 2 = dither)
+	FVector4 CamX;		// rows of the eye -> world transform
+	FVector4 CamY;
+	FVector4 CamZ;
+	FVector4 Sun;		// xyz = direction to the sun (render space), w = ray length (0 = no sun)
+	FVector4 Light;		// xyz = position (render space), w = radius (0 = no light)
+	FVector4 Grid;		// xy = grid origin (map X, Y), z = 1 / cell size, w = flags | density << 2 | steps << 9
 	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]
-	FVector4 Params;	// strength, bias, thickness, steps
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -836,13 +840,13 @@ struct SceneShadowUniforms
 	{
 		return
 		{
+			{ "CamX", UniformType::Vec4, offsetof(SceneShadowUniforms, CamX) },
+			{ "CamY", UniformType::Vec4, offsetof(SceneShadowUniforms, CamY) },
+			{ "CamZ", UniformType::Vec4, offsetof(SceneShadowUniforms, CamZ) },
 			{ "Sun", UniformType::Vec4, offsetof(SceneShadowUniforms, Sun) },
-			{ "Light0", UniformType::Vec4, offsetof(SceneShadowUniforms, Light0) },
-			{ "Light1", UniformType::Vec4, offsetof(SceneShadowUniforms, Light1) },
-			{ "Light2", UniformType::Vec4, offsetof(SceneShadowUniforms, Light2) },
-			{ "Down", UniformType::Vec4, offsetof(SceneShadowUniforms, Down) },
+			{ "Light", UniformType::Vec4, offsetof(SceneShadowUniforms, Light) },
+			{ "Grid", UniformType::Vec4, offsetof(SceneShadowUniforms, Grid) },
 			{ "ProjParams", UniformType::Vec4, offsetof(SceneShadowUniforms, ProjParams) },
-			{ "Params", UniformType::Vec4, offsetof(SceneShadowUniforms, Params) },
 			{ "Scale", UniformType::Vec2, offsetof(SceneShadowUniforms, Scale) },
 			{ "Offset", UniformType::Vec2, offsetof(SceneShadowUniforms, Offset) }
 		};

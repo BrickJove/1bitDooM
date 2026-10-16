@@ -38,6 +38,7 @@
 #include "v_draw.h"
 #include "a_corona.h"
 #include "a_dynlight.h"
+#include "hw_shadowheightmap.h"
 #include "texturemanager.h"
 #include "actorinlines.h"
 #include "g_levellocals.h"
@@ -1035,20 +1036,20 @@ void HWDrawInfo::PrepareSceneShadow()
 	f.FocalX = 1.0f / proj[0];
 	f.FocalY = 1.0f / proj[5];
 
-	auto eyeDir = [&](VSMatrix &m, float x, float y, float z, float *out)
-	{
-		float in[4] = { x, y, z, 0.f }, res[4];
-		m.multMatrixPoint(in, res);
-		float len = sqrtf(res[0] * res[0] + res[1] * res[1] + res[2] * res[2]);
-		if (len < 1e-6f) len = 1.f;
-		out[0] = res[0] / len; out[1] = res[1] / len; out[2] = res[2] / len;
-	};
+	// eye -> world (render space: x = X, y = Z up, z = Y). VSMatrix is column major.
+	VSMatrix inv;
+	if (!VPUniforms.ViewMatrix.inverseMatrix(inv))
+		return;
+	const float *m = inv.get();
+	for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 4; c++)
+			f.InvView[r][c] = m[r + 4 * c];
 
-	// render space: x = X, y = Z (up), z = Y
 	float az = (float)(gl_scene_shadow_sun_angle * (M_PI / 180.0));
 	float el = (float)(clamp((double)gl_scene_shadow_sun_elevation, 5.0, 90.0) * (M_PI / 180.0));
-	eyeDir(VPUniforms.ViewMatrix, cosf(az) * cosf(el), sinf(el), sinf(az) * cosf(el), f.SunEye);
-	eyeDir(VPUniforms.NormalViewMatrix, 0.f, -1.f, 0.f, f.DownEye);
+	f.SunDir[0] = cosf(az) * cosf(el);
+	f.SunDir[1] = sinf(el);
+	f.SunDir[2] = sinf(az) * cosf(el);
 
 	// the nearest dynamic lights (distance to the light's reach)
 	struct Cand { double score; DVector3 pos; float radius; };
@@ -1080,14 +1081,17 @@ void HWDrawInfo::PrepareSceneShadow()
 	{
 		if (i < count)
 		{
-			float in[4] = { (float)best[i].pos.X, (float)best[i].pos.Z, (float)best[i].pos.Y, 1.f }, res[4];
-			VPUniforms.ViewMatrix.multMatrixPoint(in, res);
-			f.Light[i][0] = res[0]; f.Light[i][1] = res[1]; f.Light[i][2] = res[2]; f.Light[i][3] = best[i].radius;
+			f.Light[i][0] = (float)best[i].pos.X;
+			f.Light[i][1] = (float)best[i].pos.Z;
+			f.Light[i][2] = (float)best[i].pos.Y;
+			f.Light[i][3] = best[i].radius;
 		}
 		else
 			f.Light[i][3] = 0.f;
 	}
-	f.Valid = true;
+
+	hw_UpdateShadowHeightMap(Level, f);
+	f.Valid = f.FloorTex != nullptr && f.CeilTex != nullptr;
 }
 
 void HWDrawInfo::DrawScene(int drawmode)

@@ -1,16 +1,17 @@
 /*
 ** sceneshadow.fp
 **
-** Jupiter3D: screen space shadows from a sun and a few dynamic lights.
+** Jupiter3D: shadows of a sun and dynamic lights that do not depend on the view.
 **
-** For every pixel the shader rebuilds the eye space position from the depth buffer and marches
-** a ray towards the light. The ray is occluded when, at some step, it lies slightly behind the
-** surface the depth buffer shows at the projected pixel. Walls, floors, stairs and models all
-** cast and receive shadows because they are all in the depth buffer. Only what is on screen can
-** cast a shadow, and ceilings never do (otherwise every indoor area would be a shadow).
+** The CPU builds a height map of the level (two textures, one texel per grid cell): the floor
+** height and the ceiling height of the sector in the cell. Solid space (outside the sectors, one
+** sided walls) has floor = +big, ceiling = -big, a sky ceiling has ceiling = +big.
 **
-** The result is black with an alpha (soft) or a binary ordered dither (1 bit look), blended over
-** the scene colour before the outline pass.
+** For every pixel the shader rebuilds the world position from the depth buffer and marches a ray
+** towards the light through that height map. The ray is blocked when it is below a floor or above
+** a (non sky) ceiling. The sun only shines on pixels under an open sky.
+**
+** Output: pure black with alpha 1 (hard) or an ordered dither, blended over the scene colour.
 */
 
 layout(location=0) in vec2 TexCoord;
@@ -23,8 +24,13 @@ layout(binding=1) uniform sampler2DMS NormalTexture;
 layout(binding=0) uniform sampler2D DepthTexture;
 layout(binding=1) uniform sampler2D NormalTexture;
 #endif
+layout(binding=2) uniform sampler2D FloorTexture;
+layout(binding=3) uniform sampler2D CeilTexture;
+
+const float Big = 100000.0;
 
 ivec2 gTexSize;
+ivec2 gGridSize;
 
 ivec2 ClampPos(ivec2 p)
 {
@@ -37,21 +43,9 @@ float InvDepthAt(ivec2 p)
 	return d * ProjParams.x + ProjParams.y;
 }
 
-// linear distance along the view axis
-float LinDepthAt(ivec2 p)
-{
-	return 1.0 / max(InvDepthAt(p), 1.0e-8);
-}
-
 bool IsSkyPixel(ivec2 p, vec4 ns)
 {
 	return InvDepthAt(p) <= (ProjParams.x + ProjParams.y) * 1.05 || (ns.a > 0.2 && ns.a < 0.45);
-}
-
-// eye space (x right, y up, camera looks down -z), z = positive linear depth
-vec3 EyePos(vec2 tc, float z)
-{
-	return vec3((tc * 2.0 - 1.0) * ProjParams.zw * z, -z);
 }
 
 ivec2 TexelOf(vec2 tc)
@@ -70,40 +64,52 @@ float Bayer4(ivec2 p)
 	return m[y * 4 + x] + 0.5 / 16.0;
 }
 
-// Is the ray P + D * t, t in (0, len), blocked by something on screen? 1 = blocked
+// grid cell of a world position (render space: x = X, y = Z up, z = Y), x = -1 when outside the grid
+ivec2 CellOf(vec3 w)
+{
+	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
+	if (c.x < 0 || c.y < 0 || c.x >= gGridSize.x || c.y >= gGridSize.y)
+		return ivec2(-1);
+	return c;
+}
+
+// Is the position inside solid space (below the floor, above a ceiling or inside a wall)?
+bool Blocked(vec3 w)
+{
+	ivec2 c = CellOf(w);
+	if (c.x < 0)
+		return false;
+	float f = texelFetch(FloorTexture, c, 0).x;
+	float ce = texelFetch(CeilTexture, c, 0).x;
+	return w.y < f || w.y > ce;
+}
+
+// Is there an open sky above the position?
+bool UnderSky(vec3 w)
+{
+	ivec2 c = CellOf(w);
+	if (c.x < 0)
+		return false;
+	return texelFetch(CeilTexture, c, 0).x > Big * 0.5 && texelFetch(FloorTexture, c, 0).x < Big * 0.5;
+}
+
+// 1 = the ray P + D * t (0 < t < len) hits solid space
 float Trace(vec3 P, vec3 D, float len, float jitter)
 {
-	int steps = int(Params.w);
-	float bias = Params.y;
-	float thick = Params.z;
-	for (int i = 0; i < 64; i++)
+	float cell = 1.0 / Grid.z;
+	float t0 = cell * 1.5;
+	if (len <= t0)
+		return 0.0;
+	int maxSteps = int(Grid.w + 0.5) >> 9;
+	int steps = int(clamp(ceil((len - t0) / cell), 8.0, float(maxSteps)));
+	float dt = (len - t0) / float(steps);
+	for (int i = 0; i < 160; i++)
 	{
 		if (i >= steps)
 			break;
-		float u = (float(i) + jitter) / float(steps);
-		float t = bias + (len - bias) * u * u;
-		vec3 S = P + D * t;
-		float rayZ = -S.z;
-		if (rayZ < 1.0)
-			break;
-		vec2 tc = (S.xy / (ProjParams.zw * rayZ)) * 0.5 + 0.5;
-		if (tc.x < 0.0 || tc.y < 0.0 || tc.x > 1.0 || tc.y > 1.0)
-			break;	// left the screen: unknown, treated as lit
-
-		ivec2 ip = TexelOf(tc);
-		float sceneZ = LinDepthAt(ip);
-		float diff = rayZ - sceneZ;
-		if (diff > bias * 0.5 + rayZ * 0.004 && diff < thick + rayZ * 0.05)
-		{
-			vec4 ns = texelFetch(NormalTexture, ClampPos(ip), 0);
-			if (IsSkyPixel(ip, ns))
-				continue;
-			// ceilings (and everything facing down) never cast shadows
-			vec3 n = ns.xyz * 2.0 - 1.0;
-			if (ns.a > 0.8 && dot(n, n) > 0.01 && dot(normalize(n), Down.xyz) > 0.7)
-				continue;
+		vec3 S = P + D * (t0 + (float(i) + jitter) * dt);
+		if (Blocked(S))
 			return 1.0;
-		}
 	}
 	return 0.0;
 }
@@ -115,6 +121,7 @@ void main()
 #else
 	gTexSize = textureSize(DepthTexture, 0);
 #endif
+	gGridSize = textureSize(FloorTexture, 0);
 
 	ivec2 ipos = TexelOf(TexCoord);
 	vec4 ns = texelFetch(NormalTexture, ClampPos(ipos), 0);
@@ -124,52 +131,60 @@ void main()
 		return;
 	}
 
-	int flags = int(Down.w + 0.5);
+	int packed = int(Grid.w + 0.5);
+	int flags = packed & 3;
 	bool facingShade = (flags & 1) != 0;
 	bool dither = (flags & 2) != 0;
 
-	float z = LinDepthAt(ipos);
-	vec3 P = EyePos(TexCoord, z);
+	// world position (render space) from depth: eye = (ndc * focal * z, -z)
+	float z = 1.0 / max(InvDepthAt(ipos), 1.0e-8);
+	vec3 eye = vec3((TexCoord * 2.0 - 1.0) * ProjParams.zw * z, -z);
+	vec3 P = vec3(dot(CamX.xyz, eye) + CamX.w, dot(CamY.xyz, eye) + CamY.w, dot(CamZ.xyz, eye) + CamZ.w);
 
-	// Surface normal (not available for models / sprites)
+	// world normal from the eye space normal (not available for models / sprites)
 	vec3 n = ns.xyz * 2.0 - 1.0;
 	bool hasNormal = ns.a > 0.5 && dot(n, n) > 0.01;
 	if (hasNormal)
-		n = normalize(n);
+		n = normalize(inverse(mat3(CamX.xyz, CamY.xyz, CamZ.xyz)) * n);
+	else
+		n = vec3(0.0);
 
+	float cell = 1.0 / Grid.z;
+	vec3 Q = P + n * (cell * 1.5);	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
 	float shadow = 0.0;
 
-	// sun
-	if (Sun.w > 0.0)
+	// sun: only under an open sky
+	if (Sun.w > 0.0 && UnderSky(Q))
 	{
 		float facing = hasNormal ? dot(n, Sun.xyz) : 1.0;
 		if (facing > 0.0)
-			shadow = max(shadow, Trace(P + n * (hasNormal ? 1.0 : 0.0), Sun.xyz, Sun.w, jitter));
+			shadow = Trace(Q, Sun.xyz, Sun.w, jitter);
 		else if (facingShade)
 			shadow = 1.0;
 	}
 
-	// dynamic lights (within their radius only, fading out towards the edge)
-	for (int k = 0; k < 3; k++)
+	// one dynamic light (more lights = more passes), within its radius only
+	if (Light.w > 0.0 && shadow < 0.5)
 	{
-		vec4 L = k == 0 ? Light0 : (k == 1 ? Light1 : Light2);
-		if (L.w <= 0.0)
-			continue;
-		vec3 toL = L.xyz - P;
+		vec3 toL = Light.xyz - Q;
 		float dist = length(toL);
-		if (dist >= L.w || dist < 8.0)
-			continue;
-		vec3 D = toL / dist;
-		float atten = 1.0 - dist / L.w;
-		float facing = hasNormal ? dot(n, D) : 1.0;
-		if (facing > 0.0)
-			shadow = max(shadow, atten * Trace(P, D, dist - 4.0, jitter));
-		else if (facingShade)
-			shadow = max(shadow, atten);
+		if (dist < Light.w && dist > 8.0)
+		{
+			vec3 D = toL / dist;
+			float atten = 1.0 - dist / Light.w;
+			float facing = hasNormal ? dot(n, D) : 1.0;
+			float s = 0.0;
+			if (facing > 0.0)
+				s = Trace(Q, D, dist - 4.0, jitter);
+			else if (facingShade)
+				s = 1.0;
+			shadow = max(shadow, s * atten);
+		}
 	}
 
-	// hard shadow: pure black, no soft edge. Dither mode: coverage = strength, ordered dither.
-	float a = dither ? ((shadow * Params.x) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
+	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
+	float density = float((packed >> 2) & 127) / 100.0;
+	float a = dither ? ((shadow > 0.15 ? density : 0.0) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
 	FragColor = vec4(0.0, 0.0, 0.0, a);
 }

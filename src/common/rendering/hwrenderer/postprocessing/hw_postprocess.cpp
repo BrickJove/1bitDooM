@@ -862,36 +862,52 @@ SceneShadowFrame sceneShadowFrame;
 void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
-	if (!gl_scene_shadow || !f.Valid || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || !f.Valid || !f.FloorTex || !f.CeilTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 	bool sun = gl_scene_shadow_sun && gl_scene_shadow_length > 0.f;
 	int lights = clamp((int)gl_scene_shadow_lights, 0, 3);
-	if (!sun && lights == 0)
+	int passes = max(lights, sun ? 1 : 0);
+	if (passes == 0)
 		return;
 
-	SceneShadowUniforms u;
-	u.Sun = FVector4(f.SunEye[0], f.SunEye[1], f.SunEye[2], sun ? max((float)gl_scene_shadow_length, 16.f) : 0.f);
-	u.Light0 = FVector4(f.Light[0][0], f.Light[0][1], f.Light[0][2], lights > 0 ? f.Light[0][3] : 0.f);
-	u.Light1 = FVector4(f.Light[1][0], f.Light[1][1], f.Light[1][2], lights > 1 ? f.Light[1][3] : 0.f);
-	u.Light2 = FVector4(f.Light[2][0], f.Light[2][1], f.Light[2][2], lights > 2 ? f.Light[2][3] : 0.f);
 	int flags = (gl_scene_shadow_facing ? 1 : 0) | (gl_scene_shadow_style == 1 ? 2 : 0);
-	u.Down = FVector4(f.DownEye[0], f.DownEye[1], f.DownEye[2], (float)flags);
+	int density = clamp((int)(gl_scene_shadow_strength * 100.f + 0.5f), 0, 100);
+	int steps = clamp((int)gl_scene_shadow_steps, 8, 160);
+
+	SceneShadowUniforms u;
+	u.CamX = FVector4(f.InvView[0][0], f.InvView[0][1], f.InvView[0][2], f.InvView[0][3]);
+	u.CamY = FVector4(f.InvView[1][0], f.InvView[1][1], f.InvView[1][2], f.InvView[1][3]);
+	u.CamZ = FVector4(f.InvView[2][0], f.InvView[2][1], f.InvView[2][2], f.InvView[2][3]);
+	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, f.GridInvCell, (float)(flags | (density << 2) | (steps << 9)));
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
-	u.Params = FVector4(clamp((float)gl_scene_shadow_strength, 0.f, 1.f), 2.f, max((float)gl_scene_shadow_thickness, 4.f), (float)clamp((int)gl_scene_shadow_steps, 8, 48));
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
 
 	renderstate->PushGroup("sceneshadow");
 
-	renderstate->Clear();
-	renderstate->Shader = gl_multisample > 1 ? &SceneShadowMS : &SceneShadow;
-	renderstate->Uniforms.Set(u);
-	renderstate->Viewport = screen->mSceneViewport;
-	renderstate->SetInputSceneDepth(0);
-	renderstate->SetInputSceneNormal(1);
-	renderstate->SetOutputSceneColor();
-	renderstate->SetAlphaBlend();
-	renderstate->Draw();
+	// pass 0: the sun and the first light, every further pass adds one more light
+	for (int pass = 0; pass < passes; pass++)
+	{
+		u.Sun = FVector4(f.SunDir[0], f.SunDir[1], f.SunDir[2], (pass == 0 && sun) ? max((float)gl_scene_shadow_length, 16.f) : 0.f);
+		if (pass < lights && f.Light[pass][3] > 0.f)
+			u.Light = FVector4(f.Light[pass][0], f.Light[pass][1], f.Light[pass][2], f.Light[pass][3]);
+		else
+			u.Light = FVector4(0.f, 0.f, 0.f, 0.f);
+		if (u.Sun.W == 0.f && u.Light.W == 0.f)
+			continue;
+
+		renderstate->Clear();
+		renderstate->Shader = gl_multisample > 1 ? &SceneShadowMS : &SceneShadow;
+		renderstate->Uniforms.Set(u);
+		renderstate->Viewport = screen->mSceneViewport;
+		renderstate->SetInputSceneDepth(0);
+		renderstate->SetInputSceneNormal(1);
+		renderstate->SetInputTexture(2, f.FloorTex);
+		renderstate->SetInputTexture(3, f.CeilTex);
+		renderstate->SetOutputSceneColor();
+		renderstate->SetAlphaBlend();
+		renderstate->Draw();
+	}
 
 	renderstate->PopGroup();
 }

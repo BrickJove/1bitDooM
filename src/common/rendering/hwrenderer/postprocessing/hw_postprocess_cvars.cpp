@@ -84,8 +84,7 @@ CVARD(Int, gl_scene_shadow_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number 
 CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
 CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = hard black shadow, 1 = binary dither pattern with gl_scene_shadow_strength as coverage")
 CVARD(Float, gl_scene_shadow_length, 400.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Maximum length of the sun shadows in map units")
-CVARD(Float, gl_scene_shadow_thickness, 64.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Assumed thickness of occluders in map units (larger = fewer light leaks, more false shadows)")
-CVARD(Int, gl_scene_shadow_steps, 24, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Ray steps per light (8..48)")
+CVARD(Int, gl_scene_shadow_steps, 96, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Maximum ray steps per light (8..160). Fewer steps = faster, but thin walls can leak")
 CVARD(Bool, gl_scene_shadow_facing, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Surfaces that face away from the light are in shadow as well")
 CVAR(Float, gl_model_inner_outline_distance, 512.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
