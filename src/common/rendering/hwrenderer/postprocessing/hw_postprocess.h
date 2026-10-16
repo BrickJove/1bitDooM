@@ -817,9 +817,9 @@ struct SceneShadowFrame
 	float Light[3][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
 	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
 	// height map of the level (hw_shadowheightmap.cpp)
-	PPTexture *FloorTex = nullptr;
-	PPTexture *CeilTex = nullptr;
-	PPTexture *FenceGridTex = nullptr;	// per cell: fence index + 1 (see hw_shadowheightmap.cpp)
+	PPTexture *CellTex = nullptr;		// 4 floats per cell: floor, ceiling, list start, list count (see hw_shadowheightmap.cpp)
+	PPTexture *ListTex = nullptr;		// line indices per cell
+	PPTexture *LineTex = nullptr;		// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 	PPTexture *FenceParamTex = nullptr;	// 16 floats per fence
 	PPTexture *FenceAtlasTex = nullptr;	// alpha masks of the fence textures
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;

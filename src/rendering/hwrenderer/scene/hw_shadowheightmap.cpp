@@ -3,13 +3,16 @@
 **
 ** Jupiter3D: height map of the level for view independent shadows.
 **
-** The map is a regular grid over the bounding box of the level. Every cell stores the floor and
-** the ceiling height of the sector at the cell centre (R32F, two textures):
-**   open space      floor = floor height, ceiling = ceiling height
-**   sky ceiling     ceiling = +big (the sun shines through)
-**   solid space     floor = +big, ceiling = -big (outside of all sectors and along one sided walls)
-** Moving floors and ceilings (doors, lifts) are tracked and re-rasterized; the textures are
-** re-uploaded at a limited rate.
+** The map is a regular grid over the bounding box of the level. One R32F texture (4 floats per cell):
+**   floor, ceiling   height of the sector at the cell centre
+**                    sky ceiling: ceiling = +big (the sun shines through)
+**                    solid space (outside of all sectors): floor = +big, ceiling = -big
+**   list start, count  the lines that touch the cell (index into the list texture)
+** The lines themselves (exact segments, with the height range in which they block a ray) are in a
+** line table. A ray is tested against these exact segments, so shadow edges are straight lines that
+** start exactly at the corners of the geometry; the cell heights only matter in cells without lines.
+** Moving floors and ceilings (doors, lifts) update the cells and the lines of the sector; the
+** textures are re-uploaded at a limited rate.
 */
 
 #include <vector>
@@ -31,6 +34,8 @@ namespace
 const float Big = 100000.f;
 const int MaxGrid = 1024;
 const unsigned UploadInterval = 6;	// frames between two uploads while sectors move
+const int LineRowWidth = 512;		// lines per row of the line table (8 floats each)
+const int ListWidth = 4096;
 
 struct SectorState
 {
@@ -46,12 +51,14 @@ struct ShadowHeightMap
 	unsigned sectorCount = 0, lineCount = 0, vertexCount = 0;
 	int W = 0, H = 0;
 	float cell = 8.f, ox = 0, oy = 0;
-	std::vector<float> floorH, ceilH;
+	std::vector<float> cellData;		// 4 floats per cell
+	std::vector<float> lineData;		// 8 floats per included line
+	std::vector<int> lineIndex;		// level line -> index in the line table, -1 = not included
+	std::vector<int> lineFence;		// level line -> fence index + 1
 	std::vector<SectorState> states;
-	bool dirty = false;
+	bool cellsDirty = false, linesDirty = false;
 	unsigned frame = 0, lastUpload = 0;
-	std::unique_ptr<PPTexture> texFloor, texCeil;
-	std::unique_ptr<PPTexture> texFenceGrid, texFenceParam, texFenceAtlas;
+	std::unique_ptr<PPTexture> texCell, texList, texLine, texFenceParam, texFenceAtlas;
 	std::deque<std::pair<unsigned, std::unique_ptr<PPTexture>>> retired;
 
 	bool Matches(FLevelLocals *level) const
@@ -75,6 +82,11 @@ struct ShadowHeightMap
 	{
 		return a.floorD == b.floorD && a.ceilD == b.ceilD && a.floorNX == b.floorNX && a.floorNY == b.floorNY
 			&& a.ceilNX == b.ceilNX && a.ceilNY == b.ceilNY && a.sky == b.sky;
+	}
+
+	static float CeilingOf(sector_t *sec, const DVector2 &p)
+	{
+		return sec->GetTexture(sector_t::ceiling) == skyflatnum ? Big : (float)sec->ceilingplane.ZatPoint(p);
 	}
 
 	void RasterSector(sector_t *sec)
@@ -118,29 +130,60 @@ struct ShadowHeightMap
 					}
 					if (!inside)
 						continue;
-					size_t idx = (size_t)cy * W + cx;
-					floorH[idx] = (float)sec->floorplane.ZatPoint(px, py);
-					ceilH[idx] = sky ? Big : (float)sec->ceilingplane.ZatPoint(px, py);
+					size_t idx = ((size_t)cy * W + cx) * 4;
+					cellData[idx] = (float)sec->floorplane.ZatPoint(px, py);
+					cellData[idx + 1] = sky ? Big : (float)sec->ceilingplane.ZatPoint(px, py);
 				}
 			}
 		}
 	}
 
-	// cells touched by a line (supercover walk) become solid, so that thin walls cannot leak
-	void MarkWall(const DVector2 &a, const DVector2 &b)
+	// Height range in which a line blocks a ray (the ray is blocked below lo and above hi).
+	// One sided: everything. Two sided: below the higher floor and above the lower ceiling.
+	void LineRange(const line_t &line, float &lo, float &hi) const
 	{
-		double len = (b - a).Length();
-		int n = std::max(1, (int)ceil(len / (cell * 0.5)));
-		for (int i = 0; i <= n; i++)
+		if (line.backsector == nullptr || line.frontsector == nullptr)
 		{
-			double t = (double)i / n;
-			int cx = (int)floor((a.X + (b.X - a.X) * t - ox) / cell);
-			int cy = (int)floor((a.Y + (b.Y - a.Y) * t - oy) / cell);
-			if (cx < 0 || cy < 0 || cx >= W || cy >= H)
-				continue;
-			size_t idx = (size_t)cy * W + cx;
-			floorH[idx] = Big;
-			ceilH[idx] = -Big;
+			lo = Big; hi = -Big;
+			return;
+		}
+		DVector2 mid = (line.v1->p + line.v2->p) * 0.5;
+		lo = (float)std::max(line.frontsector->floorplane.ZatPoint(mid), line.backsector->floorplane.ZatPoint(mid));
+		hi = std::min(CeilingOf(line.frontsector, mid), CeilingOf(line.backsector, mid));
+	}
+
+	// Calls fn(cell index) for every cell the segment a-b passes through (exact grid traversal).
+	template<class F> void WalkCells(const DVector2 &a, const DVector2 &b, F fn)
+	{
+		double ax = (a.X - ox) / cell, ay = (a.Y - oy) / cell, bx = (b.X - ox) / cell, by = (b.Y - oy) / cell;
+		double dx = bx - ax, dy = by - ay;
+		int cx = (int)floor(ax), cy = (int)floor(ay);
+		int ex = (int)floor(bx), ey = (int)floor(by);
+		int sx = dx > 0 ? 1 : (dx < 0 ? -1 : 0), sy = dy > 0 ? 1 : (dy < 0 ? -1 : 0);
+		double tdx = dx != 0 ? fabs(1.0 / dx) : 1e30, tdy = dy != 0 ? fabs(1.0 / dy) : 1e30;
+		double tmx = dx != 0 ? (dx > 0 ? (cx + 1 - ax) : (ax - cx)) * tdx : 1e30;
+		double tmy = dy != 0 ? (dy > 0 ? (cy + 1 - ay) : (ay - cy)) * tdy : 1e30;
+		for (int i = 0; i < 100000; i++)
+		{
+			if (cx >= 0 && cy >= 0 && cx < W && cy < H)
+				fn((size_t)cy * W + cx);
+			if (cx == ex && cy == ey)
+				break;
+			if (fabs(tmx - tmy) < 1e-9)
+			{
+				// passes exactly through a grid corner: both neighbours as well
+				if (cx + sx >= 0 && cy >= 0 && cx + sx < W && cy < H) fn((size_t)cy * W + cx + sx);
+				if (cx >= 0 && cy + sy >= 0 && cx < W && cy + sy < H) fn((size_t)(cy + sy) * W + cx);
+				cx += sx; cy += sy; tmx += tdx; tmy += tdy;
+			}
+			else if (tmx < tmy) { cx += sx; tmx += tdx; }
+			else { cy += sy; tmy += tdy; }
+			if (std::min(tmx, tmy) > 1.0 + 1e-9 && !(cx == ex && cy == ey))
+			{
+				// numerical drift: make sure the end cell is visited
+				if (ex >= 0 && ey >= 0 && ex < W && ey < H) fn((size_t)ey * W + ex);
+				break;
+			}
 		}
 	}
 
@@ -151,11 +194,7 @@ struct ShadowHeightMap
 		sectorCount = level->sectors.Size();
 		lineCount = level->lines.Size();
 		vertexCount = level->vertexes.Size();
-		texFloor.reset();
-		texCeil.reset();
-		texFenceGrid.reset();
-		texFenceParam.reset();
-		texFenceAtlas.reset();
+		texCell.reset(); texList.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
 		retired.clear();
 
 		double minx = 1e30, maxx = -1e30, miny = 1e30, maxy = -1e30;
@@ -178,8 +217,12 @@ struct ShadowHeightMap
 		W = std::max(1, (int)ceil((maxx - minx + 16.0) / cell));
 		H = std::max(1, (int)ceil((maxy - miny + 16.0) / cell));
 
-		floorH.assign((size_t)W * H, Big);
-		ceilH.assign((size_t)W * H, -Big);
+		cellData.assign((size_t)W * H * 4, 0.f);
+		for (size_t i = 0; i < (size_t)W * H; i++)
+		{
+			cellData[i * 4] = Big;
+			cellData[i * 4 + 1] = -Big;
+		}
 
 		states.resize(level->sectors.Size());
 		for (unsigned i = 0; i < level->sectors.Size(); i++)
@@ -188,29 +231,102 @@ struct ShadowHeightMap
 			RasterSector(sec);
 			states[i] = StateOf(sec);
 		}
-		for (auto &line : level->lines)
-		{
-			if (line.backsector == nullptr && line.v1 && line.v2)
-				MarkWall(line.v1->p, line.v2->p);
-		}
+
 		BuildFences(level);
-		dirty = true;
+		BuildLines(level);
+		cellsDirty = linesDirty = true;
 		lastUpload = frame - UploadInterval;
 	}
 
+	// The lines that can block a ray: one sided lines, lines with a height step, fences, and lines of sectors
+	// that have a tag or a special (they may move later).
+	void BuildLines(FLevelLocals *level)
+	{
+		lineIndex.assign(level->lines.Size(), -1);
+		std::vector<const line_t *> included;
+		for (unsigned i = 0; i < level->lines.Size(); i++)
+		{
+			const line_t &line = level->lines[i];
+			if (line.v1 == nullptr || line.v2 == nullptr)
+				continue;
+			bool use = line.backsector == nullptr || line.frontsector == nullptr || lineFence[i] > 0;
+			if (!use)
+			{
+				float lo, hi;
+				LineRange(line, lo, hi);
+				DVector2 mid = (line.v1->p + line.v2->p) * 0.5;
+				float flo = (float)std::min(line.frontsector->floorplane.ZatPoint(mid), line.backsector->floorplane.ZatPoint(mid));
+				float chi = std::max(CeilingOf(line.frontsector, mid), CeilingOf(line.backsector, mid));
+				use = lo > flo || hi < chi
+					|| level->SectorHasTags(line.frontsector) || level->SectorHasTags(line.backsector)
+					|| line.frontsector->special != 0 || line.backsector->special != 0;
+			}
+			if (use)
+			{
+				lineIndex[i] = (int)included.size();
+				included.push_back(&line);
+			}
+		}
+
+		lineData.assign(std::max<size_t>(included.size(), 1) * 8, 0.f);
+		for (size_t n = 0; n < included.size(); n++)
+			WriteLine(*included[n], n, lineFence[included[n] - &level->lines[0]]);
+
+		// per cell: start / count of the lines, then the list itself
+		std::vector<unsigned> counts((size_t)W * H, 0);
+		for (auto *line : included)
+			WalkCells(line->v1->p, line->v2->p, [&](size_t c) { counts[c]++; });
+		size_t total = 0;
+		for (size_t c = 0; c < counts.size(); c++)
+		{
+			cellData[c * 4 + 2] = (float)total;
+			cellData[c * 4 + 3] = (float)counts[c];
+			total += counts[c];
+		}
+		std::vector<float> list(((total + ListWidth - 1) / ListWidth + 1) * ListWidth, 0.f);
+		std::vector<unsigned> fill((size_t)W * H, 0);
+		for (size_t n = 0; n < included.size(); n++)
+		{
+			WalkCells(included[n]->v1->p, included[n]->v2->p, [&](size_t c)
+			{
+				list[(size_t)cellData[c * 4 + 2] + fill[c]++] = (float)n;
+			});
+		}
+		texList = MakeTexture(ListWidth, (int)(list.size() / ListWidth), list);
+	}
+
+	void WriteLine(const line_t &line, size_t n, int fenceId)
+	{
+		float lo, hi;
+		LineRange(line, lo, hi);
+		float *row = &lineData[n * 8];
+		row[0] = (float)line.v1->p.X; row[1] = (float)line.v1->p.Y;
+		row[2] = (float)line.v2->p.X; row[3] = (float)line.v2->p.Y;
+		row[4] = lo; row[5] = hi;
+		row[6] = (float)fenceId;
+		row[7] = 0.f;
+	}
+
+	static std::unique_ptr<PPTexture> MakeTexture(int w, int h, const std::vector<float> &src)
+	{
+		std::shared_ptr<float> data(new float[src.size()], std::default_delete<float[]>());
+		std::copy(src.begin(), src.end(), data.get());
+		return std::unique_ptr<PPTexture>(new PPTexture(w, h, PixelFormat::R32f, std::shared_ptr<void>(data)));
+	}
+
 	// Lines with a (transparent) middle texture, e.g. chain link fences: their texture alpha casts a shadow.
-	// Per cell the index of one fence (+1), per fence 16 floats, and an atlas with the alpha masks
-	// (64 x 64 per texture, 16 x 16 slots).
+	// Per fence 16 floats, and an atlas with the alpha masks (64 x 64 per texture, 16 x 16 slots).
 	void BuildFences(FLevelLocals *level)
 	{
 		const int Slot = 64, SlotsPerRow = 16, MaxSlots = SlotsPerRow * SlotsPerRow, MaxFences = 8192;
-		std::vector<float> grid((size_t)W * H, 0.f);
+		lineFence.assign(level->lines.Size(), 0);
 		std::vector<float> params;
 		std::vector<float> atlas((size_t)Slot * SlotsPerRow * Slot * SlotsPerRow, 0.f);
 		std::vector<int> slotTex;	// texture id per slot
 
-		for (auto &line : level->lines)
+		for (unsigned li = 0; li < level->lines.Size(); li++)
 		{
+			line_t &line = level->lines[li];
 			if (line.backsector == nullptr || line.frontsector == nullptr || (line.flags & ML_3DMIDTEX) || params.size() / 16 >= MaxFences)
 				continue;
 			side_t *side = line.sidedef[0];
@@ -279,48 +395,38 @@ struct ShadowHeightMap
 			row[8] = (float)((slot % SlotsPerRow) * Slot); row[9] = (float)((slot / SlotsPerRow) * Slot);
 			row[10] = wrap ? 1.f : 0.f;
 			row[11] = (float)std::max(ffloor, bfloor); row[12] = (float)std::min(fceil, bceil);
-			size_t id = params.size() / 16;
+			lineFence[li] = (int)(params.size() / 16) + 1;
 			params.insert(params.end(), row, row + 16);
-
-			// supercover walk: mark the cells along the line
-			double len = (b - a).Length();
-			int n = std::max(1, (int)ceil(len / (cell * 0.5)));
-			for (int i = 0; i <= n; i++)
-			{
-				double t = (double)i / n;
-				int cx = (int)floor((a.X + (b.X - a.X) * t - ox) / cell);
-				int cy = (int)floor((a.Y + (b.Y - a.Y) * t - oy) / cell);
-				if (cx >= 0 && cy >= 0 && cx < W && cy < H)
-					grid[(size_t)cy * W + cx] = (float)(id + 1);
-			}
 		}
 
 		if (params.empty())
 			params.assign(16, 0.f);
-		auto make = [](int w, int h, std::vector<float> &src) -> std::unique_ptr<PPTexture>
-		{
-			std::shared_ptr<float> data(new float[src.size()], std::default_delete<float[]>());
-			std::copy(src.begin(), src.end(), data.get());
-			return std::unique_ptr<PPTexture>(new PPTexture(w, h, PixelFormat::R32f, std::shared_ptr<void>(data)));
-		};
-		texFenceGrid = make(W, H, grid);
-		texFenceParam = make(16, (int)(params.size() / 16), params);
-		texFenceAtlas = make(Slot * SlotsPerRow, Slot * SlotsPerRow, atlas);
+		texFenceParam = MakeTexture(16, (int)(params.size() / 16), params);
+		texFenceAtlas = MakeTexture(Slot * SlotsPerRow, Slot * SlotsPerRow, atlas);
 	}
 
 	void Upload()
 	{
-		auto make = [&](std::vector<float> &src, std::unique_ptr<PPTexture> &tex)
+		auto retire = [&](std::unique_ptr<PPTexture> &tex)
 		{
 			if (tex)
 				retired.emplace_back(frame, std::move(tex));
-			std::shared_ptr<float> data(new float[src.size()], std::default_delete<float[]>());
-			std::copy(src.begin(), src.end(), data.get());
-			tex.reset(new PPTexture(W, H, PixelFormat::R32f, std::shared_ptr<void>(data)));
 		};
-		make(floorH, texFloor);
-		make(ceilH, texCeil);
-		dirty = false;
+		if (cellsDirty || !texCell)
+		{
+			retire(texCell);
+			texCell = MakeTexture(W * 4, H, cellData);
+			cellsDirty = false;
+		}
+		if (linesDirty || !texLine)
+		{
+			retire(texLine);
+			size_t rows = std::max<size_t>(1, (lineData.size() / 8 + LineRowWidth - 1) / LineRowWidth);
+			std::vector<float> padded(rows * LineRowWidth * 8, 0.f);
+			std::copy(lineData.begin(), lineData.end(), padded.begin());
+			texLine = MakeTexture(LineRowWidth * 8, (int)rows, padded);
+			linesDirty = false;
+		}
 		lastUpload = frame;
 	}
 
@@ -331,32 +437,41 @@ struct ShadowHeightMap
 			Build(level);
 		else
 		{
-			// moving planes: re-rasterize the sectors that changed
+			// moving planes: re-rasterize the sectors that changed and refresh their lines
 			for (unsigned i = 0; i < level->sectors.Size() && i < states.size(); i++)
 			{
 				sector_t *sec = &level->sectors[i];
 				SectorState now = StateOf(sec);
-				if (!Same(now, states[i]))
+				if (Same(now, states[i]))
+					continue;
+				states[i] = now;
+				RasterSector(sec);
+				cellsDirty = true;
+				for (unsigned k = 0; k < sec->Lines.Size(); k++)
 				{
-					states[i] = now;
-					RasterSector(sec);
-					dirty = true;
+					line_t *l = sec->Lines[k];
+					int n = lineIndex[l - &level->lines[0]];
+					if (n >= 0)
+					{
+						WriteLine(*l, n, lineFence[l - &level->lines[0]]);
+						linesDirty = true;
+					}
 				}
 			}
 		}
 
 		if (W <= 0 || H <= 0)
 			return;
-		if (!texFloor || (dirty && frame - lastUpload >= UploadInterval))
+		if (!texCell || !texLine || ((cellsDirty || linesDirty) && frame - lastUpload >= UploadInterval))
 			Upload();
 
 		// old textures may still be in use by frames in flight
 		while (!retired.empty() && frame - retired.front().first > 8)
 			retired.pop_front();
 
-		out.FloorTex = texFloor.get();
-		out.CeilTex = texCeil.get();
-		out.FenceGridTex = texFenceGrid.get();
+		out.CellTex = texCell.get();
+		out.ListTex = texList.get();
+		out.LineTex = texLine.get();
 		out.FenceParamTex = texFenceParam.get();
 		out.FenceAtlasTex = texFenceAtlas.get();
 		out.GridOriginX = ox;

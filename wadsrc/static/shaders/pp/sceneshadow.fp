@@ -24,9 +24,9 @@ layout(binding=1) uniform sampler2DMS NormalTexture;
 layout(binding=0) uniform sampler2D DepthTexture;
 layout(binding=1) uniform sampler2D NormalTexture;
 #endif
-layout(binding=2) uniform sampler2D FloorTexture;
-layout(binding=3) uniform sampler2D CeilTexture;
-layout(binding=4) uniform sampler2D FenceGridTexture;	// fence index + 1 per cell
+layout(binding=2) uniform sampler2D CellTexture;	// 4 floats per cell: floor, ceiling, list start, list count
+layout(binding=3) uniform sampler2D ListTexture;	// line indices
+layout(binding=4) uniform sampler2D LineTexture;	// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
 layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 64 x 64 per fence texture
 
@@ -76,24 +76,29 @@ ivec2 CellOf(vec3 w)
 	return c;
 }
 
-// Is the position inside solid space (below the floor, above a ceiling or inside a wall)?
-bool Blocked(vec3 w)
+float CellValue(ivec2 c, int k)
 {
-	ivec2 c = CellOf(w);
-	if (c.x < 0)
-		return false;
-	float f = texelFetch(FloorTexture, c, 0).x;
-	float ce = texelFetch(CeilTexture, c, 0).x;
-	return w.y < f || w.y > ce;
+	return texelFetch(CellTexture, ivec2(c.x * 4 + k, c.y), 0).x;
 }
 
-// Is there an open sky above the position?
+// Is there an open sky above the position? Near walls the cell centre can lie in solid space, so the
+// neighbouring cells are used then.
 bool UnderSky(vec3 w)
 {
 	ivec2 c = CellOf(w);
 	if (c.x < 0)
 		return false;
-	return texelFetch(CeilTexture, c, 0).x > Big * 0.5 && texelFetch(FloorTexture, c, 0).x < Big * 0.5;
+	for (int i = 0; i < 5; i++)
+	{
+		ivec2 o = i == 0 ? ivec2(0) : (i == 1 ? ivec2(1, 0) : (i == 2 ? ivec2(-1, 0) : (i == 3 ? ivec2(0, 1) : ivec2(0, -1))));
+		ivec2 n = c + o;
+		if (n.x < 0 || n.y < 0 || n.x >= gGridSize.x || n.y >= gGridSize.y)
+			continue;
+		float f = CellValue(n, 0);
+		if (f < Big * 0.5)
+			return CellValue(n, 1) > Big * 0.5;
+	}
+	return false;
 }
 
 float FenceParam(int id, int k)
@@ -101,27 +106,10 @@ float FenceParam(int id, int k)
 	return texelFetch(FenceParamTexture, ivec2(k, id), 0).x;
 }
 
-// Does the ray segment S0 -> S1 hit an opaque pixel of the fence texture (chain link fence etc.) in the cell c?
-bool HitsFence(ivec2 c, vec3 S0, vec3 S1)
+// Does the ray piece S0 -> S1 hit an opaque pixel of the fence texture at the crossing point (A -> B is the line, u the
+// position along it)?
+bool FencePixel(int id, vec2 A, vec2 B, float u, float y)
 {
-	if (c.x < 0)
-		return false;
-	int id = int(texelFetch(FenceGridTexture, c, 0).x + 0.5) - 1;
-	if (id < 0)
-		return false;
-	vec2 A = vec2(FenceParam(id, 0), FenceParam(id, 1));
-	vec2 B = vec2(FenceParam(id, 2), FenceParam(id, 3));
-	vec2 s = B - A;
-	vec2 r = S1.xz - S0.xz;
-	float rxs = r.x * s.y - r.y * s.x;
-	if (abs(rxs) < 1.0e-6)
-		return false;
-	vec2 qp = A - S0.xz;
-	float t = (qp.x * s.y - qp.y * s.x) / rxs;
-	float u = (qp.x * r.y - qp.y * r.x) / rxs;
-	if (t < 0.0 || t > 1.0 || u < 0.0 || u > 1.0)
-		return false;
-	float y = mix(S0.y, S1.y, t);
 	bool wrap = FenceParam(id, 10) > 0.5;
 	if (!wrap && (y < FenceParam(id, 11) || y > FenceParam(id, 12)))
 		return false;
@@ -130,17 +118,52 @@ bool HitsFence(ivec2 c, vec3 S0, vec3 S1)
 		v = fract(v);
 	else if (v < 0.0 || v > 1.0)
 		return false;
-	float uu = fract((u * length(s) + FenceParam(id, 6)) * FenceParam(id, 7));
+	float uu = fract((u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7));
 	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + vec2(uu, v) * 63.0;
 	return texelFetch(FenceAtlasTexture, ivec2(apos + 0.5), 0).x > 0.5;
 }
 
-// 1 = the ray P + D * t (0 < t < len) hits solid space. The ray is walked cell by cell (exact grid
-// traversal, no fixed steps and no jitter), so shadow edges are sharp and nothing is skipped.
+// Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
+bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
+{
+	int count = int(CellValue(c, 3) + 0.5);
+	int start = int(CellValue(c, 2) + 0.5);
+	vec2 r = S1.xz - S0.xz;
+	for (int k = 0; k < 96; k++)
+	{
+		if (k >= count)
+			break;
+		int idx = start + k;
+		int id = int(texelFetch(ListTexture, ivec2(idx & 4095, idx >> 12), 0).x + 0.5);
+		ivec2 base = ivec2((id & 511) * 8, id >> 9);
+		vec2 A = vec2(texelFetch(LineTexture, base, 0).x, texelFetch(LineTexture, base + ivec2(1, 0), 0).x);
+		vec2 B = vec2(texelFetch(LineTexture, base + ivec2(2, 0), 0).x, texelFetch(LineTexture, base + ivec2(3, 0), 0).x);
+		vec2 s = B - A;
+		float rxs = r.x * s.y - r.y * s.x;
+		if (abs(rxs) < 1.0e-9)
+			continue;
+		vec2 qp = A - S0.xz;
+		float t = (qp.x * s.y - qp.y * s.x) / rxs;
+		float u = (qp.x * r.y - qp.y * r.x) / rxs;
+		if (t < -1.0e-5 || t > 1.00001 || u < -1.0e-5 || u > 1.00001)
+			continue;
+		float y = mix(S0.y, S1.y, clamp(t, 0.0, 1.0));
+		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
+			return true;
+		int fence = int(texelFetch(LineTexture, base + ivec2(6, 0), 0).x + 0.5) - 1;
+		if (fence >= 0 && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
+			return true;
+	}
+	return false;
+}
+
+// 1 = the ray P + D * t (0 < t < len) hits something. The ray is walked cell by cell (exact grid traversal, no fixed
+// steps and no jitter). Cells with lines are tested against the exact line segments (straight shadow edges that start
+// at the corners of the geometry), the other cells against the floor and ceiling height.
 float Trace(vec3 P, vec3 D, float len, float jitter)
 {
 	float cell = 1.0 / Grid.z;
-	float t0 = cell * 1.5;
+	float t0 = cell * 0.25;
 	if (len <= t0)
 		return 0.0;
 	vec3 A = P + D * t0;
@@ -163,12 +186,13 @@ float Trace(vec3 P, vec3 D, float len, float jitter)
 		if (c.x < 0 || c.y < 0 || c.x >= gGridSize.x || c.y >= gGridSize.y)
 			return 0.0;	// left the map
 		float tout = min(min(tMax.x, tMax.y), tEnd);
-		float yin = A.y + D.y * tin, yout = A.y + D.y * tout;
-		float f = texelFetch(FloorTexture, c, 0).x;
-		float ce = texelFetch(CeilTexture, c, 0).x;
-		if (min(yin, yout) < f || max(yin, yout) > ce)
-			return 1.0;
-		if (HitsFence(c, A + D * tin, A + D * tout))
+		vec3 S0 = A + D * tin, S1 = A + D * tout;
+		if (CellValue(c, 3) > 0.5)
+		{
+			if (LinesBlock(c, S0, S1))
+				return 1.0;
+		}
+		else if (min(S0.y, S1.y) < CellValue(c, 0) || max(S0.y, S1.y) > CellValue(c, 1))
 			return 1.0;
 		if (tout >= tEnd)
 			break;
@@ -194,7 +218,7 @@ void main()
 #else
 	gTexSize = textureSize(DepthTexture, 0);
 #endif
-	gGridSize = textureSize(FloorTexture, 0);
+	gGridSize = ivec2(textureSize(CellTexture, 0).x / 4, textureSize(CellTexture, 0).y);
 
 	ivec2 ipos = TexelOf(TexCoord);
 	vec4 ns = texelFetch(NormalTexture, ClampPos(ipos), 0);
