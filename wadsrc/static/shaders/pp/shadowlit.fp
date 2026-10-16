@@ -23,6 +23,7 @@ uniform vec2 Offset;
 uniform vec4 Source;		// xyz = position, w = radius (0 = sun)
 uniform int Mode;
 uniform int FacingShade;
+uniform vec4 DebugColor;
 
 ivec2 gTexSize;
 
@@ -49,7 +50,7 @@ void main()
 {
 	if (Mode == 3)
 	{
-		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		FragColor = DebugColor;
 		return;
 	}
 
@@ -88,7 +89,11 @@ void main()
 		{
 			n = ns.xyz * 2.0 - 1.0;
 			if (dot(n, n) > 0.01)
+			{
 				n = normalize(inverse(mat3(CamX.xyz, CamY.xyz, CamZ.xyz)) * n);
+				if (abs(n.y) > 0.95)
+					n = vec3(0.0, n.y > 0.0 ? 1.0 : -1.0, 0.0);	// floors/ceilings: the 10 bit normal buffer is noisy
+			}
 			else
 				hasNormal = false;
 		}

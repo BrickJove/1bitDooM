@@ -46,7 +46,7 @@ struct VolumePass
 
 	// uniform locations
 	GLint uViewProj, uLight, uCam, uShift;
-	GLint lCamX, lCamY, lCamZ, lProj, lScale, lOffset, lSource, lMode, lFacing;
+	GLint lCamX, lCamY, lCamZ, lProj, lScale, lOffset, lSource, lMode, lFacing, lDebug;
 
 	void Init()
 	{
@@ -72,6 +72,7 @@ struct VolumePass
 		lSource = glGetUniformLocation(p, "Source");
 		lMode = glGetUniformLocation(p, "Mode");
 		lFacing = glGetUniformLocation(p, "FacingShade");
+		lDebug = glGetUniformLocation(p, "DebugColor");
 
 		glGenVertexArrays(1, &vao);
 		glGenBuffers(1, &vbo);
@@ -258,6 +259,7 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 		glUniform4f(P.lSource, s.pos[0], s.pos[1], s.pos[2], s.radius);
 		glUniform1i(P.lMode, mode);
 		glUniform1i(P.lFacing, gl_scene_shadow_facing ? 1 : 0);
+		glUniform4f(P.lDebug, 0.f, 0.f, 0.f, 1.f);
 	};
 	auto drawQuad = [&]()
 	{
@@ -303,6 +305,18 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 
 		drawVolumes(s, false);
 
+		if (gl_scene_shadow_debug == 2 && si == numSources - 1)
+		{
+			setLitUniforms(s, 3);
+			glUniform4f(P.lDebug, 0.f, 1.f, 0.f, 1.f);
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glStencilFunc(GL_NOTEQUAL, 0, 0x1F);
+			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+			glStencilMask(0x00);
+			drawQuad();
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		}
+
 		// bit 7: reached (not under a roof)
 		setLitUniforms(s, 0);
 		glStencilFunc(GL_EQUAL, 0x80, 0x20);
@@ -334,7 +348,16 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 	glStencilFunc(GL_EQUAL, 0x80, 0xC0);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glStencilMask(0x00);
-	drawQuad();
+	if (gl_scene_shadow_debug == 1)
+		glUniform4f(P.lDebug, 1.f, 0.f, 0.f, 1.f);
+	if (gl_scene_shadow_debug != 2)
+		drawQuad();
+	if (gl_scene_shadow_debug == 1)
+	{
+		glUniform4f(P.lDebug, 0.f, 0.f, 1.f, 1.f);
+		glStencilFunc(GL_EQUAL, 0x20, 0x20);
+		drawQuad();
+	}
 
 	ClearStencil(0xFF);
 

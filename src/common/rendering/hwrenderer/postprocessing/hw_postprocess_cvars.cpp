@@ -80,6 +80,7 @@ CUSTOM_CVAR(Bool, gl_scene_shadow, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) {}
 CVAR(Bool, gl_scene_shadow_sun, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVARD(Float, gl_scene_shadow_sun_height, 1024.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Height of the sun in map units. The sun is a point light above the map origin (0, 0); lower = longer shadows")
 CVARD(Bool, gl_scene_shadow_volumes, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "OpenGL: shadows with stencil shadow volumes (the Doom 3 algorithm) instead of the height map ray march")
+CVARD(Int, gl_scene_shadow_debug, 0, 0, "Shadow volumes debug: 1 = red: black pixels, blue: roofed, 2 = green: pixels inside a volume of the last source")
 CVARD(Int, gl_scene_shadow_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..3) that cast screen space shadows")
 CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
 CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = hard black shadow, 1 = binary dither pattern with gl_scene_shadow_strength as coverage")
