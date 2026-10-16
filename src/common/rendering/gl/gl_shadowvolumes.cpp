@@ -157,6 +157,8 @@ void ClearStencil(GLuint mask)
 
 }
 
+static int dbgState = -1;
+
 bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
@@ -164,11 +166,10 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 	{
 		if (gl_scene_shadow_debug != 0)
 		{
-			static int lastReason = -1;
 			int reason = !gl_scene_shadow ? 1 : !gl_scene_shadow_volumes ? 2 : !f.Valid ? 3 : f.Volumes == nullptr ? 4 : 5;
-			if (reason != lastReason)
+			if (reason != dbgState)
 			{
-				lastReason = reason;
+				dbgState = reason;
 				static const char *names[] = { "", "gl_scene_shadow is off", "gl_scene_shadow_volumes is off", "no valid shadow frame (non-perspective view?)", "no volume geometry", "scene is multisampled (set gl_multisample 1)" };
 				Printf("Shadow volumes NOT used (ray march fallback): %s\n", names[reason]);
 			}
@@ -177,8 +178,12 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 	}
 	if (gl_scene_shadow_debug != 0)
 	{
-		static bool said = false;
-		if (!said) { said = true; Printf("Shadow volumes active (%d plates)\n", (int)f.Volumes->plates.size()); }
+		int key = (int)f.Volumes->plates.size() * 16 + (gl_scene_shadow_sun ? 1 : 0) + 2 * clamp((int)gl_scene_shadow_lights, 0, 3);
+		if (key + 100 != dbgState)
+		{
+			dbgState = key + 100;
+			Printf("Shadow volumes active: %d plates, sun %d, lights %d, sun height %d\n", (int)f.Volumes->plates.size(), (int)gl_scene_shadow_sun, (int)gl_scene_shadow_lights, (int)gl_scene_shadow_sun_height);
+		}
 	}
 
 	struct Source { float pos[3]; float radius; bool sun; };
