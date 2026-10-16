@@ -24,6 +24,7 @@
 #include "hwrenderer/postprocessing/hw_postprocess.h"
 #include "hwrenderer/postprocessing/hw_postprocess_cvars.h"
 #include "v_video.h"
+#include "printf.h"
 #include "../../../rendering/hwrenderer/scene/hw_shadowvolumes.h"
 
 namespace OpenGLRenderer
@@ -160,7 +161,25 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
 	if (!gl_scene_shadow || !gl_scene_shadow_volumes || !f.Valid || f.Volumes == nullptr || buffers->SceneIsMultisampled())
+	{
+		if (gl_scene_shadow_debug != 0)
+		{
+			static int lastReason = -1;
+			int reason = !gl_scene_shadow ? 1 : !gl_scene_shadow_volumes ? 2 : !f.Valid ? 3 : f.Volumes == nullptr ? 4 : 5;
+			if (reason != lastReason)
+			{
+				lastReason = reason;
+				static const char *names[] = { "", "gl_scene_shadow is off", "gl_scene_shadow_volumes is off", "no valid shadow frame (non-perspective view?)", "no volume geometry", "scene is multisampled (set gl_multisample 1)" };
+				Printf("Shadow volumes NOT used (ray march fallback): %s\n", names[reason]);
+			}
+		}
 		return false;
+	}
+	if (gl_scene_shadow_debug != 0)
+	{
+		static bool said = false;
+		if (!said) { said = true; Printf("Shadow volumes active (%d plates)\n", (int)f.Volumes->plates.size()); }
+	}
 
 	struct Source { float pos[3]; float radius; bool sun; };
 	Source sources[4];
