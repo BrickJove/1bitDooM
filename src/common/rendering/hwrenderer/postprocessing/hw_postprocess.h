@@ -807,6 +807,59 @@ private:
 	PPShader OutlineMS = { "shaders/pp/outline.fp", "#define MULTISAMPLE\n", OutlineUniforms::Desc() };
 };
 
+// Jupiter3D: screen space shadows (sun + dynamic lights), see sceneshadow.fp
+// Per frame data, filled by hw_PrepareSceneShadow (hw_drawinfo.cpp) before the post pass runs.
+struct SceneShadowFrame
+{
+	bool Valid = false;
+	float SunEye[3] = { 0, 0, 0 };	// eye space direction towards the sun
+	float DownEye[3] = { 0, 0, 0 };	// eye space normal of a ceiling (pointing down)
+	float Light[3][4] = {};			// eye space position + radius, radius 0 = unused
+	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
+};
+extern SceneShadowFrame sceneShadowFrame;
+
+// exactly 128 bytes: Vulkan passes the post process uniforms as push constants
+struct SceneShadowUniforms
+{
+	FVector4 Sun;		// xyz = eye space direction to the sun, w = ray length (0 = no sun)
+	FVector4 Light0;	// xyz = eye space position, w = radius (0 = unused)
+	FVector4 Light1;
+	FVector4 Light2;
+	FVector4 Down;		// xyz = eye space ceiling normal, w = flags (1 = shade surfaces facing away, 2 = dither)
+	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]
+	FVector4 Params;	// strength, bias, thickness, steps
+	FVector2 Scale;
+	FVector2 Offset;
+
+	static std::vector<UniformFieldDesc> Desc()
+	{
+		return
+		{
+			{ "Sun", UniformType::Vec4, offsetof(SceneShadowUniforms, Sun) },
+			{ "Light0", UniformType::Vec4, offsetof(SceneShadowUniforms, Light0) },
+			{ "Light1", UniformType::Vec4, offsetof(SceneShadowUniforms, Light1) },
+			{ "Light2", UniformType::Vec4, offsetof(SceneShadowUniforms, Light2) },
+			{ "Down", UniformType::Vec4, offsetof(SceneShadowUniforms, Down) },
+			{ "ProjParams", UniformType::Vec4, offsetof(SceneShadowUniforms, ProjParams) },
+			{ "Params", UniformType::Vec4, offsetof(SceneShadowUniforms, Params) },
+			{ "Scale", UniformType::Vec2, offsetof(SceneShadowUniforms, Scale) },
+			{ "Offset", UniformType::Vec2, offsetof(SceneShadowUniforms, Offset) }
+		};
+	}
+};
+static_assert(sizeof(SceneShadowUniforms) == 128, "SceneShadowUniforms must stay within 128 bytes (Vulkan push constants)");
+
+class PPSceneShadow
+{
+public:
+	void Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight);
+
+private:
+	PPShader SceneShadow = { "shaders/pp/sceneshadow.fp", "", SceneShadowUniforms::Desc() };
+	PPShader SceneShadowMS = { "shaders/pp/sceneshadow.fp", "#define MULTISAMPLE\n", SceneShadowUniforms::Desc() };
+};
+
 struct PresentUniforms
 {
 	float InvGamma;
@@ -1023,6 +1076,7 @@ public:
 	PPColormap colormap;
 	PPTonemap tonemap;
 	PPAmbientOcclusion ssao;
+	PPSceneShadow sceneShadow;
 	PPOutline outline;
 	PPWeaponOutline weaponOutline;
 	PPWeaponPixel weaponPixel;

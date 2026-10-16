@@ -267,6 +267,7 @@ public:
 	int SetFullbrightFlags(player_t *player);
 
 	void DrawScene(int drawmode);
+	void PrepareSceneShadow();
 	void CreateScene(bool drawpsprites);
 	void RenderScene(FRenderState &state);
 	void RenderTranslucent(FRenderState &state);

@@ -37,6 +37,7 @@
 #include "hw_clipper.h"
 #include "v_draw.h"
 #include "a_corona.h"
+#include "a_dynlight.h"
 #include "texturemanager.h"
 #include "actorinlines.h"
 #include "g_levellocals.h"
@@ -1014,6 +1015,81 @@ void HWDrawInfo::Set3DViewport(FRenderState &state)
 //
 //-----------------------------------------------------------------------------
 
+//-----------------------------------------------------------------------------
+//
+// Jupiter3D: per frame data for the screen space shadow pass (sun direction and the
+// nearest dynamic lights in eye space)
+//
+//-----------------------------------------------------------------------------
+
+void HWDrawInfo::PrepareSceneShadow()
+{
+	SceneShadowFrame &f = sceneShadowFrame;
+	f.Valid = false;
+	if (!gl_scene_shadow)
+		return;
+
+	const float *proj = VPUniforms.ProjectionMatrix.get();
+	if (fabsf(proj[0]) < 1e-6f || fabsf(proj[5]) < 1e-6f || proj[11] > -0.5f)
+		return;	// no perspective projection (isometric view): not supported
+	f.FocalX = 1.0f / proj[0];
+	f.FocalY = 1.0f / proj[5];
+
+	auto eyeDir = [&](VSMatrix &m, float x, float y, float z, float *out)
+	{
+		float in[4] = { x, y, z, 0.f }, res[4];
+		m.multMatrixPoint(in, res);
+		float len = sqrtf(res[0] * res[0] + res[1] * res[1] + res[2] * res[2]);
+		if (len < 1e-6f) len = 1.f;
+		out[0] = res[0] / len; out[1] = res[1] / len; out[2] = res[2] / len;
+	};
+
+	// render space: x = X, y = Z (up), z = Y
+	float az = (float)(gl_scene_shadow_sun_angle * (M_PI / 180.0));
+	float el = (float)(clamp((double)gl_scene_shadow_sun_elevation, 5.0, 90.0) * (M_PI / 180.0));
+	eyeDir(VPUniforms.ViewMatrix, cosf(az) * cosf(el), sinf(el), sinf(az) * cosf(el), f.SunEye);
+	eyeDir(VPUniforms.NormalViewMatrix, 0.f, -1.f, 0.f, f.DownEye);
+
+	// the nearest dynamic lights (distance to the light's reach)
+	struct Cand { double score; DVector3 pos; float radius; };
+	Cand best[3];
+	int count = 0;
+	int group = (Viewpoint.camera && Viewpoint.camera->Sector) ? Viewpoint.camera->Sector->PortalGroup : 0;
+	for (auto light = Level->lights; light; light = light->next)
+	{
+		if (!light->IsActive() || light->IsSubtractive() || light->IsSpot())
+			continue;
+		float radius = light->GetRadius();
+		if (radius <= 0.f)
+			continue;
+		DVector3 lp = light->PosRelative(group);
+		double score = (lp - Viewpoint.Pos).Length() - radius;
+		if (score > 1024.0)
+			continue;
+		Cand c = { score, lp, radius };
+		int pos = count < 3 ? count : 3;
+		while (pos > 0 && best[pos - 1].score > c.score)
+		{
+			if (pos < 3) best[pos] = best[pos - 1];
+			pos--;
+		}
+		if (pos < 3) best[pos] = c;
+		if (count < 3) count++;
+	}
+	for (int i = 0; i < 3; i++)
+	{
+		if (i < count)
+		{
+			float in[4] = { (float)best[i].pos.X, (float)best[i].pos.Z, (float)best[i].pos.Y, 1.f }, res[4];
+			VPUniforms.ViewMatrix.multMatrixPoint(in, res);
+			f.Light[i][0] = res[0]; f.Light[i][1] = res[1]; f.Light[i][2] = res[2]; f.Light[i][3] = best[i].radius;
+		}
+		else
+			f.Light[i][3] = 0.f;
+	}
+	f.Valid = true;
+}
+
 void HWDrawInfo::DrawScene(int drawmode)
 {
 	static int recursion = 0;
@@ -1059,6 +1135,7 @@ void HWDrawInfo::DrawScene(int drawmode)
 
 	if (applySSAO && RenderState.GetPassType() == GBUFFER_PASS)
 	{
+		PrepareSceneShadow();
 		screen->AmbientOccludeScene(VPUniforms.ProjectionMatrix.get()[5]);
 		screen->mViewpoints->Bind(RenderState, vpIndex);
 	}

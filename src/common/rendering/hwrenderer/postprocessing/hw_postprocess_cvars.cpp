@@ -74,6 +74,19 @@ CUSTOM_CVAR(Int, gl_outline, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 // Models beyond a distance get a 1 pixel outline on the inside of their silhouette.
 CUSTOM_CVAR(Bool, gl_model_inner_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) {}
+
+// Screen space shadows (sun + dynamic lights) on the map geometry and models, see sceneshadow.fp
+CUSTOM_CVAR(Bool, gl_scene_shadow, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) {}
+CVAR(Bool, gl_scene_shadow_sun, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVARD(Float, gl_scene_shadow_sun_angle, 135.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Direction of the sun as a map angle in degrees (0 = the sun is in the east, 90 = north)")
+CVARD(Float, gl_scene_shadow_sun_elevation, 50.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Height of the sun above the horizon in degrees (5..90). Low = long shadows")
+CVARD(Int, gl_scene_shadow_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..3) that cast screen space shadows")
+CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
+CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = soft darkening, 1 = binary dither pattern (1 bit look)")
+CVARD(Float, gl_scene_shadow_length, 400.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Maximum length of the sun shadows in map units")
+CVARD(Float, gl_scene_shadow_thickness, 64.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Assumed thickness of occluders in map units (larger = fewer light leaks, more false shadows)")
+CVARD(Int, gl_scene_shadow_steps, 24, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Ray steps per light (8..48)")
+CVARD(Bool, gl_scene_shadow_facing, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Surfaces that face away from the light are in shadow as well")
 CVAR(Float, gl_model_inner_outline_distance, 512.0f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
 CVARD(Int, gl_outline_width, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Map outline width in render pixels (1..4)")

@@ -972,6 +972,12 @@ OptionValue "ModelShadowStyle"
 	1, "Light source"
 }
 
+OptionValue "SceneShadowStyle"
+{
+	0, "Soft"
+	1, "Dither (1 bit)"
+}
+
 OptionMenu "VideoOptions" protected
 {
 	Title "$DSPLYMNU_TITLE"
@@ -1015,6 +1021,18 @@ OptionMenu "VideoOptions" protected
 	Option "  decoration: skip non-solid",       "gl_model_shadow_skip_nonsolid", "OnOff"
 	Option "Shadows: player",                    "gl_model_shadow_player", "OnOff"
 	Slider "Shadow gone at height (0 = no shrink)", "gl_model_shadow_fade_height", 0, 512, 16, 0
+	StaticText " "
+	StaticText "Scene shadows (sun + lights)", 1
+	Option "Scene shadows",                      "gl_scene_shadow", "OnOff"
+	Option "  style",                            "gl_scene_shadow_style", "SceneShadowStyle"
+	Slider "  darkness",                         "gl_scene_shadow_strength", 0.1, 1.0, 0.05, 2
+	Option "  sun",                              "gl_scene_shadow_sun", "OnOff"
+	Slider "  sun direction (map angle)",        "gl_scene_shadow_sun_angle", 0, 355, 5, 0
+	Slider "  sun height (degrees)",             "gl_scene_shadow_sun_elevation", 5, 90, 5, 0
+	Slider "  sun shadow length",                "gl_scene_shadow_length", 64, 1024, 32, 0
+	Slider "  dynamic lights (0-3)",             "gl_scene_shadow_lights", 0, 3, 1, 0
+	Slider "  occluder thickness",               "gl_scene_shadow_thickness", 16, 256, 16, 0
+	Option "  surfaces facing away are dark",    "gl_scene_shadow_facing", "OnOff"
 	StaticText " "
 	Slider "$DSPLYMNU_SCREENSIZE",             screenblocks,           3.0, 12.0, 1.0, 0
 	StaticText " "

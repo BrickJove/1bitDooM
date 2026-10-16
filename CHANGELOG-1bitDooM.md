@@ -67,3 +67,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Soft blob and sun shadow removed. New shadow style 1 "Light source" (gl_model_shadow_style, default 1): the flat black shadow is projected onto the floor away from the dynamic light that shines on the actor most (GLDEFS / actor lights; lights attached to the actor itself and lights below the floor are ignored). Without a light, or with style 0, the shadow lies straight below the actor and shrinks with the height above the floor (gl_model_shadow_fade_height).
 
 - Model drop shadow: the player now also casts his shadow in first person (gl_model_shadow_player). The player model itself is still not drawn, only the shadow.
+
+- Scene shadows (gl_scene_shadow): screen space shadows of a sun (gl_scene_shadow_sun_angle / _elevation) and up to 3 dynamic lights (gl_scene_shadow_lights) on the map geometry and models. New post pass shaders/pp/sceneshadow.fp, runs before the outlines. Soft or 1 bit dither (gl_scene_shadow_style). Only what is on screen casts shadows, ceilings never do.
