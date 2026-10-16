@@ -169,8 +169,7 @@ void main()
 			shadow = max(shadow, atten);
 	}
 
-	float a = shadow * Params.x;
-	if (dither)
-		a = a > Bayer4(ipos) ? 1.0 : 0.0;
+	// hard shadow: pure black, no soft edge. Dither mode: coverage = strength, ordered dither.
+	float a = dither ? ((shadow * Params.x) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
 	FragColor = vec4(0.0, 0.0, 0.0, a);
 }
