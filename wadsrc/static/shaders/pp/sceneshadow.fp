@@ -81,24 +81,18 @@ float CellValue(ivec2 c, int k)
 	return texelFetch(CellTexture, ivec2(c.x * 4 + k, c.y), 0).x;
 }
 
-// Is there an open sky above the position? Near walls the cell centre can lie in solid space, so the
-// neighbouring cells are used then.
+// Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
+// channel (see hw_shadowheightmap.cpp), so pixels right at a wall base are classified like the open ground next to them.
 bool UnderSky(vec3 w)
 {
 	ivec2 c = CellOf(w);
 	if (c.x < 0)
 		return false;
-	for (int i = 0; i < 5; i++)
-	{
-		ivec2 o = i == 0 ? ivec2(0) : (i == 1 ? ivec2(1, 0) : (i == 2 ? ivec2(-1, 0) : (i == 3 ? ivec2(0, 1) : ivec2(0, -1))));
-		ivec2 n = c + o;
-		if (n.x < 0 || n.y < 0 || n.x >= gGridSize.x || n.y >= gGridSize.y)
-			continue;
-		float f = CellValue(n, 0);
-		if (f < Big * 0.5)
-			return CellValue(n, 1) > Big * 0.5;
-	}
-	return false;
+	float f = CellValue(c, 0);
+	float ce = CellValue(c, 1);
+	if (f < Big * 0.5)
+		return ce > Big * 0.5;
+	return abs(ce - 12345.0) < 1.0;
 }
 
 float FenceParam(int id, int k)

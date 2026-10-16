@@ -77,3 +77,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Scene shadows: sharp edges. The shadow ray is now walked cell by cell through the height map (exact grid traversal, no fixed steps and no jitter, so nothing frays or bands), and the grid is finer (2 map units for levels up to about 2000 units, otherwise 4 / 8 / ...). gl_scene_shadow_steps is gone.
 
 - Scene shadows: exact edges. The shadow rays are tested against the exact line segments of the map (every line that can block: one sided walls, height steps, fences, lines of tagged sectors), cell by cell, so shadows are straight lines that start exactly at the corners of the geometry. The grid cells only store floor / ceiling heights for cells without lines. Moving sectors refresh the cells and lines of the sector.
+
+- Model drop shadows follow the sun of the scene shadows (gl_scene_shadow + gl_scene_shadow_sun, actor under an open sky, shadow style "Light source"): the shadow is projected away from the sun, not straight down.
+- Scene shadows: pixels right at a wall base are now classified like the open ground next to them (solid cells near an open sky carry a marker). This removed the notch in the shadow edge at the foot of walls.

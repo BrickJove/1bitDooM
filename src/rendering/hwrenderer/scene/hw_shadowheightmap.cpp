@@ -232,10 +232,45 @@ struct ShadowHeightMap
 			states[i] = StateOf(sec);
 		}
 
+		MarkNearSky();
 		BuildFences(level);
 		BuildLines(level);
 		cellsDirty = linesDirty = true;
 		lastUpload = frame - UploadInterval;
+	}
+
+	// Solid cells within 3 cells of an open sky cell get the marker 12345 in the ceiling channel: a pixel on the ground
+	// right at a wall base can fall into such a cell and must still count as lying under the open sky.
+	void MarkNearSky()
+	{
+		const int R = 3;
+		std::vector<int> marks;
+		for (int cy = 0; cy < H; cy++)
+		{
+			for (int cx = 0; cx < W; cx++)
+			{
+				size_t idx = ((size_t)cy * W + cx) * 4;
+				if (cellData[idx] < Big * 0.5f)
+					continue;
+				bool near = false;
+				for (int dy = -R; dy <= R && !near; dy++)
+				{
+					int y = cy + dy;
+					if (y < 0 || y >= H) continue;
+					for (int dx = -R; dx <= R; dx++)
+					{
+						int x = cx + dx;
+						if (x < 0 || x >= W) continue;
+						size_t n = ((size_t)y * W + x) * 4;
+						if (cellData[n] < Big * 0.5f && cellData[n + 1] > Big * 0.5f) { near = true; break; }
+					}
+				}
+				if (near)
+					marks.push_back((int)idx);
+			}
+		}
+		for (int idx : marks)
+			cellData[idx + 1] = 12345.f;
 	}
 
 	// The lines that can block a ray: one sided lines, lines with a height step, fences, and lines of sectors
