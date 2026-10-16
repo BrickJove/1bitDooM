@@ -104,3 +104,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modell-Schattenkarte: die Lichter werden jetzt unabhängig von der Kamera gewählt (alle aktiven Punktlichter der Map, das jeweils nächste zu einem Modell zuerst), statt der drei der Kamera nächsten; dadurch verschwindet der Schatten nicht mehr, wenn man sich bewegt und ein anderes Licht näher an der Kamera liegt.
 
 - Cvar `gl_model_shadow_map_debug`: meldet in der Konsole, wenn sich ändert, wie viele Lichter / schattenwerfende Modelle / Schattenkarten es gibt.
+
+- Modell-Schattenkarte: von den Lichtern, die ein Modell erreichen, kommt das dem Spieler nächste zuerst; es zählen nur Modelle bis 4096 Einheiten vom Spieler. (Vorher konnten zwei Lichter irgendwo in der Map die beiden Karten belegen.)

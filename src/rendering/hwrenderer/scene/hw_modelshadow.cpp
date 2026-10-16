@@ -85,6 +85,8 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				continue;
 			if (!WantsModelShadow(a))
 				continue;
+			if ((a->Pos() - di->Viewpoint.Pos).LengthSquared() > 4096.0 * 4096.0)
+				continue;	// far away from the player: not worth a shadow
 			DVector3 pos = a->InterpolatedPosition(di->Viewpoint.TicFrac);
 			float r = (float)max(a->radius, a->Height * 0.5) + 8.f;
 			float cx = (float)pos.X, cy = (float)(pos.Z + a->Height * 0.5), cz = (float)pos.Y;
@@ -139,6 +141,9 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		}
 		if (best < 0.f)
 		{
+			// among the lights that reach a model: the one that is closest to the player first
+			float cdx = lights[li].x - (float)di->Viewpoint.Pos.X, cdy = lights[li].y - (float)di->Viewpoint.Pos.Z, cdz = lights[li].z - (float)di->Viewpoint.Pos.Y;
+			best = sqrtf(cdx * cdx + cdy * cdy + cdz * cdz) - lights[li].radius;
 			unsigned pos = order.Size();
 			order.Push((int)li);
 			scores.Push(best);
