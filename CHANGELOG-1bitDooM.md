@@ -53,3 +53,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Far-model inner outline is switched off only for non-solid actors (decals, cut-out graffiti, blood, corpses, items); all solid actors keep it.
 
 - White lines on black surfaces: the colour is decided from a 9x9 neighbourhood (25 taps): white only if nearly everything around is dark, so mostly bright graphics keep black lines even with dark pixels at the edge.
+
+- Model drop shadows shrink with the height of the actor above the floor (about the actor's position) and disappear at gl_model_shadow_fade_height (default 128 map units, 0 = always full size; menu slider "Shadow gone at height").

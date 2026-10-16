@@ -1007,6 +1007,7 @@ OptionMenu "VideoOptions" protected
 	Option "  decoration: skip shootable",       "gl_model_shadow_skip_shootable", "OnOff"
 	Option "  decoration: skip non-solid",       "gl_model_shadow_skip_nonsolid", "OnOff"
 	Option "Shadows: player",                    "gl_model_shadow_player", "OnOff"
+	Slider "Shadow gone at height (0 = no shrink)", "gl_model_shadow_fade_height", 0, 512, 16, 0
 	StaticText " "
 	Slider "$DSPLYMNU_SCREENSIZE",             screenblocks,           3.0, 12.0, 1.0, 0
 	StaticText " "

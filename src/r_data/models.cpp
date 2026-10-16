@@ -86,6 +86,7 @@ CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_player, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_skip_shootable, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for shootable actors
 CVAR(Bool, gl_model_shadow_skip_nonsolid, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for non-solid actors
+CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Drop shadows shrink with the height of the actor above the floor and are gone at this height (map units, 0 = always full size)")
 
 static bool WantsModelShadow(AActor* actor)
 {
@@ -141,13 +142,28 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 	if (blackModel) renderer->EndBlack();
 
-	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
+	// the shadow shrinks (about the actor's position) with the height above the floor and is gone at gl_model_shadow_fade_height
+	float shadowScale = 1.f;
+	if (gl_model_shadow_fade_height > 0.f)
+	{
+		float height = (float)(actor->Z() - actor->floorz);
+		shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
+	}
+
+	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && shadowScale > 0.05f && WantsModelShadow(actor))
 	{
 		// Squash the model onto the floor below the actor. The y scale is not exactly 0 so the normal matrix stays invertible.
 		VSMatrix flat;
 		flat.loadIdentity();
 		flat.translate(0.f, (float)actor->floorz + 0.05f, 0.f);
 		flat.scale(1.f, 0.001f, 1.f);
+		if (shadowScale < 1.f)
+		{
+			// scale about the actor's position (render x / z)
+			flat.translate(x, 0.f, y);
+			flat.scale(shadowScale, 1.f, shadowScale);
+			flat.translate(-x, 0.f, -y);
+		}
 		flat.multMatrix(objectToWorldMatrix);
 		renderer->BeginShadow(flat);
 		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
