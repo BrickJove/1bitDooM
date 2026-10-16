@@ -116,3 +116,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modell-Schattenkarte: die Lichthöhe kommt wieder allein aus der Map (Cvar `gl_model_shadow_map_light_height` entfernt). Die Blickrichtung der Karte hängt nicht mehr vom Spieler-Modell ab (es lenkt Achse und Sichtfeld nicht, nur andere Modelle), das Sichtfeld ist auf 130° begrenzt, Modelle außerhalb werden weggelassen, Hüllkugeln der Modelle sind großzügiger (Arme/Waffen), damit Schatten nicht abgeschnitten werden.
 
 - modelshadow.fp: die Texelgröße der Schattenkarte (für die Toleranz beim Tiefenvergleich) wurde aus `VP[0].x` berechnet, das von der Blickrichtung des Lichts abhängt und gegen 0 gehen kann: dann wurde die Toleranz riesig und Teile des Schattens (oder alles) verschwanden. Jetzt aus der Länge der Zeile (= 1 / tan(fov/2)).
+
+- Neu: `gl_model_shadow_map_range` (0.5..4, Standard 1): Reichweite der Modellschatten als Vielfaches des Lichtradius. Menü: Slider "reach of model shadows (x light radius)".
