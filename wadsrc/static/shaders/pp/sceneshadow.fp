@@ -259,6 +259,29 @@ void main()
 		n = vec3(0.0);
 
 	float cell = 1.0 / Grid.z;
+
+	// Floors and ceilings: the depth buffer is imprecise at grazing angles (moire along shadow edges). The height of the
+	// surface is known from the height map, so move the position along the view ray onto that exact height.
+	if (hasNormal && abs(n.y) > 0.95)
+	{
+		ivec2 sc = CellOf(P);
+		if (sc.x >= 0 && CellValue(sc, 3) < 0.5)
+		{
+			float sf = CellValue(sc, 0);
+			float target = n.y > 0.0 ? sf : CellValue(sc, 1);
+			if (sf < SolidOff * 0.75 && abs(target) < Big * 0.5 && abs(P.y - target) < 3.0)
+			{
+				vec3 cam = vec3(CamX.w, CamY.w, CamZ.w);
+				vec3 vd = P - cam;
+				if (abs(vd.y) > 1.0e-4)
+				{
+					float tt = (target - cam.y) / vd.y;
+					if (tt > 0.0)
+						P = cam + vd * tt;
+				}
+			}
+		}
+	}
 	vec3 Q = P + n * (cell * 1.5);	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
 	float topLimit = float(packedBits >> 9);

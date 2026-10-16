@@ -162,7 +162,8 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		DVector3 lightPos;
 		// under an open sky with the scene shadows on, the shadow follows the sun of the scene shadows
 		bool sunLit = gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
-			&& actor->Sector != nullptr && actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum;
+			&& actor->Sector != nullptr && (actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum
+				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
 		bool lit = !sunLit && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
 		float shadowScale = 1.f;
 		if (!lit && !sunLit && gl_model_shadow_fade_height > 0.f)
