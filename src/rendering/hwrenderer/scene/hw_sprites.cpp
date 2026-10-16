@@ -64,10 +64,6 @@ const float MY_SQRT2    = 1.41421356237309504880; // sqrt(2)
 EXTERN_CVAR(Bool, r_debug_disable_vis_filter)
 EXTERN_CVAR(Float, transsouls)
 EXTERN_CVAR(Float, r_actorspriteshadowalpha)
-bool ModelWantsShadow(AActor* actor);
-float ModelShadowScale(AActor* actor, float z);
-EXTERN_CVAR(Int, gl_model_shadow_style)
-bool ModelShadowUsesBlob(AActor* actor);
 EXTERN_CVAR(Float, r_actorspriteshadowfadeheight)
 EXTERN_CVAR(Int, r_distance_cull_type)
 
@@ -323,46 +319,6 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 			RenderModel(&renderer, x, y, z, modelframe, actor, Net_ModifyObjectFrac(actor, di->Viewpoint.TicFrac));
 			state.SetVertexBuffer(screen->mVertexData);
 
-			// soft drop shadow (black blob with a smooth alpha fall-off, texture SHDWBLOB)
-			if (actor != nullptr && !modelframe->isVoxel && ModelShadowUsesBlob(actor))
-			{
-				if (screen->BuffersArePersistent())
-					CreateVertices(di);
-				static FTextureID blobId;
-				static bool blobLooked = false;
-				if (!blobLooked)
-				{
-					blobLooked = true;
-					blobId = TexMan.CheckForTexture("SHDWBLOB", ETextureType::MiscPatch);
-				}
-				FGameTexture *blob = blobId.isValid() ? TexMan.GetGameTexture(blobId) : nullptr;
-				if (shadowvertex >= 0 && blob != nullptr)
-				{
-					// remember what the following draws (more models, sprites) expect: with the render style left on
-					// "translucent" the models after this one would blend, and blending a class 0 normal buffer write
-					// (alpha 0) keeps the old value, so map outlines would show through those models
-					const FRenderStyle savedStyle = state.GetRenderStyle();
-					const int savedTextureMode = state.GetTextureMode();
-					const float savedThreshold = state.GetAlphaThreshold();
-
-					state.SetMaterial(blob, UF_Sprite, 0, CLAMP_XY, NO_TRANSLATION, -1, nullptr);
-					state.SetRenderStyle(STYLE_Translucent);
-					state.SetTextureMode(TM_NORMAL);
-					state.AlphaFunc(Alpha_GEqual, 0.01f);
-					state.SetObjectColor(0xffffffff);
-					state.SetNormal(0, 0, 0);
-					state.SetLightIndex(-1);
-					state.SetNoOutline(true);
-					state.SetCulling(Cull_None);
-					state.SetDepthBias(-1, -128);
-					state.Draw(DT_TriangleStrip, shadowvertex, 4);
-					state.ClearDepthBias();
-					state.SetNoOutline(false);
-					state.SetRenderStyle(savedStyle);
-					state.SetTextureMode(savedTextureMode);
-					state.AlphaFunc(Alpha_Greater, savedThreshold);
-				}
-			}
 		}
 	}
 
@@ -654,7 +610,6 @@ inline void HWSprite::PutSprite(HWDrawInfo *di, bool translucent)
 		dynlightindex = -1;
 
 	vertexindex = -1;
-	shadowvertex = -1;
 	if (!screen->BuffersArePersistent())
 	{
 		CreateVertices(di);
@@ -670,25 +625,6 @@ inline void HWSprite::PutSprite(HWDrawInfo *di, bool translucent)
 
 void HWSprite::CreateVertices(HWDrawInfo *di)
 {
-	shadowvertex = -1;
-	if (modelframe != nullptr && actor != nullptr && ModelShadowUsesBlob(actor) && !modelframe->isVoxel && ModelWantsShadow(actor))
-	{
-		// soft drop shadow: a square on the floor below the actor, shrinking with the height above the floor
-		float scale = ModelShadowScale(actor, z);
-		if (scale > 0.05f)
-		{
-			float h = max((float)actor->radius * 1.5f, 8.f) * scale;
-			float fl = (float)actor->floorz + 0.05f;
-			auto vert = screen->mVertexData->AllocVertices(4);
-			auto vp = vert.first;
-			shadowvertex = vert.second;
-			shadowhalf = h;
-			vp[0].Set(x - h, fl, y - h, 0.f, 0.f);
-			vp[1].Set(x + h, fl, y - h, 1.f, 0.f);
-			vp[2].Set(x - h, fl, y + h, 0.f, 1.f);
-			vp[3].Set(x + h, fl, y + h, 1.f, 1.f);
-		}
-	}
 	if (modelframe == nullptr)
 	{
 		FVector3 v[4];

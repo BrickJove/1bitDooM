@@ -86,11 +86,9 @@ CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_player, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_skip_shootable, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for shootable actors
 CVAR(Bool, gl_model_shadow_skip_nonsolid, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for non-solid actors
-CVARD(Int, gl_model_shadow_style, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model drop shadow style: 0 = flat silhouette, 1 = soft blob, 2 = sun shadow in sky ceiling sectors (soft blob elsewhere)")
-CVARD(Float, gl_model_shadow_sun_height, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Height of the sun above the middle of the map for sun shadows (0 = automatic)")
+CVARD(Int, gl_model_shadow_style, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model drop shadow style: 0 = flat silhouette straight below the actor, 1 = projected away from the nearest dynamic light source (straight below if there is none)")
 CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Drop shadows shrink with the height of the actor above the floor and are gone at this height (map units, 0 = always full size)")
 
-bool ModelWantsShadow(AActor* actor);
 static bool WantsModelShadow(AActor* actor)
 {
 	if (actor->flags & MF_MISSILE) return false;
@@ -104,58 +102,8 @@ static bool WantsModelShadow(AActor* actor)
 	if (gl_model_shadow_skip_nonsolid && !(actor->flags & MF_SOLID)) return false;
 	return true;
 }
-bool ModelWantsShadow(AActor* actor)
-{
-	return WantsModelShadow(actor);
-}
-
-// style 2: actors in sectors with a sky ceiling get a projected shadow from a sun above the middle of the map
-bool ModelShadowUsesSun(AActor* actor)
-{
-	return gl_model_shadow_style == 2 && actor->Sector != nullptr && actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum;
-}
-
-// the soft blob: style 1, or style 2 outside of sky sectors
-bool ModelShadowUsesBlob(AActor* actor)
-{
-	return gl_model_shadow_style == 1 || (gl_model_shadow_style == 2 && !ModelShadowUsesSun(actor));
-}
-
-// Middle of the map (bounding box of all vertices) and the sun height, cached per level.
-static void MapSun(FLevelLocals* level, double& cx, double& cy, double& height)
-{
-	static FLevelLocals* cachedLevel = nullptr;
-	static unsigned cachedCount = 0;
-	static double ccx = 0, ccy = 0, chalf = 2048;
-	if (cachedLevel != level || cachedCount != level->vertexes.Size())
-	{
-		cachedLevel = level;
-		cachedCount = level->vertexes.Size();
-		double minx = 1e30, miny = 1e30, maxx = -1e30, maxy = -1e30;
-		for (auto& v : level->vertexes)
-		{
-			minx = min(minx, v.fX()); maxx = max(maxx, v.fX());
-			miny = min(miny, v.fY()); maxy = max(maxy, v.fY());
-		}
-		if (maxx >= minx)
-		{
-			ccx = (minx + maxx) * 0.5;
-			ccy = (miny + maxy) * 0.5;
-			chalf = max(max(maxx - minx, maxy - miny) * 0.5, 1024.0);
-		}
-	}
-	cx = ccx;
-	cy = ccy;
-	height = gl_model_shadow_sun_height > 0.f ? (double)gl_model_shadow_sun_height : chalf;
-}
-
-// 0..1: size of a drop shadow for an actor at render height z (shrinks with the height above the floor)
-float ModelShadowScale(AActor* actor, float z)
-{
-	if (gl_model_shadow_fade_height <= 0.f) return 1.f;
-	float height = z - (float)actor->floorz;
-	return clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
-}
+// the dynamic light that shines on the actor most (hw_spritelight.cpp)
+bool ModelShadowLight(AActor* actor, DVector3& pos);
 
 EXTERN_CVAR (Bool, r_drawvoxels)
 
@@ -198,30 +146,32 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 	if (blackModel) renderer->EndBlack();
 
-	// the shadow shrinks (about the actor's position) with the height above the floor and is gone at gl_model_shadow_fade_height
-	bool sunShadow = ModelShadowUsesSun(actor);
-	float shadowScale = 1.f;
-	if (!sunShadow && gl_model_shadow_fade_height > 0.f)
+	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
 	{
-		float height = (float)(actor->Z() - actor->floorz);
-		shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
-	}
-
-	if ((gl_model_shadow_style == 0 || sunShadow) && (gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && shadowScale > 0.05f && WantsModelShadow(actor))
-	{
-		// Squash the model onto the floor below the actor. The y scale is not exactly 0 so the normal matrix stays invertible.
+		// Style 1: the shadow is projected onto the floor along the direction from the nearest dynamic light through the
+		// actor, so it points away from the light. Without a light (or style 0) it is squashed straight down and shrinks
+		// with the height above the floor (gone at gl_model_shadow_fade_height).
+		DVector3 lightPos;
+		bool lit = gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
+		float shadowScale = 1.f;
+		if (!lit && gl_model_shadow_fade_height > 0.f)
+		{
+			float height = (float)(actor->Z() - actor->floorz);
+			shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
+		}
+		if (shadowScale > 0.05f)
+		{
+		// The y scale is not exactly 0 so the normal matrix stays invertible.
 		VSMatrix flat;
 		flat.loadIdentity();
 		flat.translate(0.f, (float)actor->floorz + 0.05f, 0.f);
-		if (sunShadow)
+		if (lit)
 		{
-			// parallel projection along the direction from the sun (above the middle of the map) through the actor onto the floor:
-			// a point at height h above the floor moves (kx * h, ky * h) away from the sun. Height 0 = flattened as before.
-			double sx, sy, sh;
-			MapSun(actor->Level, sx, sy, sh);
-			double down = max(sh - actor->Z(), 64.0);
-			float kx = (float)clamp((actor->X() - sx) / down, -3.0, 3.0);
-			float ky = (float)clamp((actor->Y() - sy) / down, -3.0, 3.0);
+			// parallel projection along the ray light -> actor centre: a point at height h above the floor moves
+			// (kx * h, ky * h) away from the light. Height 0 = flattened as before.
+			double down = max(lightPos.Z - actor->Center(), 16.0);
+			float kx = (float)clamp((actor->X() - lightPos.X) / down, -3.0, 3.0);
+			float ky = (float)clamp((actor->Y() - lightPos.Y) / down, -3.0, 3.0);
 			// render space: x = X, y = Z (up), z = Y. Column major.
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;
@@ -242,6 +192,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		renderer->BeginShadow(flat);
 		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 		renderer->EndShadow(objectToWorldMatrix, actor->RenderStyle, smf_flags, orientation < 0);
+		}
 	}
 	renderer->EndDrawModel(actor->RenderStyle, smf_flags);
 }
