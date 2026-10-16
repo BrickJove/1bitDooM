@@ -338,11 +338,17 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 				FGameTexture *blob = blobId.isValid() ? TexMan.GetGameTexture(blobId) : nullptr;
 				if (shadowvertex >= 0 && blob != nullptr)
 				{
+					// remember what the following draws (more models, sprites) expect: with the render style left on
+					// "translucent" the models after this one would blend, and blending a class 0 normal buffer write
+					// (alpha 0) keeps the old value, so map outlines would show through those models
+					const FRenderStyle savedStyle = state.GetRenderStyle();
+					const int savedTextureMode = state.GetTextureMode();
+					const float savedThreshold = state.GetAlphaThreshold();
+
 					state.SetMaterial(blob, UF_Sprite, 0, CLAMP_XY, NO_TRANSLATION, -1, nullptr);
 					state.SetRenderStyle(STYLE_Translucent);
 					state.SetTextureMode(TM_NORMAL);
 					state.AlphaFunc(Alpha_GEqual, 0.01f);
-					state.SetDepthMask(false);
 					state.SetObjectColor(0xffffffff);
 					state.SetNormal(0, 0, 0);
 					state.SetLightIndex(-1);
@@ -351,9 +357,10 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 					state.SetDepthBias(-1, -128);
 					state.Draw(DT_TriangleStrip, shadowvertex, 4);
 					state.ClearDepthBias();
-					state.SetDepthMask(true);
-					state.AlphaFunc(Alpha_GEqual, 0.5f);
 					state.SetNoOutline(false);
+					state.SetRenderStyle(savedStyle);
+					state.SetTextureMode(savedTextureMode);
+					state.AlphaFunc(Alpha_Greater, savedThreshold);
 				}
 			}
 		}

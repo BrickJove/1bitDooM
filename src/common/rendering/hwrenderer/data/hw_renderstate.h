@@ -659,6 +659,11 @@ public:
 		mRenderStyle = rs;
 	}
 
+	FRenderStyle GetRenderStyle() const
+	{
+		return mRenderStyle;
+	}
+
 	auto GetDepthBias()
 	{
 		return mBias;
