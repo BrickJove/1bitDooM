@@ -862,7 +862,7 @@ SceneShadowFrame sceneShadowFrame;
 void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
-	if (!gl_scene_shadow || !f.Valid || !f.FloorTex || !f.CeilTex || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || !f.Valid || !f.FloorTex || !f.CeilTex || !f.FenceGridTex || !f.FenceParamTex || !f.FenceAtlasTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 	bool sun = gl_scene_shadow_sun && gl_scene_shadow_length > 0.f;
 	int lights = clamp((int)gl_scene_shadow_lights, 0, 3);
@@ -904,6 +904,9 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 		renderstate->SetInputSceneNormal(1);
 		renderstate->SetInputTexture(2, f.FloorTex);
 		renderstate->SetInputTexture(3, f.CeilTex);
+		renderstate->SetInputTexture(4, f.FenceGridTex);
+		renderstate->SetInputTexture(5, f.FenceParamTex);
+		renderstate->SetInputTexture(6, f.FenceAtlasTex);
 		renderstate->SetOutputSceneColor();
 		renderstate->SetAlphaBlend();
 		renderstate->Draw();

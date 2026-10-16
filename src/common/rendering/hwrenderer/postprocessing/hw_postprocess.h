@@ -819,6 +819,9 @@ struct SceneShadowFrame
 	// height map of the level (hw_shadowheightmap.cpp)
 	PPTexture *FloorTex = nullptr;
 	PPTexture *CeilTex = nullptr;
+	PPTexture *FenceGridTex = nullptr;	// per cell: fence index + 1 (see hw_shadowheightmap.cpp)
+	PPTexture *FenceParamTex = nullptr;	// 16 floats per fence
+	PPTexture *FenceAtlasTex = nullptr;	// alpha masks of the fence textures
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
 };
 extern SceneShadowFrame sceneShadowFrame;

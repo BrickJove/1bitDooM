@@ -1091,7 +1091,7 @@ void HWDrawInfo::PrepareSceneShadow()
 	}
 
 	hw_UpdateShadowHeightMap(Level, f);
-	f.Valid = f.FloorTex != nullptr && f.CeilTex != nullptr;
+	f.Valid = f.FloorTex != nullptr && f.CeilTex != nullptr && f.FenceGridTex != nullptr && f.FenceParamTex != nullptr && f.FenceAtlasTex != nullptr;
 }
 
 void HWDrawInfo::DrawScene(int drawmode)

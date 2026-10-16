@@ -26,6 +26,9 @@ layout(binding=1) uniform sampler2D NormalTexture;
 #endif
 layout(binding=2) uniform sampler2D FloorTexture;
 layout(binding=3) uniform sampler2D CeilTexture;
+layout(binding=4) uniform sampler2D FenceGridTexture;	// fence index + 1 per cell
+layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
+layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 64 x 64 per fence texture
 
 const float Big = 100000.0;
 
@@ -93,6 +96,45 @@ bool UnderSky(vec3 w)
 	return texelFetch(CeilTexture, c, 0).x > Big * 0.5 && texelFetch(FloorTexture, c, 0).x < Big * 0.5;
 }
 
+float FenceParam(int id, int k)
+{
+	return texelFetch(FenceParamTexture, ivec2(k, id), 0).x;
+}
+
+// Does the ray segment S0 -> S1 hit an opaque pixel of the fence texture (chain link fence etc.) in the cell c?
+bool HitsFence(ivec2 c, vec3 S0, vec3 S1)
+{
+	if (c.x < 0)
+		return false;
+	int id = int(texelFetch(FenceGridTexture, c, 0).x + 0.5) - 1;
+	if (id < 0)
+		return false;
+	vec2 A = vec2(FenceParam(id, 0), FenceParam(id, 1));
+	vec2 B = vec2(FenceParam(id, 2), FenceParam(id, 3));
+	vec2 s = B - A;
+	vec2 r = S1.xz - S0.xz;
+	float rxs = r.x * s.y - r.y * s.x;
+	if (abs(rxs) < 1.0e-6)
+		return false;
+	vec2 qp = A - S0.xz;
+	float t = (qp.x * s.y - qp.y * s.x) / rxs;
+	float u = (qp.x * r.y - qp.y * r.x) / rxs;
+	if (t < 0.0 || t > 1.0 || u < 0.0 || u > 1.0)
+		return false;
+	float y = mix(S0.y, S1.y, t);
+	bool wrap = FenceParam(id, 10) > 0.5;
+	if (!wrap && (y < FenceParam(id, 11) || y > FenceParam(id, 12)))
+		return false;
+	float v = (FenceParam(id, 4) - y) / max(FenceParam(id, 5), 1.0);
+	if (wrap)
+		v = fract(v);
+	else if (v < 0.0 || v > 1.0)
+		return false;
+	float uu = fract((u * length(s) + FenceParam(id, 6)) * FenceParam(id, 7));
+	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + vec2(uu, v) * 63.0;
+	return texelFetch(FenceAtlasTexture, ivec2(apos + 0.5), 0).x > 0.5;
+}
+
 // 1 = the ray P + D * t (0 < t < len) hits solid space
 float Trace(vec3 P, vec3 D, float len, float jitter)
 {
@@ -103,6 +145,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter)
 	int maxSteps = int(Grid.w + 0.5) >> 9;
 	int steps = int(clamp(ceil((len - t0) / cell), 8.0, float(maxSteps)));
 	float dt = (len - t0) / float(steps);
+	vec3 prev = P + D * t0;
 	for (int i = 0; i < 160; i++)
 	{
 		if (i >= steps)
@@ -110,6 +153,13 @@ float Trace(vec3 P, vec3 D, float len, float jitter)
 		vec3 S = P + D * (t0 + (float(i) + jitter) * dt);
 		if (Blocked(S))
 			return 1.0;
+		ivec2 c = CellOf(S);
+		if (HitsFence(c, prev, S))
+			return 1.0;
+		ivec2 cp = CellOf(prev);
+		if (cp != c && HitsFence(cp, prev, S))
+			return 1.0;
+		prev = S;
 	}
 	return 0.0;
 }

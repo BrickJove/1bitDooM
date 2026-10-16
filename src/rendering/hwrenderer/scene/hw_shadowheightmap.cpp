@@ -19,6 +19,9 @@
 #include <math.h>
 #include "g_levellocals.h"
 #include "r_sky.h"
+#include "texturemanager.h"
+#include "bitmap.h"
+#include "doomdata.h"
 #include "hwrenderer/postprocessing/hw_postprocess.h"
 #include "hw_shadowheightmap.h"
 
@@ -48,6 +51,7 @@ struct ShadowHeightMap
 	bool dirty = false;
 	unsigned frame = 0, lastUpload = 0;
 	std::unique_ptr<PPTexture> texFloor, texCeil;
+	std::unique_ptr<PPTexture> texFenceGrid, texFenceParam, texFenceAtlas;
 	std::deque<std::pair<unsigned, std::unique_ptr<PPTexture>>> retired;
 
 	bool Matches(FLevelLocals *level) const
@@ -149,6 +153,9 @@ struct ShadowHeightMap
 		vertexCount = level->vertexes.Size();
 		texFloor.reset();
 		texCeil.reset();
+		texFenceGrid.reset();
+		texFenceParam.reset();
+		texFenceAtlas.reset();
 		retired.clear();
 
 		double minx = 1e30, maxx = -1e30, miny = 1e30, maxy = -1e30;
@@ -186,8 +193,119 @@ struct ShadowHeightMap
 			if (line.backsector == nullptr && line.v1 && line.v2)
 				MarkWall(line.v1->p, line.v2->p);
 		}
+		BuildFences(level);
 		dirty = true;
 		lastUpload = frame - UploadInterval;
+	}
+
+	// Lines with a (transparent) middle texture, e.g. chain link fences: their texture alpha casts a shadow.
+	// Per cell the index of one fence (+1), per fence 16 floats, and an atlas with the alpha masks
+	// (64 x 64 per texture, 16 x 16 slots).
+	void BuildFences(FLevelLocals *level)
+	{
+		const int Slot = 64, SlotsPerRow = 16, MaxSlots = SlotsPerRow * SlotsPerRow, MaxFences = 8192;
+		std::vector<float> grid((size_t)W * H, 0.f);
+		std::vector<float> params;
+		std::vector<float> atlas((size_t)Slot * SlotsPerRow * Slot * SlotsPerRow, 0.f);
+		std::vector<int> slotTex;	// texture id per slot
+
+		for (auto &line : level->lines)
+		{
+			if (line.backsector == nullptr || line.frontsector == nullptr || (line.flags & ML_3DMIDTEX) || params.size() / 16 >= MaxFences)
+				continue;
+			side_t *side = line.sidedef[0];
+			if (side == nullptr)
+				continue;
+			FTextureID texid = side->GetTexture(side_t::mid);
+			if (!texid.isValid())
+				continue;
+			FGameTexture *tex = TexMan.GetGameTexture(texid, true);
+			if (tex == nullptr || !tex->isValid() || tex->GetDisplayWidth() < 1 || tex->GetDisplayHeight() < 1)
+				continue;
+
+			int slot = -1;
+			for (size_t i = 0; i < slotTex.size(); i++)
+				if (slotTex[i] == texid.GetIndex()) { slot = (int)i; break; }
+			if (slot < 0)
+			{
+				if ((int)slotTex.size() >= MaxSlots)
+					continue;
+				FBitmap bmp = tex->GetTexture()->GetBgraBitmap(nullptr);
+				int bw = bmp.GetWidth(), bh = bmp.GetHeight();
+				const uint8_t *px = (const uint8_t *)bmp.GetPixels();
+				if (px == nullptr || bw < 1 || bh < 1)
+					continue;
+				slot = (int)slotTex.size();
+				slotTex.push_back(texid.GetIndex());
+				int ax = (slot % SlotsPerRow) * Slot, ay = (slot / SlotsPerRow) * Slot;
+				for (int sy = 0; sy < Slot; sy++)
+				{
+					int y0 = sy * bh / Slot, y1 = std::max(y0 + 1, (sy + 1) * bh / Slot);
+					for (int sx = 0; sx < Slot; sx++)
+					{
+						int x0 = sx * bw / Slot, x1 = std::max(x0 + 1, (sx + 1) * bw / Slot);
+						double sum = 0; int cnt = 0;
+						for (int yy = y0; yy < y1 && yy < bh; yy++)
+							for (int xx = x0; xx < x1 && xx < bw; xx++)
+							{
+								sum += px[(size_t)(yy * bw + xx) * 4 + 3];	// BGRA: alpha is byte 3
+								cnt++;
+							}
+						atlas[(size_t)(ay + sy) * (Slot * SlotsPerRow) + ax + sx] = cnt ? (float)(sum / cnt / 255.0) : 0.f;
+					}
+				}
+			}
+
+			DVector2 a = line.v1->p, b = line.v2->p;
+			DVector2 mid = (a + b) * 0.5;
+			double ffloor = line.frontsector->floorplane.ZatPoint(mid), bfloor = line.backsector->floorplane.ZatPoint(mid);
+			double fceil = line.frontsector->ceilingplane.ZatPoint(mid), bceil = line.backsector->ceilingplane.ZatPoint(mid);
+			double yscale = std::max(0.01, fabs(side->GetTextureYScale(side_t::mid)));
+			double xscale = std::max(0.01, fabs(side->GetTextureXScale(side_t::mid)));
+			double texH = tex->GetDisplayHeight() / yscale;
+			double yoff = side->GetTextureYOffset(side_t::mid);
+			double top;
+			if (line.flags & ML_DONTPEGBOTTOM)
+				top = std::max(ffloor, bfloor) + yoff + texH;
+			else
+				top = std::min(fceil, bceil) + yoff;
+			bool wrap = (line.flags & ML_WRAP_MIDTEX) || (side->Flags & WALLF_WRAP_MIDTEX);
+
+			float row[16] = {};
+			row[0] = (float)a.X; row[1] = (float)a.Y; row[2] = (float)b.X; row[3] = (float)b.Y;
+			row[4] = (float)top; row[5] = (float)texH;
+			row[6] = (float)side->GetTextureXOffset(side_t::mid);
+			row[7] = (float)(xscale / tex->GetDisplayWidth());	// repeats per map unit along the line
+			row[8] = (float)((slot % SlotsPerRow) * Slot); row[9] = (float)((slot / SlotsPerRow) * Slot);
+			row[10] = wrap ? 1.f : 0.f;
+			row[11] = (float)std::max(ffloor, bfloor); row[12] = (float)std::min(fceil, bceil);
+			size_t id = params.size() / 16;
+			params.insert(params.end(), row, row + 16);
+
+			// supercover walk: mark the cells along the line
+			double len = (b - a).Length();
+			int n = std::max(1, (int)ceil(len / (cell * 0.5)));
+			for (int i = 0; i <= n; i++)
+			{
+				double t = (double)i / n;
+				int cx = (int)floor((a.X + (b.X - a.X) * t - ox) / cell);
+				int cy = (int)floor((a.Y + (b.Y - a.Y) * t - oy) / cell);
+				if (cx >= 0 && cy >= 0 && cx < W && cy < H)
+					grid[(size_t)cy * W + cx] = (float)(id + 1);
+			}
+		}
+
+		if (params.empty())
+			params.assign(16, 0.f);
+		auto make = [](int w, int h, std::vector<float> &src) -> std::unique_ptr<PPTexture>
+		{
+			std::shared_ptr<float> data(new float[src.size()], std::default_delete<float[]>());
+			std::copy(src.begin(), src.end(), data.get());
+			return std::unique_ptr<PPTexture>(new PPTexture(w, h, PixelFormat::R32f, std::shared_ptr<void>(data)));
+		};
+		texFenceGrid = make(W, H, grid);
+		texFenceParam = make(16, (int)(params.size() / 16), params);
+		texFenceAtlas = make(Slot * SlotsPerRow, Slot * SlotsPerRow, atlas);
 	}
 
 	void Upload()
@@ -238,6 +356,9 @@ struct ShadowHeightMap
 
 		out.FloorTex = texFloor.get();
 		out.CeilTex = texCeil.get();
+		out.FenceGridTex = texFenceGrid.get();
+		out.FenceParamTex = texFenceParam.get();
+		out.FenceAtlasTex = texFenceAtlas.get();
 		out.GridOriginX = ox;
 		out.GridOriginY = oy;
 		out.GridInvCell = 1.0f / cell;
