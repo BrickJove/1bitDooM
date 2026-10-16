@@ -50,6 +50,7 @@ CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// m
 extern bool hudModelOutlineAllowed;
 // The far-model inner outline is off for non-solid actors only (decals, graffiti, blood, corpses, items); every solid actor gets it.
 bool modelInnerOutlineClass = false;
+bool modelShadowOnly = false;	// set while drawing the first person player: only the drop shadow is drawn
 
 // Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
 CVARD(Bool, gl_weapon_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Hull outline of the player's 3D weapon")
@@ -136,15 +137,18 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 
 	uint32_t outlineColor = 0xff000000;
 	float outlineWidth = GetModelOutline(smf, smf_flags, actor->RenderStyle, false, outlineColor);
-	if (outlineWidth > 0.f)
+	if (outlineWidth > 0.f && !modelShadowOnly)
 	{
 		renderer->BeginOutline(actor->RenderStyle, smf_flags, orientation < 0, false, outlineWidth, outlineColor, false);
 		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
 		renderer->EndOutline(actor->RenderStyle, smf_flags, orientation < 0, false);
 	}
-	if (blackModel) renderer->BeginBlack();
-	RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
-	if (blackModel) renderer->EndBlack();
+	if (!modelShadowOnly)
+	{
+		if (blackModel) renderer->BeginBlack();
+		RenderFrameModels(renderer, actor->Level, smf, actor->state, actor->tics, ticFrac, translation, actor);
+		if (blackModel) renderer->EndBlack();
+	}
 
 	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
 	{

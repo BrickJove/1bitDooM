@@ -374,6 +374,7 @@ public:
 	uint8_t hw_styleflags;
 	bool fullbright;
 	bool polyoffset;
+	bool shadowOnly;	// first person player: draw only the drop shadow, not the model
 	PalEntry ThingColor;	// thing's own color
 	FColormap Colormap;
 	FSpriteModelFrame * modelframe;

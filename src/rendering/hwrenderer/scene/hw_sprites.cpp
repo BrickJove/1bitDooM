@@ -96,6 +96,9 @@ CUSTOM_CVAR(Int, gl_fuzztype, 8, CVAR_ARCHIVE)
 //
 //==========================================================================
 
+extern bool modelShadowOnly;
+EXTERN_CVAR(Bool, gl_model_shadow_player)
+
 void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 {
 	bool additivefog = false;
@@ -316,7 +319,9 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 			}
 
 			FHWModelRenderer renderer(di, state, dynlightindex);
+			modelShadowOnly = shadowOnly;
 			RenderModel(&renderer, x, y, z, modelframe, actor, Net_ModifyObjectFrac(actor, di->Viewpoint.TicFrac));
+			modelShadowOnly = false;
 			state.SetVertexBuffer(screen->mVertexData);
 
 		}
@@ -866,7 +871,13 @@ void HWSprite::Process(HWDrawInfo *di, AActor* thing, sector_t * sector, area_t 
 		return;
 	}
 	// Some added checks if the camera actor is not supposed to be seen. It can happen that some portal setup has this actor in view in which case it may not be skipped here
-	if (viewmaster == camera && !vp.showviewer)
+	// first person: the player's own model is not drawn, but it may still cast its drop shadow
+	shadowOnly = false;
+	if (viewmaster == camera && !vp.showviewer && thing == viewmaster && thing->player != nullptr && gl_model_shadow_player && !vp.bForceNoViewer && thruportal == 0)
+	{
+		shadowOnly = true;
+	}
+	else if (viewmaster == camera && !vp.showviewer)
 	{
 		if (vp.bForceNoViewer || (viewmaster->player && viewmaster->player->crossingPortal)) return;
 		DVector3 vieworigin = viewmaster->Pos();
@@ -884,7 +895,7 @@ void HWSprite::Process(HWDrawInfo *di, AActor* thing, sector_t * sector, area_t 
 		}
 	}
 	// Thing is invisible if close to the camera.
-	if (viewmaster->renderflags & RF_MAYBEINVISIBLE)
+	if ((viewmaster->renderflags & RF_MAYBEINVISIBLE) && !shadowOnly)
 	{
 		DVector3 viewpos = viewmaster->InterpolatedPosition(vp.TicFrac);
 		if (thruportal == 1) viewpos += di->Level->Displacements.getOffset(viewmaster->Sector->PortalGroup, sector->PortalGroup);
@@ -893,6 +904,7 @@ void HWSprite::Process(HWDrawInfo *di, AActor* thing, sector_t * sector, area_t 
 
 	modelframe = isPicnumOverride ? nullptr : FindModelFrame(thing, spritenum, thing->frame, !!(thing->flags & MF_DROPPED));
 	modelframeflags = modelframe ? modelframe->getFlags(thing->modelData) : 0;
+	if (shadowOnly && modelframe == nullptr) return;
 
 	// Too close to the camera. This doesn't look good if it is a sprite.
 	if (fabs(thingpos.X - vp.Pos.X) < 2 && fabs(thingpos.Y - vp.Pos.Y) < 2

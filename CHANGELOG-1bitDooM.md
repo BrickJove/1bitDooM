@@ -65,3 +65,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Fix: the soft shadow blob left the render style on "translucent" (and changed depth mask / alpha threshold): following models blended, did not write the normal buffer and map outlines showed through them. The blob now restores the render style, texture mode and alpha threshold and no longer touches the depth mask.
 
 - Soft blob and sun shadow removed. New shadow style 1 "Light source" (gl_model_shadow_style, default 1): the flat black shadow is projected onto the floor away from the dynamic light that shines on the actor most (GLDEFS / actor lights; lights attached to the actor itself and lights below the floor are ignored). Without a light, or with style 0, the shadow lies straight below the actor and shrinks with the height above the floor (gl_model_shadow_fade_height).
+
+- Model drop shadow: the player now also casts his shadow in first person (gl_model_shadow_player). The player model itself is still not drawn, only the shadow.
