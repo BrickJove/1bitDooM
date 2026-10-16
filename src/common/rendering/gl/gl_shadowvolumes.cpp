@@ -327,7 +327,7 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 		if (gl_scene_shadow_debug == 2 && si == numSources - 1)
 		{
 			setLitUniforms(s, 3);
-			glUniform4f(P.lDebug, 0.f, 1.f, 0.f, 1.f);
+			glUniform4f(P.lDebug, 1.f, 1.f, 1.f, 1.f);
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glStencilFunc(GL_NOTEQUAL, 0, 0x1F);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -368,15 +368,14 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 	glStencilMask(0x00);
 	if (gl_scene_shadow_debug == 1)
-		glUniform4f(P.lDebug, 1.f, 0.f, 0.f, 1.f);
+		glUniform4f(P.lDebug, 1.f, 1.f, 1.f, 1.f);
+	if (gl_scene_shadow_debug == 3)
+	{
+		glUniform4f(P.lDebug, 1.f, 1.f, 1.f, 1.f);
+		glStencilFunc(GL_EQUAL, 0x20, 0x20);
+	}
 	if (gl_scene_shadow_debug != 2)
 		drawQuad();
-	if (gl_scene_shadow_debug == 1)
-	{
-		glUniform4f(P.lDebug, 0.f, 0.f, 1.f, 1.f);
-		glStencilFunc(GL_EQUAL, 0x20, 0x20);
-		drawQuad();
-	}
 
 	ClearStencil(0xFF);
 
