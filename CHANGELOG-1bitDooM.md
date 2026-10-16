@@ -102,3 +102,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten (Shadow Map): die einfache Bodenprojektion entfällt jetzt wirklich, sobald ein Map-Licht den Actor erreicht (vorher blieb der flache "Schatten direkt unter dem Actor" übrig); die Schattenwerfer kommen jetzt von allen Actors in Reichweite der Lichter statt nur von den gerade gezeichneten Modellen, damit der Wandschatten nicht verschwindet, wenn das Modell aus dem Bild läuft.
 
 - Modell-Schattenkarte: die Lichter werden jetzt unabhängig von der Kamera gewählt (alle aktiven Punktlichter der Map, das jeweils nächste zu einem Modell zuerst), statt der drei der Kamera nächsten; dadurch verschwindet der Schatten nicht mehr, wenn man sich bewegt und ein anderes Licht näher an der Kamera liegt.
+
+- Cvar `gl_model_shadow_map_debug`: meldet in der Konsole, wenn sich ändert, wie viele Lichter / schattenwerfende Modelle / Schattenkarten es gibt.

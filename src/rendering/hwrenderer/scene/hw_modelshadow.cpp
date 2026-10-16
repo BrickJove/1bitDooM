@@ -19,6 +19,7 @@
 #include "models.h"
 #include "actor.h"
 #include "actorinlines.h"
+#include "printf.h"
 #include "g_levellocals.h"
 #include "a_dynlight.h"
 #include "d_net.h"
@@ -59,7 +60,10 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		}
 	}
 	if (lights.Size() == 0)
+	{
+		if (gl_model_shadow_map_debug) { static bool said = false; if (!said) { said = true; Printf("Model shadows: no usable dynamic light in the map\n"); } }
 		return;
+	}
 
 	// all models that can cast a shadow, near one of the lights (also those that are not on the screen: their shadow can be)
 	struct Info
@@ -110,7 +114,14 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		}
 	}
 	if (infos.Size() == 0)
+	{
+		if (gl_model_shadow_map_debug)
+		{
+			static int lastLights = -1;
+			if (lastLights != (int)lights.Size() + 1) { lastLights = (int)lights.Size() + 1; Printf("Model shadows: %d lights, no casting model within reach of a light\n", (int)lights.Size()); }
+		}
 		return;
+	}
 
 	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 2);
 	int usedMaps = 0;
@@ -234,5 +245,15 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 	}
 
 	f.ModelShadowActive = usedMaps > 0;
+	if (gl_model_shadow_map_debug)
+	{
+		static int lastKey = -1;
+		int key = ((int)lights.Size() * 1000 + (int)infos.Size()) * 100 + (int)order.Size() * 10 + usedMaps;
+		if (key != lastKey)
+		{
+			lastKey = key;
+			Printf("Model shadows: %d lights in the map, %d casting models near a light, %d lights reach a model, %d maps rendered\n", (int)lights.Size(), (int)infos.Size(), (int)order.Size(), usedMaps);
+		}
+	}
 	// the caller binds its own viewpoint again afterwards
 }
