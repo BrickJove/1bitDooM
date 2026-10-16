@@ -28,7 +28,7 @@ layout(binding=2) uniform sampler2D CellTexture;	// 4 floats per cell: floor, ce
 layout(binding=3) uniform sampler2D ListTexture;	// line indices
 layout(binding=4) uniform sampler2D LineTexture;	// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
-layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 64 x 64 per fence texture
+layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 128 x 128 per fence texture
 
 const float Big = 100000.0;
 
@@ -108,13 +108,15 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y)
 	if (!wrap && (y < FenceParam(id, 11) || y > FenceParam(id, 12)))
 		return false;
 	float v = (FenceParam(id, 4) - y) / max(FenceParam(id, 5), 1.0);
+	if (FenceParam(id, 13) > 0.5)
+		u = 1.0 - u;	// texture of the back side runs from the other end of the line
 	if (wrap)
 		v = fract(v);
 	else if (v < 0.0 || v > 1.0)
 		return false;
 	float uu = fract((u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7));
-	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + vec2(uu, v) * 63.0;
-	return texelFetch(FenceAtlasTexture, ivec2(apos + 0.5), 0).x > 0.5;
+	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + min(vec2(uu, v) * 128.0, vec2(127.0));
+	return texelFetch(FenceAtlasTexture, ivec2(apos), 0).x > 0.5;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
@@ -154,7 +156,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 // 1 = the ray P + D * t (0 < t < len) hits something. The ray is walked cell by cell (exact grid traversal, no fixed
 // steps and no jitter). Cells with lines are tested against the exact line segments (straight shadow edges that start
 // at the corners of the geometry), the other cells against the floor and ceiling height.
-float Trace(vec3 P, vec3 D, float len, float jitter)
+float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 {
 	float cell = 1.0 / Grid.z;
 	float t0 = cell * 0.25;
@@ -162,6 +164,13 @@ float Trace(vec3 P, vec3 D, float len, float jitter)
 		return 0.0;
 	vec3 A = P + D * t0;
 	float tEnd = len - t0;
+	// above the highest floor / ceiling of the level nothing can block the ray
+	if (D.y > 1.0e-4)
+		tEnd = min(tEnd, (topLimit - A.y) / D.y);
+	else if (A.y > topLimit)
+		return 0.0;
+	if (tEnd <= 0.0)
+		return 0.0;
 
 	vec2 d2 = D.xz;
 	vec2 p = (A.xz - Grid.xy) * Grid.z;	// in cell units
@@ -175,7 +184,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter)
 	                 abs(d2.y) > 1.0e-6 ? toEdge.y * tDelta.y : 1.0e30);
 
 	float tin = 0.0;
-	for (int i = 0; i < 900; i++)
+	for (int i = 0; i < 2200; i++)
 	{
 		if (c.x < 0 || c.y < 0 || c.x >= gGridSize.x || c.y >= gGridSize.y)
 			return 0.0;	// left the map
@@ -244,15 +253,23 @@ void main()
 	vec3 Q = P + n * (cell * 1.5);	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
 	float shadow = 0.0;
+	float topLimit = float(packedBits >> 9);
 
-	// sun: only under an open sky
-	if (Sun.w > 0.0 && UnderSky(Q))
+	// sun: a point light above the centre of the level, only under an open sky. A pixel counts as lying under the sky
+	// when the cell next to the surface (or a little further out) is open.
+	if (Sun.w > 0.0 && (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5)))))
 	{
-		float facing = hasNormal ? dot(n, Sun.xyz) : 1.0;
-		if (facing > 0.0)
-			shadow = Trace(Q, Sun.xyz, Sun.w, jitter);
-		else if (facingShade)
-			shadow = 1.0;
+		vec3 toS = Sun.xyz - Q;
+		float dS = length(toS);
+		if (dS > 8.0)
+		{
+			vec3 D = toS / dS;
+			float facing = hasNormal ? dot(n, D) : 1.0;
+			if (facing > 0.0)
+				shadow = Trace(Q, D, dS, jitter, topLimit);
+			else if (facingShade)
+				shadow = 1.0;
+		}
 	}
 
 	// one dynamic light (more lights = more passes), within its radius only
@@ -267,7 +284,7 @@ void main()
 			float facing = hasNormal ? dot(n, D) : 1.0;
 			float s = 0.0;
 			if (facing > 0.0)
-				s = Trace(Q, D, dist - 4.0, jitter);
+				s = Trace(Q, D, dist - 4.0, jitter, topLimit);
 			else if (facingShade)
 				s = 1.0;
 			shadow = max(shadow, s * atten);

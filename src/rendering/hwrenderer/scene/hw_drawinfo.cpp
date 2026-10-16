@@ -1045,12 +1045,6 @@ void HWDrawInfo::PrepareSceneShadow()
 		for (int c = 0; c < 4; c++)
 			f.InvView[r][c] = m[r + 4 * c];
 
-	float az = (float)(gl_scene_shadow_sun_angle * (M_PI / 180.0));
-	float el = (float)(clamp((double)gl_scene_shadow_sun_elevation, 5.0, 90.0) * (M_PI / 180.0));
-	f.SunDir[0] = cosf(az) * cosf(el);
-	f.SunDir[1] = sinf(el);
-	f.SunDir[2] = sinf(az) * cosf(el);
-
 	// the nearest dynamic lights (distance to the light's reach)
 	struct Cand { double score; DVector3 pos; float radius; };
 	Cand best[3];
@@ -1091,6 +1085,11 @@ void HWDrawInfo::PrepareSceneShadow()
 	}
 
 	hw_UpdateShadowHeightMap(Level, f);
+	// the sun is a point light above the centre of the level
+	f.SunPos[0] = f.MidX;
+	f.SunPos[1] = (float)gl_scene_shadow_sun_height;
+	f.SunPos[2] = f.MidY;
+	f.SunPosValid = f.CellTex != nullptr;
 	f.Valid = f.CellTex != nullptr && f.ListTex != nullptr && f.LineTex != nullptr && f.FenceParamTex != nullptr && f.FenceAtlasTex != nullptr;
 }
 

@@ -36,6 +36,7 @@
 #include "actorinlines.h"
 #include "v_video.h"
 #include "hw_bonebuffer.h"
+#include "hwrenderer/postprocessing/hw_postprocess.h"
 
 
 #ifdef _MSC_VER
@@ -92,8 +93,6 @@ CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 
 EXTERN_CVAR(Bool, gl_scene_shadow)
 EXTERN_CVAR(Bool, gl_scene_shadow_sun)
-EXTERN_CVAR(Float, gl_scene_shadow_sun_angle)
-EXTERN_CVAR(Float, gl_scene_shadow_sun_elevation)
 
 static bool WantsModelShadow(AActor* actor)
 {
@@ -162,7 +161,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		// with the height above the floor (gone at gl_model_shadow_fade_height).
 		DVector3 lightPos;
 		// under an open sky with the scene shadows on, the shadow follows the sun of the scene shadows
-		bool sunLit = gl_scene_shadow && gl_scene_shadow_sun && gl_model_shadow_style >= 1
+		bool sunLit = gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
 			&& actor->Sector != nullptr && actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum;
 		bool lit = !sunLit && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
 		float shadowScale = 1.f;
@@ -179,12 +178,11 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		flat.translate(0.f, (float)actor->floorz + 0.05f, 0.f);
 		if (sunLit)
 		{
-			// sun: the shadow lies away from the sun, a point h above the floor moves (kx * h, ky * h)
-			float az = (float)(gl_scene_shadow_sun_angle * (M_PI / 180.0));
-			float el = (float)(clamp((double)gl_scene_shadow_sun_elevation, 5.0, 90.0) * (M_PI / 180.0));
-			float cot = cosf(el) / sinf(el);
-			float kx = clamp(-cosf(az) * cot, -6.f, 6.f);
-			float ky = clamp(-sinf(az) * cot, -6.f, 6.f);
+			// sun: a point light above the centre of the level, same projection as for a dynamic light
+			// (render space of the stored position: x = X, y = Z up, z = Y)
+			double down = max((double)sceneShadowFrame.SunPos[1] - actor->Center(), 16.0);
+			float kx = (float)clamp((actor->X() - sceneShadowFrame.SunPos[0]) / down, -3.0, 3.0);
+			float ky = (float)clamp((actor->Y() - sceneShadowFrame.SunPos[2]) / down, -3.0, 3.0);
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;
 			sm.loadMatrix(shear);

@@ -80,3 +80,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 - Model drop shadows follow the sun of the scene shadows (gl_scene_shadow + gl_scene_shadow_sun, actor under an open sky, shadow style "Light source"): the shadow is projected away from the sun, not straight down.
 - Scene shadows: pixels right at a wall base are now classified like the open ground next to them (solid cells near an open sky carry a marker). This removed the notch in the shadow edge at the foot of walls.
+- Scene shadows: the sun is now a point light above the centre of the level (bounding box of all vertices). Its height is set in map units (gl_scene_shadow_sun_height, default 2048); gl_scene_shadow_sun_angle / _elevation / _length are gone. Every pixel looks at the sun from its own position; model drop shadows use the same point.
+- Scene shadows: transparent middle textures (fences) use the same scale / offset rules as the wall renderer (texture scale, world panning, row offset, pegging), the back side texture is used when the front side has none, and the alpha atlas is now 128x128 per texture.
+- Scene shadows: sectors with a textured ceiling more than 512 units above the floor count as open for the sun; the ground / walls next to them are no longer skipped. Rays stop above the highest floor / ceiling of the level (faster, long shadows no longer cut off at 400 units).

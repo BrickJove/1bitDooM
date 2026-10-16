@@ -813,7 +813,8 @@ struct SceneShadowFrame
 {
 	bool Valid = false;
 	float InvView[3][4] = {};	// rows of the eye -> world (render space) transform, translation in column 3
-	float SunDir[3] = { 0, 1, 0 };	// direction towards the sun in render space (x = X, y = Z up, z = Y)
+	float SunPos[3] = { 0, 0, 0 };	// position of the sun (render space: x = X, y = Z up, z = Y): centre of the level, height from the cvar
+	bool SunPosValid = false;		// kept between frames (model shadows use it)
 	float Light[3][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
 	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
 	// height map of the level (hw_shadowheightmap.cpp)
@@ -823,6 +824,8 @@ struct SceneShadowFrame
 	PPTexture *FenceParamTex = nullptr;	// 16 floats per fence
 	PPTexture *FenceAtlasTex = nullptr;	// alpha masks of the fence textures
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
+	float MidX = 0, MidY = 0;		// centre of the bounding box of the level
+	float TopLimit = 0;			// highest floor / ceiling: rays above it are free
 };
 extern SceneShadowFrame sceneShadowFrame;
 
@@ -832,7 +835,7 @@ struct SceneShadowUniforms
 	FVector4 CamX;		// rows of the eye -> world transform
 	FVector4 CamY;
 	FVector4 CamZ;
-	FVector4 Sun;		// xyz = direction to the sun (render space), w = ray length (0 = no sun)
+	FVector4 Sun;		// xyz = position of the sun (render space), w = 1 (0 = no sun)
 	FVector4 Light;		// xyz = position (render space), w = radius (0 = no light)
 	FVector4 Grid;		// xy = grid origin (map X, Y), z = 1 / cell size, w = flags | density << 2
 	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]

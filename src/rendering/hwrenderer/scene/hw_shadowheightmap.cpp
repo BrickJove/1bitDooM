@@ -50,7 +50,7 @@ struct ShadowHeightMap
 	FString mapName;
 	unsigned sectorCount = 0, lineCount = 0, vertexCount = 0;
 	int W = 0, H = 0;
-	float cell = 8.f, ox = 0, oy = 0;
+	float cell = 8.f, ox = 0, oy = 0, midX = 0, midY = 0, topLimit = 0;
 	std::vector<float> cellData;		// 4 floats per cell
 	std::vector<float> lineData;		// 8 floats per included line
 	std::vector<int> lineIndex;		// level line -> index in the line table, -1 = not included
@@ -84,14 +84,32 @@ struct ShadowHeightMap
 			&& a.ceilNX == b.ceilNX && a.ceilNY == b.ceilNY && a.sky == b.sky;
 	}
 
+	// Ceilings that are very far above the floor (a courtyard with a high textured ceiling) are no roof for the sun.
+	static constexpr double OpenHeight = 512.0;
+
 	static float CeilingOf(sector_t *sec, const DVector2 &p)
 	{
-		return sec->GetTexture(sector_t::ceiling) == skyflatnum ? Big : (float)sec->ceilingplane.ZatPoint(p);
+		if (sec->GetTexture(sector_t::ceiling) == skyflatnum)
+			return Big;
+		double c = sec->ceilingplane.ZatPoint(p);
+		return (c - sec->floorplane.ZatPoint(p) >= OpenHeight) ? Big : (float)c;
+	}
+
+	// Highest finite floor / ceiling height of the level: above it nothing can block a ray.
+	static float TopOf(FLevelLocals *level)
+	{
+		double top = 0;
+		for (auto &sec : level->sectors)
+			for (unsigned k = 0; k < sec.Lines.Size(); k++)
+			{
+				const DVector2 &p = sec.Lines[k]->v1->p;
+				top = std::max(top, std::max(sec.floorplane.ZatPoint(p), sec.ceilingplane.ZatPoint(p)));
+			}
+		return (float)top;
 	}
 
 	void RasterSector(sector_t *sec)
 	{
-		bool sky = sec->GetTexture(sector_t::ceiling) == skyflatnum;
 		for (int i = 0; i < sec->subsectorcount; i++)
 		{
 			subsector_t *ss = sec->subsectors[i];
@@ -132,7 +150,7 @@ struct ShadowHeightMap
 						continue;
 					size_t idx = ((size_t)cy * W + cx) * 4;
 					cellData[idx] = (float)sec->floorplane.ZatPoint(px, py);
-					cellData[idx + 1] = sky ? Big : (float)sec->ceilingplane.ZatPoint(px, py);
+					cellData[idx + 1] = CeilingOf(sec, DVector2(px, py));
 				}
 			}
 		}
@@ -208,6 +226,9 @@ struct ShadowHeightMap
 			W = H = 0;
 			return;
 		}
+		midX = (float)((minx + maxx) * 0.5);
+		midY = (float)((miny + maxy) * 0.5);
+		topLimit = TopOf(level);
 		double dim = std::max(maxx - minx, maxy - miny) + 16.0;
 		cell = 2.f;
 		while (dim / cell > MaxGrid)
@@ -353,7 +374,7 @@ struct ShadowHeightMap
 	// Per fence 16 floats, and an atlas with the alpha masks (64 x 64 per texture, 16 x 16 slots).
 	void BuildFences(FLevelLocals *level)
 	{
-		const int Slot = 64, SlotsPerRow = 16, MaxSlots = SlotsPerRow * SlotsPerRow, MaxFences = 8192;
+		const int Slot = 128, SlotsPerRow = 16, MaxSlots = SlotsPerRow * SlotsPerRow, MaxFences = 8192;
 		lineFence.assign(level->lines.Size(), 0);
 		std::vector<float> params;
 		std::vector<float> atlas((size_t)Slot * SlotsPerRow * Slot * SlotsPerRow, 0.f);
@@ -364,7 +385,14 @@ struct ShadowHeightMap
 			line_t &line = level->lines[li];
 			if (line.backsector == nullptr || line.frontsector == nullptr || (line.flags & ML_3DMIDTEX) || params.size() / 16 >= MaxFences)
 				continue;
+			// the side that has a middle texture (the front side first); the back side runs the other way along the line
+			bool flip = false;
 			side_t *side = line.sidedef[0];
+			if (side == nullptr || !side->GetTexture(side_t::mid).isValid())
+			{
+				side = line.sidedef[1];
+				flip = true;
+			}
 			if (side == nullptr)
 				continue;
 			FTextureID texid = side->GetTexture(side_t::mid);
@@ -411,25 +439,35 @@ struct ShadowHeightMap
 			DVector2 mid = (a + b) * 0.5;
 			double ffloor = line.frontsector->floorplane.ZatPoint(mid), bfloor = line.backsector->floorplane.ZatPoint(mid);
 			double fceil = line.frontsector->ceilingplane.ZatPoint(mid), bceil = line.backsector->ceilingplane.ZatPoint(mid);
-			double yscale = std::max(0.01, fabs(side->GetTextureYScale(side_t::mid)));
-			double xscale = std::max(0.01, fabs(side->GetTextureXScale(side_t::mid)));
-			double texH = tex->GetDisplayHeight() / yscale;
-			double yoff = side->GetTextureYOffset(side_t::mid);
+			// the same texture coordinate rules as the wall renderer (hw_walls.cpp, DoMidTexture)
+			FTexCoordInfo tci;
+			tci.GetFromTexture(tex, (float)side->GetTextureXScale(side_t::mid), (float)side->GetTextureYScale(side_t::mid),
+				!!(level->flags3 & LEVEL3_FORCEWORLDPANNING));
+			if (tci.mRenderHeight < 0)
+			{
+				tci.mRenderHeight = -tci.mRenderHeight;
+				tci.mScale.Y = -tci.mScale.Y;
+			}
+			if (tci.mRenderWidth < 1 || tci.mRenderHeight < 1)
+				continue;
+			double rowoffset = tci.RowOffset((float)side->GetTextureYOffset(side_t::mid));
+			double texH = tci.mRenderHeight;
 			double top;
 			if (line.flags & ML_DONTPEGBOTTOM)
-				top = std::max(ffloor, bfloor) + yoff + texH;
+				top = std::max(ffloor, bfloor) + rowoffset + texH;
 			else
-				top = std::min(fceil, bceil) + yoff;
+				top = std::min(fceil, bceil) + rowoffset;
 			bool wrap = (line.flags & ML_WRAP_MIDTEX) || (side->Flags & WALLF_WRAP_MIDTEX);
 
 			float row[16] = {};
 			row[0] = (float)a.X; row[1] = (float)a.Y; row[2] = (float)b.X; row[3] = (float)b.Y;
 			row[4] = (float)top; row[5] = (float)texH;
-			row[6] = (float)side->GetTextureXOffset(side_t::mid);
-			row[7] = (float)(xscale / tex->GetDisplayWidth());	// repeats per map unit along the line
+			row[6] = tci.TextureOffset((float)side->GetTextureXOffset(side_t::mid));
+			row[7] = 1.f / (float)tci.mRenderWidth;	// repeats per map unit along the line
 			row[8] = (float)((slot % SlotsPerRow) * Slot); row[9] = (float)((slot / SlotsPerRow) * Slot);
 			row[10] = wrap ? 1.f : 0.f;
 			row[11] = (float)std::max(ffloor, bfloor); row[12] = (float)std::min(fceil, bceil);
+			row[13] = flip ? 1.f : 0.f;
 			lineFence[li] = (int)(params.size() / 16) + 1;
 			params.insert(params.end(), row, row + 16);
 		}
@@ -473,6 +511,7 @@ struct ShadowHeightMap
 		else
 		{
 			// moving planes: re-rasterize the sectors that changed and refresh their lines
+			bool topChanged = false;
 			for (unsigned i = 0; i < level->sectors.Size() && i < states.size(); i++)
 			{
 				sector_t *sec = &level->sectors[i];
@@ -480,6 +519,7 @@ struct ShadowHeightMap
 				if (Same(now, states[i]))
 					continue;
 				states[i] = now;
+				topChanged = true;
 				RasterSector(sec);
 				cellsDirty = true;
 				for (unsigned k = 0; k < sec->Lines.Size(); k++)
@@ -493,6 +533,8 @@ struct ShadowHeightMap
 					}
 				}
 			}
+			if (topChanged)
+				topLimit = TopOf(level);
 		}
 
 		if (W <= 0 || H <= 0)
@@ -512,6 +554,9 @@ struct ShadowHeightMap
 		out.GridOriginX = ox;
 		out.GridOriginY = oy;
 		out.GridInvCell = 1.0f / cell;
+		out.MidX = midX;
+		out.MidY = midY;
+		out.TopLimit = topLimit;
 	}
 };
 

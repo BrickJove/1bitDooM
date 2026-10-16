@@ -864,7 +864,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	const SceneShadowFrame &f = sceneShadowFrame;
 	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
-	bool sun = gl_scene_shadow_sun && gl_scene_shadow_length > 0.f;
+	bool sun = gl_scene_shadow_sun && f.SunPosValid;
 	int lights = clamp((int)gl_scene_shadow_lights, 0, 3);
 	int passes = max(lights, sun ? 1 : 0);
 	if (passes == 0)
@@ -872,12 +872,13 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 
 	int flags = (gl_scene_shadow_facing ? 1 : 0) | (gl_scene_shadow_style == 1 ? 2 : 0);
 	int density = clamp((int)(gl_scene_shadow_strength * 100.f + 0.5f), 0, 100);
+	int top = clamp((int)ceilf(f.TopLimit) + 2, 0, 16383);
 
 	SceneShadowUniforms u;
 	u.CamX = FVector4(f.InvView[0][0], f.InvView[0][1], f.InvView[0][2], f.InvView[0][3]);
 	u.CamY = FVector4(f.InvView[1][0], f.InvView[1][1], f.InvView[1][2], f.InvView[1][3]);
 	u.CamZ = FVector4(f.InvView[2][0], f.InvView[2][1], f.InvView[2][2], f.InvView[2][3]);
-	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, f.GridInvCell, (float)(flags | (density << 2)));
+	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, f.GridInvCell, (float)(flags | (density << 2) | (top << 9)));
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
@@ -887,7 +888,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	// pass 0: the sun and the first light, every further pass adds one more light
 	for (int pass = 0; pass < passes; pass++)
 	{
-		u.Sun = FVector4(f.SunDir[0], f.SunDir[1], f.SunDir[2], (pass == 0 && sun) ? max((float)gl_scene_shadow_length, 16.f) : 0.f);
+		u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], (pass == 0 && sun) ? 1.f : 0.f);
 		if (pass < lights && f.Light[pass][3] > 0.f)
 			u.Light = FVector4(f.Light[pass][0], f.Light[pass][1], f.Light[pass][2], f.Light[pass][3]);
 		else

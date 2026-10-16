@@ -1027,9 +1027,7 @@ OptionMenu "VideoOptions" protected
 	Option "  style",                            "gl_scene_shadow_style", "SceneShadowStyle"
 	Slider "  dither density",                   "gl_scene_shadow_strength", 0.1, 1.0, 0.05, 2
 	Option "  sun",                              "gl_scene_shadow_sun", "OnOff"
-	Slider "  sun direction (map angle)",        "gl_scene_shadow_sun_angle", 0, 355, 5, 0
-	Slider "  sun height (degrees)",             "gl_scene_shadow_sun_elevation", 5, 90, 5, 0
-	Slider "  sun shadow length",                "gl_scene_shadow_length", 64, 1024, 32, 0
+	Slider "  sun height (map units)",           "gl_scene_shadow_sun_height", 256, 8192, 128, 0
 	Slider "  dynamic lights (0-3)",             "gl_scene_shadow_lights", 0, 3, 1, 0
 	Option "  walls facing away are black",    "gl_scene_shadow_facing", "OnOff"
 	StaticText " "
