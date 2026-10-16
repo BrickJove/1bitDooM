@@ -28,9 +28,12 @@ layout(binding=2) uniform sampler2D CellTexture;	// 4 floats per cell: floor, ce
 layout(binding=3) uniform sampler2D ListTexture;	// line indices
 layout(binding=4) uniform sampler2D LineTexture;	// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
+layout(binding=7) uniform sampler2D LightTexture;	// 3 rows: x, y, z, radius of the nearest dynamic lights
 layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 128 x 128 per fence texture
 
 const float Big = 100000.0;
+const float SolidOff = 200000.0;	// solid cells: floor channel = height + SolidOff
+const float NearSkyMark = 90000.0;
 
 ivec2 gTexSize;
 ivec2 gGridSize;
@@ -90,9 +93,9 @@ bool UnderSky(vec3 w)
 		return false;
 	float f = CellValue(c, 0);
 	float ce = CellValue(c, 1);
-	if (f < Big * 0.5)
+	if (f < SolidOff * 0.75)
 		return ce > Big * 0.5;
-	return abs(ce - 12345.0) < 1.0;
+	return abs(ce - NearSkyMark) < 1.0;
 }
 
 float FenceParam(int id, int k)
@@ -195,8 +198,14 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 			if (LinesBlock(c, S0, S1))
 				return 1.0;
 		}
-		else if (min(S0.y, S1.y) < CellValue(c, 0) || max(S0.y, S1.y) > CellValue(c, 1))
-			return 1.0;
+		else
+		{
+			float fl = CellValue(c, 0);
+			if (fl > SolidOff * 0.75)
+				fl -= SolidOff;
+			if (min(S0.y, S1.y) < fl || max(S0.y, S1.y) > CellValue(c, 1))
+				return 1.0;
+		}
 		if (tout >= tEnd)
 			break;
 		if (tMax.x < tMax.y)
@@ -252,44 +261,63 @@ void main()
 	float cell = 1.0 / Grid.z;
 	vec3 Q = P + n * (cell * 1.5);	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
-	float shadow = 0.0;
 	float topLimit = float(packedBits >> 9);
 
-	// sun: a point light above the centre of the level, only under an open sky. A pixel counts as lying under the sky
-	// when the cell next to the surface (or a little further out) is open.
+	// A pixel is black when at least one source reaches it (sun: pixel under an open sky, light: within its radius)
+	// and every source that reaches it is blocked (the surface faces away, or the ray hits the map).
+	int reached = 0;
+	int lit = 0;
+
+	// sun: a point light above the centre of the level
 	if (Sun.w > 0.0 && (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5)))))
 	{
 		vec3 toS = Sun.xyz - Q;
 		float dS = length(toS);
 		if (dS > 8.0)
 		{
+			reached++;
 			vec3 D = toS / dS;
 			float facing = hasNormal ? dot(n, D) : 1.0;
 			if (facing > 0.0)
-				shadow = Trace(Q, D, dS, jitter, topLimit);
-			else if (facingShade)
-				shadow = 1.0;
+			{
+				if (Trace(Q, D, dS, jitter, topLimit) < 0.5)
+					lit++;
+			}
+			else if (!facingShade)
+				lit++;
 		}
 	}
 
-	// one dynamic light (more lights = more passes), within its radius only
-	if (Light.w > 0.0 && shadow < 0.5)
+	// the nearest dynamic lights (surfaces close to a light are always lit by it: the light and its fixture)
+	for (int i = 0; i < 3; i++)
 	{
-		vec3 toL = Light.xyz - Q;
+		if (float(i) >= Light.x)
+			break;
+		vec4 L = vec4(texelFetch(LightTexture, ivec2(0, i), 0).x, texelFetch(LightTexture, ivec2(1, i), 0).x,
+		              texelFetch(LightTexture, ivec2(2, i), 0).x, texelFetch(LightTexture, ivec2(3, i), 0).x);
+		if (L.w <= 0.0)
+			continue;
+		vec3 toL = L.xyz - Q;
 		float dist = length(toL);
-		if (dist < Light.w && dist > 64.0)	// the light source itself and its fixture are never in shadow
+		if (dist >= L.w)
+			continue;
+		reached++;
+		if (dist <= 64.0)
 		{
-			vec3 D = toL / dist;
-			float atten = 1.0 - dist / Light.w;
-			float facing = hasNormal ? dot(n, D) : 1.0;
-			float s = 0.0;
-			if (facing > 0.0)
-				s = Trace(Q, D, dist - 24.0, jitter, topLimit);
-			else if (facingShade)
-				s = 1.0;
-			shadow = max(shadow, s * atten);
+			lit++;
+			continue;
 		}
+		vec3 D = toL / dist;
+		float facing = hasNormal ? dot(n, D) : 1.0;
+		if (facing > 0.0)
+		{
+			if (Trace(Q, D, dist - 24.0, jitter, topLimit) < 0.5)
+				lit++;
+		}
+		else if (!facingShade)
+			lit++;
 	}
+	float shadow = (reached > 0 && lit == 0) ? 1.0 : 0.0;
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 2) & 127) / 100.0;

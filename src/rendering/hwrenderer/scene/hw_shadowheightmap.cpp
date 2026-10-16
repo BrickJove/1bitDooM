@@ -32,6 +32,8 @@ namespace
 {
 
 const float Big = 100000.f;
+const float SolidOff = 200000.f;	// solid cells: floor channel = height of the solid + SolidOff
+const float NearSkyMark = 90000.f;	// solid cells close to an open sky: ceiling channel
 const int MaxGrid = 1024;
 const unsigned UploadInterval = 6;	// frames between two uploads while sectors move
 const int LineRowWidth = 512;		// lines per row of the line table (8 floats each)
@@ -52,6 +54,8 @@ struct ShadowHeightMap
 	int W = 0, H = 0;
 	float cell = 8.f, ox = 0, oy = 0, midX = 0, midY = 0, topLimit = 0;
 	std::vector<float> cellData;		// 4 floats per cell
+	std::vector<float> topNum;		// numeric ceiling height of the open cells (-Big = none), for the height of the solids
+	std::unique_ptr<PPTexture> texLight;
 	std::vector<float> lineData;		// 8 floats per included line
 	std::vector<int> lineIndex;		// level line -> index in the line table, -1 = not included
 	std::vector<int> lineFence;		// level line -> fence index + 1
@@ -151,6 +155,9 @@ struct ShadowHeightMap
 					size_t idx = ((size_t)cy * W + cx) * 4;
 					cellData[idx] = (float)sec->floorplane.ZatPoint(px, py);
 					cellData[idx + 1] = CeilingOf(sec, DVector2(px, py));
+					double fz = sec->floorplane.ZatPoint(px, py), cz = sec->ceilingplane.ZatPoint(px, py);
+					if (!topNum.empty())
+						topNum[idx / 4] = (cz - fz >= 32.0) ? (float)cz : -Big;
 				}
 			}
 		}
@@ -162,7 +169,17 @@ struct ShadowHeightMap
 	{
 		if (line.backsector == nullptr || line.frontsector == nullptr)
 		{
-			lo = Big; hi = -Big;
+			// a wall is as high as the ceiling of its sector; under an open sky the light passes above it
+			sector_t *sec = line.frontsector != nullptr ? line.frontsector : line.backsector;
+			DVector2 m = (line.v1->p + line.v2->p) * 0.5;
+			if (sec != nullptr && CeilingOf(sec, m) > Big * 0.5f)
+			{
+				lo = (float)sec->ceilingplane.ZatPoint(m); hi = Big;
+			}
+			else
+			{
+				lo = Big; hi = -Big;
+			}
 			return;
 		}
 		DVector2 mid = (line.v1->p + line.v2->p) * 0.5;
@@ -212,7 +229,7 @@ struct ShadowHeightMap
 		sectorCount = level->sectors.Size();
 		lineCount = level->lines.Size();
 		vertexCount = level->vertexes.Size();
-		texCell.reset(); texList.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
+		texCell.reset(); texList.reset(); texLight.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
 		retired.clear();
 
 		double minx = 1e30, maxx = -1e30, miny = 1e30, maxy = -1e30;
@@ -244,6 +261,7 @@ struct ShadowHeightMap
 			cellData[i * 4] = Big;
 			cellData[i * 4 + 1] = -Big;
 		}
+		topNum.assign((size_t)W * H, -Big);
 
 		states.resize(level->sectors.Size());
 		for (unsigned i = 0; i < level->sectors.Size(); i++)
@@ -253,11 +271,48 @@ struct ShadowHeightMap
 			states[i] = StateOf(sec);
 		}
 
+		FillSolids();
 		MarkNearSky();
 		BuildFences(level);
 		BuildLines(level);
 		cellsDirty = linesDirty = true;
 		lastUpload = frame - UploadInterval;
+	}
+
+	// Solid space (outside of all sectors) is as high as the nearest open cell (nearest ceiling, flood fill), so a ray
+	// that passes over a wall is not stopped by the void behind it. Solid cells: floor channel = height + SolidOff.
+	void FillSolids()
+	{
+		std::vector<float> height((size_t)W * H, -Big);
+		std::vector<int> queue;
+		queue.reserve((size_t)W * H);
+		for (size_t c = 0; c < (size_t)W * H; c++)
+			if (cellData[c * 4] < Big * 0.5f && topNum[c] > -Big * 0.5f)
+			{
+				height[c] = topNum[c];
+				queue.push_back((int)c);
+			}
+		for (size_t q = 0; q < queue.size(); q++)
+		{
+			int c = queue[q];
+			int cx = c % W, cy = c / W;
+			for (int dy = -1; dy <= 1; dy++)
+				for (int dx = -1; dx <= 1; dx++)
+				{
+					int x = cx + dx, y = cy + dy;
+					if (x < 0 || y < 0 || x >= W || y >= H) continue;
+					size_t n = (size_t)y * W + x;
+					if (height[n] > -Big * 0.5f || cellData[n * 4] < Big * 0.5f) continue;
+					height[n] = height[c];
+					queue.push_back((int)n);
+				}
+		}
+		for (size_t c = 0; c < (size_t)W * H; c++)
+			if (cellData[c * 4] >= Big * 0.5f)
+			{
+				cellData[c * 4] = (height[c] > -Big * 0.5f ? height[c] : Big * 0.5f) + SolidOff;
+				cellData[c * 4 + 1] = Big;
+			}
 	}
 
 	// Solid cells within 3 cells of an open sky cell get the marker 12345 in the ceiling channel: a pixel on the ground
@@ -271,7 +326,7 @@ struct ShadowHeightMap
 			for (int cx = 0; cx < W; cx++)
 			{
 				size_t idx = ((size_t)cy * W + cx) * 4;
-				if (cellData[idx] < Big * 0.5f)
+				if (cellData[idx] < SolidOff * 0.75f)
 					continue;
 				bool near = false;
 				for (int dy = -R; dy <= R && !near; dy++)
@@ -283,7 +338,7 @@ struct ShadowHeightMap
 						int x = cx + dx;
 						if (x < 0 || x >= W) continue;
 						size_t n = ((size_t)y * W + x) * 4;
-						if (cellData[n] < Big * 0.5f && cellData[n + 1] > Big * 0.5f) { near = true; break; }
+						if (cellData[n] < SolidOff * 0.75f && cellData[n + 1] > Big * 0.5f) { near = true; break; }
 					}
 				}
 				if (near)
@@ -291,7 +346,7 @@ struct ShadowHeightMap
 			}
 		}
 		for (int idx : marks)
-			cellData[idx + 1] = 12345.f;
+			cellData[idx + 1] = NearSkyMark;
 	}
 
 	// The lines that can block a ray: one sided lines, lines with a height step, fences, and lines of sectors
@@ -546,6 +601,17 @@ struct ShadowHeightMap
 		while (!retired.empty() && frame - retired.front().first > 8)
 			retired.pop_front();
 
+		// the nearest dynamic lights: one row each (x, y, z, radius), new every frame (the old one may still be in use)
+		{
+			std::vector<float> ld(16, 0.f);
+			for (int i = 0; i < 3; i++)
+				for (int k = 0; k < 4; k++)
+					ld[i * 4 + k] = out.Light[i][k];
+			if (texLight)
+				retired.emplace_back(frame, std::move(texLight));
+			texLight = MakeTexture(4, 4, ld);
+			out.LightTex = texLight.get();
+		}
 		out.CellTex = texCell.get();
 		out.ListTex = texList.get();
 		out.LineTex = texLine.get();

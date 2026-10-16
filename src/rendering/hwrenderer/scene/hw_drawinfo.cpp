@@ -1090,7 +1090,7 @@ void HWDrawInfo::PrepareSceneShadow()
 	f.SunPos[1] = (float)gl_scene_shadow_sun_height;
 	f.SunPos[2] = f.MidY;
 	f.SunPosValid = f.CellTex != nullptr;
-	f.Valid = f.CellTex != nullptr && f.ListTex != nullptr && f.LineTex != nullptr && f.FenceParamTex != nullptr && f.FenceAtlasTex != nullptr;
+	f.Valid = f.CellTex != nullptr && f.ListTex != nullptr && f.LineTex != nullptr && f.FenceParamTex != nullptr && f.FenceAtlasTex != nullptr && f.LightTex != nullptr;
 }
 
 void HWDrawInfo::DrawScene(int drawmode)

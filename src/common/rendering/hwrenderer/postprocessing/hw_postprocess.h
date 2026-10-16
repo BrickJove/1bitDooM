@@ -823,6 +823,7 @@ struct SceneShadowFrame
 	PPTexture *LineTex = nullptr;		// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 	PPTexture *FenceParamTex = nullptr;	// 16 floats per fence
 	PPTexture *FenceAtlasTex = nullptr;	// alpha masks of the fence textures
+	PPTexture *LightTex = nullptr;		// 3 rows: position + radius of the nearest dynamic lights
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
 	float MidX = 0, MidY = 0;		// centre of the bounding box of the level
 	float TopLimit = 0;			// highest floor / ceiling: rays above it are free

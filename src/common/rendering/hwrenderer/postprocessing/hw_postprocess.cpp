@@ -862,12 +862,11 @@ SceneShadowFrame sceneShadowFrame;
 void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
-	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || !f.LightTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 	bool sun = gl_scene_shadow_sun && f.SunPosValid;
 	int lights = clamp((int)gl_scene_shadow_lights, 0, 3);
-	int passes = max(lights, sun ? 1 : 0);
-	if (passes == 0)
+	if (!sun && lights == 0)
 		return;
 
 	int flags = (gl_scene_shadow_facing ? 1 : 0) | (gl_scene_shadow_style == 1 ? 2 : 0);
@@ -882,36 +881,25 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
+	u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], sun ? 1.f : 0.f);
+	u.Light = FVector4((float)lights, 0.f, 0.f, 0.f);	// x = number of lights, the lights are in the light texture
 
 	renderstate->PushGroup("sceneshadow");
-
-	// pass 0: the sun and the first light, every further pass adds one more light
-	for (int pass = 0; pass < passes; pass++)
-	{
-		u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], (pass == 0 && sun) ? 1.f : 0.f);
-		if (pass < lights && f.Light[pass][3] > 0.f)
-			u.Light = FVector4(f.Light[pass][0], f.Light[pass][1], f.Light[pass][2], f.Light[pass][3]);
-		else
-			u.Light = FVector4(0.f, 0.f, 0.f, 0.f);
-		if (u.Sun.W == 0.f && u.Light.W == 0.f)
-			continue;
-
-		renderstate->Clear();
-		renderstate->Shader = gl_multisample > 1 ? &SceneShadowMS : &SceneShadow;
-		renderstate->Uniforms.Set(u);
-		renderstate->Viewport = screen->mSceneViewport;
-		renderstate->SetInputSceneDepth(0);
-		renderstate->SetInputSceneNormal(1);
-		renderstate->SetInputTexture(2, f.CellTex);
-		renderstate->SetInputTexture(3, f.ListTex);
-		renderstate->SetInputTexture(4, f.LineTex);
-		renderstate->SetInputTexture(5, f.FenceParamTex);
-		renderstate->SetInputTexture(6, f.FenceAtlasTex);
-		renderstate->SetOutputSceneColor();
-		renderstate->SetAlphaBlend();
-		renderstate->Draw();
-	}
-
+	renderstate->Clear();
+	renderstate->Shader = gl_multisample > 1 ? &SceneShadowMS : &SceneShadow;
+	renderstate->Uniforms.Set(u);
+	renderstate->Viewport = screen->mSceneViewport;
+	renderstate->SetInputSceneDepth(0);
+	renderstate->SetInputSceneNormal(1);
+	renderstate->SetInputTexture(2, f.CellTex);
+	renderstate->SetInputTexture(3, f.ListTex);
+	renderstate->SetInputTexture(4, f.LineTex);
+	renderstate->SetInputTexture(5, f.FenceParamTex);
+	renderstate->SetInputTexture(6, f.FenceAtlasTex);
+	renderstate->SetInputTexture(7, f.LightTex);
+	renderstate->SetOutputSceneColor();
+	renderstate->SetAlphaBlend();
+	renderstate->Draw();
 	renderstate->PopGroup();
 }
 
