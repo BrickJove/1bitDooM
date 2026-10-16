@@ -478,14 +478,15 @@ struct ShadowHeightMap
 					for (int sx = 0; sx < Slot; sx++)
 					{
 						int x0 = sx * bw / Slot, x1 = std::max(x0 + 1, (sx + 1) * bw / Slot);
-						double sum = 0; int cnt = 0;
+						double sum = 0; int cnt = 0; double mx = 0;
 						for (int yy = y0; yy < y1 && yy < bh; yy++)
 							for (int xx = x0; xx < x1 && xx < bw; xx++)
 							{
 								sum += px[(size_t)(yy * bw + xx) * 4 + 3];	// BGRA: alpha is byte 3
+								mx = std::max(mx, (double)px[(size_t)(yy * bw + xx) * 4 + 3]);
 								cnt++;
 							}
-						atlas[(size_t)(ay + sy) * (Slot * SlotsPerRow) + ax + sx] = cnt ? (float)(sum / cnt / 255.0) : 0.f;
+						atlas[(size_t)(ay + sy) * (Slot * SlotsPerRow) + ax + sx] = cnt ? (float)(mx / 255.0) : 0.f;	// any opaque pixel in the block: thin wires stay in the silhouette
 					}
 				}
 			}

@@ -225,6 +225,15 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 	return 0.0;
 }
 
+// world position (render space) of a depth buffer pixel
+vec3 PosAt(ivec2 p)
+{
+	vec2 tc = ((vec2(p) + 0.5) / vec2(gTexSize) - Offset) / Scale;
+	float z = 1.0 / max(InvDepthAt(p), 1.0e-8);
+	vec3 eye = vec3((tc * 2.0 - 1.0) * ProjParams.zw * z, -z);
+	return vec3(dot(CamX.xyz, eye) + CamX.w, dot(CamY.xyz, eye) + CamY.w, dot(CamZ.xyz, eye) + CamZ.w);
+}
+
 void main()
 {
 #if defined(MULTISAMPLE)
@@ -261,6 +270,26 @@ void main()
 	else
 		n = vec3(0.0);
 
+	// Models and sprites have no normal in the buffer (they are marked with 1,1,1): take it from the neighbouring depth
+	// values so they can be lit / shadowed like the map (surface facing away from the light = black).
+	if (!hasNormal && ns.a < 0.5 && min(ns.x, min(ns.y, ns.z)) > 0.97)
+	{
+		vec3 Pr = PosAt(ipos + ivec2(1, 0)), Pl = PosAt(ipos - ivec2(1, 0));
+		vec3 Pu = PosAt(ipos + ivec2(0, 1)), Pd = PosAt(ipos - ivec2(0, 1));
+		vec3 dx = length(Pr - P) < length(P - Pl) ? Pr - P : P - Pl;
+		vec3 dy = length(Pu - P) < length(P - Pd) ? Pu - P : P - Pd;
+		vec3 dn = cross(dx, dy);
+		if (dot(dn, dn) > 1.0e-10)
+		{
+			dn = normalize(dn);
+			vec3 toCam = vec3(CamX.w, CamY.w, CamZ.w) - P;
+			if (dot(dn, toCam) < 0.0)
+				dn = -dn;
+			n = dn;
+			hasNormal = true;
+		}
+	}
+
 	float cell = 1.0 / Grid.z;
 
 	// floors and ceilings face exactly up / down (the normal buffer is only 10 bit: noisy facing tests)
@@ -291,8 +320,7 @@ void main()
 	}
 	vec3 Q = P + n * (cell * 1.5);
 	gOrigin = Q;
-	if (!hasNormal)
-		gFences = false;	// models and sprites do not receive the lattice of fences	// start point of the rays, a bit off the surface
+	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
 	float topLimit = float(packedBits >> 10);
 
