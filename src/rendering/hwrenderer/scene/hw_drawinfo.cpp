@@ -39,6 +39,7 @@
 #include "a_corona.h"
 #include "a_dynlight.h"
 #include "hw_shadowheightmap.h"
+#include "hw_shadowvolumes.h"
 #include "texturemanager.h"
 #include "actorinlines.h"
 #include "g_levellocals.h"
@@ -1044,6 +1045,15 @@ void HWDrawInfo::PrepareSceneShadow()
 	for (int r = 0; r < 3; r++)
 		for (int c = 0; c < 4; c++)
 			f.InvView[r][c] = m[r + 4 * c];
+
+	{
+		// projection * view for the shadow volumes
+		VSMatrix vp;
+		vp.loadMatrix(VPUniforms.ProjectionMatrix.get());
+		vp.multMatrix(VPUniforms.ViewMatrix.get());
+		memcpy(f.ViewProj, vp.get(), sizeof(f.ViewProj));
+		f.Volumes = gl_scene_shadow_volumes ? hw_UpdateShadowVolumes(Level) : nullptr;
+	}
 
 	// the nearest dynamic lights (distance to the light's reach)
 	struct Cand { double score; DVector3 pos; float radius; };

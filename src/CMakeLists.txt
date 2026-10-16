@@ -709,6 +709,7 @@ set( FASTMATH_SOURCES
 	rendering/hwrenderer/scene/hw_skyportal.cpp
 	rendering/hwrenderer/scene/hw_sprites.cpp
 	rendering/hwrenderer/scene/hw_shadowheightmap.cpp
+	rendering/hwrenderer/scene/hw_shadowvolumes.cpp
 	rendering/hwrenderer/scene/hw_spritelight.cpp
 	rendering/hwrenderer/scene/hw_walls.cpp
 	rendering/hwrenderer/scene/hw_walls_vertex.cpp
@@ -1158,6 +1159,7 @@ set (PCH_SOURCES
 	common/rendering/gl/gl_renderstate.cpp
 	common/rendering/gl/gl_renderbuffers.cpp
 	common/rendering/gl/gl_postprocess.cpp
+	common/rendering/gl/gl_shadowvolumes.cpp
 	common/rendering/gl/gl_postprocessstate.cpp
 	common/rendering/gl/gl_debug.cpp
 	common/rendering/gl/gl_buffers.cpp

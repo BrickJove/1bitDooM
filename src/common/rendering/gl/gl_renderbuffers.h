@@ -161,6 +161,9 @@ public:
 	int GetWidth() const { return mWidth; }
 	int GetHeight() const { return mHeight; }
 
+	unsigned int GetSceneFBHandle() const { return mSceneFB.handle; }
+	bool SceneIsMultisampled() const { return mSamples > 1; }
+
 	int GetSceneWidth() const { return mSceneWidth; }
 	int GetSceneHeight() const { return mSceneHeight; }
 

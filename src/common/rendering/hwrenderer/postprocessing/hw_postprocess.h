@@ -817,6 +817,8 @@ struct SceneShadowFrame
 	bool SunPosValid = false;		// kept between frames (model shadows use it)
 	float Light[3][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
 	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
+	float ViewProj[16] = {};		// projection * view (render space -> clip space), column major
+	const struct ShadowVolumeGeometry *Volumes = nullptr;	// occluders for the stencil shadow volumes (Doom 3 algorithm)
 	// height map of the level (hw_shadowheightmap.cpp)
 	PPTexture *CellTex = nullptr;		// 4 floats per cell: floor, ceiling, list start, list count (see hw_shadowheightmap.cpp)
 	PPTexture *ListTex = nullptr;		// line indices per cell

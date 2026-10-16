@@ -1,0 +1,27 @@
+/*
+** shadowvolume.vp
+**
+** Jupiter3D: stencil shadow volumes (Doom 3). The corners flagged as extruded move to infinity, away from the light.
+** The cap is moved a little (uShift = 1: away from the light, -1: towards it) so the surface of the occluder itself
+** does not fight with its own volume.
+*/
+
+layout(location = 0) in vec4 aPos;
+layout(location = 1) in vec3 aNormal;
+
+uniform mat4 uViewProj;
+uniform vec3 uLight;
+uniform vec3 uCam;
+uniform float uShift;
+
+void main()
+{
+	vec3 p = aPos.xyz;
+	float side = dot(aNormal, uLight - p) > 0.0 ? 1.0 : -1.0;
+	float eps = 0.3 + 0.004 * length(p - uCam);
+	p -= aNormal * side * eps * uShift;
+	if (aPos.w > 0.5)
+		gl_Position = uViewProj * vec4(p - uLight, 0.0);
+	else
+		gl_Position = uViewProj * vec4(p, 1.0);
+}
