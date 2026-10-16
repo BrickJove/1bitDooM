@@ -834,7 +834,7 @@ struct SceneShadowUniforms
 	FVector4 CamZ;
 	FVector4 Sun;		// xyz = direction to the sun (render space), w = ray length (0 = no sun)
 	FVector4 Light;		// xyz = position (render space), w = radius (0 = no light)
-	FVector4 Grid;		// xy = grid origin (map X, Y), z = 1 / cell size, w = flags | density << 2 | steps << 9
+	FVector4 Grid;		// xy = grid origin (map X, Y), z = 1 / cell size, w = flags | density << 2
 	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]
 	FVector2 Scale;
 	FVector2 Offset;

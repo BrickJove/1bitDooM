@@ -135,31 +135,54 @@ bool HitsFence(ivec2 c, vec3 S0, vec3 S1)
 	return texelFetch(FenceAtlasTexture, ivec2(apos + 0.5), 0).x > 0.5;
 }
 
-// 1 = the ray P + D * t (0 < t < len) hits solid space
+// 1 = the ray P + D * t (0 < t < len) hits solid space. The ray is walked cell by cell (exact grid
+// traversal, no fixed steps and no jitter), so shadow edges are sharp and nothing is skipped.
 float Trace(vec3 P, vec3 D, float len, float jitter)
 {
 	float cell = 1.0 / Grid.z;
 	float t0 = cell * 1.5;
 	if (len <= t0)
 		return 0.0;
-	int maxSteps = int(Grid.w + 0.5) >> 9;
-	int steps = int(clamp(ceil((len - t0) / cell), 8.0, float(maxSteps)));
-	float dt = (len - t0) / float(steps);
-	vec3 prev = P + D * t0;
-	for (int i = 0; i < 160; i++)
+	vec3 A = P + D * t0;
+	float tEnd = len - t0;
+
+	vec2 d2 = D.xz;
+	vec2 p = (A.xz - Grid.xy) * Grid.z;	// in cell units
+	ivec2 c = ivec2(floor(p));
+	ivec2 stp = ivec2(int(sign(d2.x)), int(sign(d2.y)));
+	vec2 tDelta = vec2(abs(d2.x) > 1.0e-6 ? 1.0 / (abs(d2.x) * Grid.z) : 1.0e30,
+	                   abs(d2.y) > 1.0e-6 ? 1.0 / (abs(d2.y) * Grid.z) : 1.0e30);
+	vec2 toEdge = vec2(d2.x > 0.0 ? float(c.x) + 1.0 - p.x : p.x - float(c.x),
+	                   d2.y > 0.0 ? float(c.y) + 1.0 - p.y : p.y - float(c.y));
+	vec2 tMax = vec2(abs(d2.x) > 1.0e-6 ? toEdge.x * tDelta.x : 1.0e30,
+	                 abs(d2.y) > 1.0e-6 ? toEdge.y * tDelta.y : 1.0e30);
+
+	float tin = 0.0;
+	for (int i = 0; i < 900; i++)
 	{
-		if (i >= steps)
+		if (c.x < 0 || c.y < 0 || c.x >= gGridSize.x || c.y >= gGridSize.y)
+			return 0.0;	// left the map
+		float tout = min(min(tMax.x, tMax.y), tEnd);
+		float yin = A.y + D.y * tin, yout = A.y + D.y * tout;
+		float f = texelFetch(FloorTexture, c, 0).x;
+		float ce = texelFetch(CeilTexture, c, 0).x;
+		if (min(yin, yout) < f || max(yin, yout) > ce)
+			return 1.0;
+		if (HitsFence(c, A + D * tin, A + D * tout))
+			return 1.0;
+		if (tout >= tEnd)
 			break;
-		vec3 S = P + D * (t0 + (float(i) + jitter) * dt);
-		if (Blocked(S))
-			return 1.0;
-		ivec2 c = CellOf(S);
-		if (HitsFence(c, prev, S))
-			return 1.0;
-		ivec2 cp = CellOf(prev);
-		if (cp != c && HitsFence(cp, prev, S))
-			return 1.0;
-		prev = S;
+		if (tMax.x < tMax.y)
+		{
+			c.x += stp.x;
+			tMax.x += tDelta.x;
+		}
+		else
+		{
+			c.y += stp.y;
+			tMax.y += tDelta.y;
+		}
+		tin = tout;
 	}
 	return 0.0;
 }

@@ -170,7 +170,7 @@ struct ShadowHeightMap
 			return;
 		}
 		double dim = std::max(maxx - minx, maxy - miny) + 16.0;
-		cell = 4.f;
+		cell = 2.f;
 		while (dim / cell > MaxGrid)
 			cell *= 2.f;
 		ox = (float)(minx - 8.0);

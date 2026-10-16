@@ -73,3 +73,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Scene shadows are now independent of the view: the level is rasterized into a height map (floor / ceiling height per cell, built from the sectors on level load, updated for moving doors and lifts, hw_shadowheightmap.cpp). The shadow pass rebuilds the world position of each pixel from the depth buffer and marches a ray through the height map towards the sun / the dynamic lights. The sun only shines under an open sky, solid ceilings and walls block it. gl_scene_shadow_lights adds one pass per light.
 
 - Scene shadows: lines with a transparent middle texture (chain link fence, grates) now cast the silhouette of their texture. The alpha masks of those textures are packed into an atlas (64x64 per texture) when the level loads, and the shadow rays test against them.
+
+- Scene shadows: sharp edges. The shadow ray is now walked cell by cell through the height map (exact grid traversal, no fixed steps and no jitter, so nothing frays or bands), and the grid is finer (2 map units for levels up to about 2000 units, otherwise 4 / 8 / ...). gl_scene_shadow_steps is gone.
