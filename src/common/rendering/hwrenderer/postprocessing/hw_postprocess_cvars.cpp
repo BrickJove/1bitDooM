@@ -78,7 +78,7 @@ CUSTOM_CVAR(Bool, gl_model_inner_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 // Screen space shadows (sun + dynamic lights) on the map geometry and models, see sceneshadow.fp
 CUSTOM_CVAR(Bool, gl_scene_shadow, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) {}
 CVAR(Bool, gl_scene_shadow_sun, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
-CVARD(Float, gl_scene_shadow_sun_height, 2048.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Height of the sun in map units. The sun is a point light above the centre of the level")
+CVARD(Float, gl_scene_shadow_sun_height, 1024.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Height of the sun in map units. The sun is a point light above the map origin (0, 0); lower = longer shadows")
 CVARD(Int, gl_scene_shadow_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..3) that cast screen space shadows")
 CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
 CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = hard black shadow, 1 = binary dither pattern with gl_scene_shadow_strength as coverage")

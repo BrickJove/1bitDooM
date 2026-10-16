@@ -1085,10 +1085,10 @@ void HWDrawInfo::PrepareSceneShadow()
 	}
 
 	hw_UpdateShadowHeightMap(Level, f);
-	// the sun is a point light above the centre of the level
-	f.SunPos[0] = f.MidX;
+	// the sun is a point light above the map origin (0, 0), the cross of the map editor
+	f.SunPos[0] = 0.f;
 	f.SunPos[1] = (float)gl_scene_shadow_sun_height;
-	f.SunPos[2] = f.MidY;
+	f.SunPos[2] = 0.f;
 	f.SunPosValid = f.CellTex != nullptr;
 	f.Valid = f.CellTex != nullptr && f.ListTex != nullptr && f.LineTex != nullptr && f.FenceParamTex != nullptr && f.FenceAtlasTex != nullptr && f.LightTex != nullptr;
 }
