@@ -277,14 +277,14 @@ void main()
 	{
 		vec3 toL = Light.xyz - Q;
 		float dist = length(toL);
-		if (dist < Light.w && dist > 8.0)
+		if (dist < Light.w && dist > 64.0)	// the light source itself and its fixture are never in shadow
 		{
 			vec3 D = toL / dist;
 			float atten = 1.0 - dist / Light.w;
 			float facing = hasNormal ? dot(n, D) : 1.0;
 			float s = 0.0;
 			if (facing > 0.0)
-				s = Trace(Q, D, dist - 4.0, jitter, topLimit);
+				s = Trace(Q, D, dist - 24.0, jitter, topLimit);
 			else if (facingShade)
 				s = 1.0;
 			shadow = max(shadow, s * atten);
