@@ -108,3 +108,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modell-Schattenkarte: von den Lichtern, die ein Modell erreichen, kommt das dem Spieler nächste zuerst; es zählen nur Modelle bis 4096 Einheiten vom Spieler. (Vorher konnten zwei Lichter irgendwo in der Map die beiden Karten belegen.)
 
 - `gl_model_shadow_map_debug` meldet jetzt ausführlicher (warum Modelle ausscheiden: zu weit vom Spieler, außerhalb jeder Lichtreichweite, kein 3D-Modell; Position und Radius des Lichts jeder Schattenkarte) und bei jedem Wechsel, auch wenn keine Karte entsteht.
+
+- Modell-Schattenkarte: Lichter, die niedriger als `gl_model_shadow_map_light_height` (Standard 128) über dem Boden ihres Sektors hängen, werfen die Modellschatten, als hingen sie so hoch (nie über der Decke). Ein Sector Light auf Bodenhöhe (hier: Höhe 16) beschattet sonst nur die Beine der Modelle und wirft nur streifende Schatten, die je nach Blickposition kaum zu sehen sind.

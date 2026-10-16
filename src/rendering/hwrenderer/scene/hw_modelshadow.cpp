@@ -63,7 +63,17 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			if (radius <= 0.f)
 				continue;
 			DVector3 lp = light->PosRelative(group);
-			Lt lt = { (float)lp.X, (float)lp.Z, (float)lp.Y, radius };
+			float height = (float)lp.Z;
+			if (light->Sector != nullptr)
+			{
+				// a light on or near the floor would only shadow the lowest part of a model and cast grazing shadows:
+				// shadows are cast as if it hung higher (not above the ceiling)
+				float floorz = (float)light->Sector->floorplane.ZatPoint(lp.X, lp.Y);
+				float ceilz = (float)light->Sector->ceilingplane.ZatPoint(lp.X, lp.Y);
+				float wanted = min(floorz + (float)gl_model_shadow_map_light_height, ceilz - 4.f);
+				height = max(height, wanted);
+			}
+			Lt lt = { (float)lp.X, height, (float)lp.Y, radius };
 			lights.Push(lt);
 			if (lights.Size() >= 512)
 				break;
