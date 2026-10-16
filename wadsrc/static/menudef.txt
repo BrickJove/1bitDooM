@@ -966,6 +966,12 @@ OptionValue VanillaTrans
 	3, "$OPTVAL_VTAVANILLA"
 }
 
+OptionValue "ModelShadowStyle"
+{
+	0, "Flat silhouette"
+	1, "Soft dithered blob"
+}
+
 OptionMenu "VideoOptions" protected
 {
 	Title "$DSPLYMNU_TITLE"
@@ -1002,6 +1008,7 @@ OptionMenu "VideoOptions" protected
 	Option "Weapon pixel size",                  "gl_weapon_pixel", "WeaponPixelSize"
 	StaticText " "
 	StaticText "3d model shadows", 1
+	Option "Shadow style",                       "gl_model_shadow_style", "ModelShadowStyle"
 	Option "Shadows: enemies",                   "gl_model_shadow_monsters", "OnOff"
 	Option "Shadows: decoration",                "gl_model_shadow_decor", "OnOff"
 	Option "  decoration: skip shootable",       "gl_model_shadow_skip_shootable", "OnOff"

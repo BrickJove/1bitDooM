@@ -385,6 +385,8 @@ public:
 	int index;
 	float depth;
 	int vertexindex;
+	int shadowvertex;	// soft drop shadow quad (vertex index, -1 = none)
+	float shadowhalf;	// half size of that quad
 
 	float topclip;
 	float bottomclip;

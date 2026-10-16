@@ -86,8 +86,10 @@ CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_player, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_skip_shootable, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for shootable actors
 CVAR(Bool, gl_model_shadow_skip_nonsolid, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for non-solid actors
+CVARD(Int, gl_model_shadow_style, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model drop shadow style: 0 = flat silhouette, 1 = soft dithered blob")
 CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Drop shadows shrink with the height of the actor above the floor and are gone at this height (map units, 0 = always full size)")
 
+bool ModelWantsShadow(AActor* actor);
 static bool WantsModelShadow(AActor* actor)
 {
 	if (actor->flags & MF_MISSILE) return false;
@@ -101,6 +103,19 @@ static bool WantsModelShadow(AActor* actor)
 	if (gl_model_shadow_skip_nonsolid && !(actor->flags & MF_SOLID)) return false;
 	return true;
 }
+bool ModelWantsShadow(AActor* actor)
+{
+	return WantsModelShadow(actor);
+}
+
+// 0..1: size of a drop shadow for an actor at render height z (shrinks with the height above the floor)
+float ModelShadowScale(AActor* actor, float z)
+{
+	if (gl_model_shadow_fade_height <= 0.f) return 1.f;
+	float height = z - (float)actor->floorz;
+	return clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
+}
+
 EXTERN_CVAR (Bool, r_drawvoxels)
 
 extern TDeletingArray<FVoxel *> Voxels;
@@ -150,7 +165,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
 	}
 
-	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && shadowScale > 0.05f && WantsModelShadow(actor))
+	if (gl_model_shadow_style == 0 && (gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && shadowScale > 0.05f && WantsModelShadow(actor))
 	{
 		// Squash the model onto the floor below the actor. The y scale is not exactly 0 so the normal matrix stays invertible.
 		VSMatrix flat;
