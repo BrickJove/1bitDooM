@@ -204,8 +204,8 @@ void main()
 		return;
 	}
 
-	int packed = int(Grid.w + 0.5);
-	int flags = packed & 3;
+	int packedBits = int(Grid.w + 0.5);
+	int flags = packedBits & 3;
 	bool facingShade = (flags & 1) != 0;
 	bool dither = (flags & 2) != 0;
 
@@ -257,7 +257,7 @@ void main()
 	}
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
-	float density = float((packed >> 2) & 127) / 100.0;
+	float density = float((packedBits >> 2) & 127) / 100.0;
 	float a = dither ? ((shadow > 0.15 ? density : 0.0) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
 	FragColor = vec4(0.0, 0.0, 0.0, a);
 }
