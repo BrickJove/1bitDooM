@@ -86,7 +86,7 @@ CVAR(Bool, gl_model_shadow_decor, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_player, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Bool, gl_model_shadow_skip_shootable, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for shootable actors
 CVAR(Bool, gl_model_shadow_skip_nonsolid, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// decoration filter: no shadow for non-solid actors
-CVARD(Int, gl_model_shadow_style, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model drop shadow style: 0 = flat silhouette, 1 = soft dithered blob")
+CVARD(Int, gl_model_shadow_style, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model drop shadow style: 0 = flat silhouette, 1 = soft blob")
 CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Drop shadows shrink with the height of the actor above the floor and are gone at this height (map units, 0 = always full size)")
 
 bool ModelWantsShadow(AActor* actor);

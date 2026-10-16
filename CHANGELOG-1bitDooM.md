@@ -57,3 +57,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Model drop shadows shrink with the height of the actor above the floor (about the actor's position) and disappear at gl_model_shadow_fade_height (default 128 map units, 0 = always full size; menu slider "Shadow gone at height").
 
 - Soft model drop shadow (gl_model_shadow_style 1, default): dithered black blob (texture SHDWBLOB) on the floor below the actor, always the same strength, shrinking with the height above the floor (gl_model_shadow_fade_height). Style 0 is the old flat silhouette. Which actors get a shadow is still chosen with gl_model_shadow_monsters / _decor / _player.
+
+- Soft shadow is now a smooth black-to-transparent gradient (no dither pattern), drawn with alpha blending and linear filtering.

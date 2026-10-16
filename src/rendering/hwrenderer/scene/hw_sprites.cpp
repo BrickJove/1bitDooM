@@ -322,7 +322,7 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 			RenderModel(&renderer, x, y, z, modelframe, actor, Net_ModifyObjectFrac(actor, di->Viewpoint.TicFrac));
 			state.SetVertexBuffer(screen->mVertexData);
 
-			// soft drop shadow (dithered black blob, texture SHDWBLOB)
+			// soft drop shadow (black blob with a smooth alpha fall-off, texture SHDWBLOB)
 			if (gl_model_shadow_style == 1 && actor != nullptr && !modelframe->isVoxel)
 			{
 				if (screen->BuffersArePersistent())
@@ -337,10 +337,11 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 				FGameTexture *blob = blobId.isValid() ? TexMan.GetGameTexture(blobId) : nullptr;
 				if (shadowvertex >= 0 && blob != nullptr)
 				{
-					state.SetMaterial(blob, UF_Sprite, 0, CLAMP_NOFILTER, NO_TRANSLATION, -1, nullptr);
+					state.SetMaterial(blob, UF_Sprite, 0, CLAMP_XY, NO_TRANSLATION, -1, nullptr);
 					state.SetRenderStyle(STYLE_Translucent);
 					state.SetTextureMode(TM_NORMAL);
-					state.AlphaFunc(Alpha_GEqual, 0.5f);
+					state.AlphaFunc(Alpha_GEqual, 0.01f);
+					state.SetDepthMask(false);
 					state.SetObjectColor(0xffffffff);
 					state.SetNormal(0, 0, 0);
 					state.SetLightIndex(-1);
@@ -349,6 +350,8 @@ void HWSprite::DrawSprite(HWDrawInfo *di, FRenderState &state, bool translucent)
 					state.SetDepthBias(-1, -128);
 					state.Draw(DT_TriangleStrip, shadowvertex, 4);
 					state.ClearDepthBias();
+					state.SetDepthMask(true);
+					state.AlphaFunc(Alpha_GEqual, 0.5f);
 					state.SetNoOutline(false);
 				}
 			}

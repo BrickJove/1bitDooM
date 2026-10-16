@@ -969,7 +969,7 @@ OptionValue VanillaTrans
 OptionValue "ModelShadowStyle"
 {
 	0, "Flat silhouette"
-	1, "Soft dithered blob"
+	1, "Soft blob"
 }
 
 OptionMenu "VideoOptions" protected
