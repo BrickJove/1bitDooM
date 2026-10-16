@@ -106,3 +106,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Cvar `gl_model_shadow_map_debug`: meldet in der Konsole, wenn sich ändert, wie viele Lichter / schattenwerfende Modelle / Schattenkarten es gibt.
 
 - Modell-Schattenkarte: von den Lichtern, die ein Modell erreichen, kommt das dem Spieler nächste zuerst; es zählen nur Modelle bis 4096 Einheiten vom Spieler. (Vorher konnten zwei Lichter irgendwo in der Map die beiden Karten belegen.)
+
+- `gl_model_shadow_map_debug` meldet jetzt ausführlicher (warum Modelle ausscheiden: zu weit vom Spieler, außerhalb jeder Lichtreichweite, kein 3D-Modell; Position und Radius des Lichts jeder Schattenkarte) und bei jedem Wechsel, auch wenn keine Karte entsteht.

@@ -30,6 +30,16 @@
 #include "hwrenderer/postprocessing/hw_postprocess.h"
 #include "hwrenderer/postprocessing/hw_postprocess_cvars.h"
 
+static void ModelShadowReport(const FString &text)
+{
+	static FString last;
+	if (text != last)
+	{
+		last = text;
+		Printf("%s\n", text.GetChars());
+	}
+}
+
 void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 {
 	SceneShadowFrame &f = sceneShadowFrame;
@@ -76,6 +86,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		double ticFrac;
 	};
 	TArray<Info> infos;
+	int nWanted = 0, nFarPlayer = 0, nNoLight = 0, nNoModel = 0;
 	{
 		auto it = di->Level->GetThinkerIterator<AActor>();
 		AActor *a;
@@ -85,8 +96,12 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				continue;
 			if (!WantsModelShadow(a))
 				continue;
+			nWanted++;
 			if ((a->Pos() - di->Viewpoint.Pos).LengthSquared() > 4096.0 * 4096.0)
+			{
+				nFarPlayer++;
 				continue;	// far away from the player: not worth a shadow
+			}
 			DVector3 pos = a->InterpolatedPosition(di->Viewpoint.TicFrac);
 			float r = (float)max(a->radius, a->Height * 0.5) + 8.f;
 			float cx = (float)pos.X, cy = (float)(pos.Z + a->Height * 0.5), cz = (float)pos.Y;
@@ -97,14 +112,20 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				near = dx * dx + dy * dy + dz * dz < (lights[li].radius + r) * (lights[li].radius + r);
 			}
 			if (!near)
+			{
+				nNoLight++;
 				continue;
+			}
 			int spritenum = a->sprite;
 			DVector2 sprscale = a->InterpolatedScale(di->Viewpoint.TicFrac);
 			if (a->player != nullptr)
 				P_CheckPlayerSprite(a, spritenum, sprscale);
 			FSpriteModelFrame *smf = FindModelFrame(a, spritenum, a->frame, !!(a->flags & MF_DROPPED));
 			if (smf == nullptr)
+			{
+				nNoModel++;
 				continue;
+			}
 			Info in;
 			in.actor = a; in.smf = smf;
 			in.x = (float)pos.X; in.y = (float)pos.Y; in.z = (float)pos.Z;
@@ -119,14 +140,16 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 	{
 		if (gl_model_shadow_map_debug)
 		{
-			static int lastLights = -1;
-			if (lastLights != (int)lights.Size() + 1) { lastLights = (int)lights.Size() + 1; Printf("Model shadows: %d lights, no casting model within reach of a light\n", (int)lights.Size()); }
+			FString t;
+			t.Format("Model shadows: %d lights; models that want a shadow: %d (too far from the player: %d, out of reach of every light: %d, without 3D model: %d), none left", (int)lights.Size(), nWanted, nFarPlayer, nNoLight, nNoModel);
+			ModelShadowReport(t);
 		}
 		return;
 	}
 
 	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 2);
 	int usedMaps = 0;
+	int pickedCount[2] = { 0, 0 };
 
 	// the lights that reach a model, the closest ones first (distance to the nearest model minus the radius of the light)
 	TArray<int> order;
@@ -246,19 +269,22 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		vp.loadMatrix(proj.get());
 		vp.multMatrix(view.get());
 		memcpy(f.ModelVP[usedMaps], vp.get(), sizeof(float) * 16);
+		pickedCount[usedMaps] = (int)picked.Size();
 		usedMaps++;
 	}
 
 	f.ModelShadowActive = usedMaps > 0;
 	if (gl_model_shadow_map_debug)
 	{
-		static int lastKey = -1;
-		int key = ((int)lights.Size() * 1000 + (int)infos.Size()) * 100 + (int)order.Size() * 10 + usedMaps;
-		if (key != lastKey)
+		FString t;
+		t.Format("Model shadows: %d lights, %d casting models (of %d that want one: %d too far from the player, %d out of reach, %d without 3D model), %d lights reach a model, %d maps rendered", (int)lights.Size(), (int)infos.Size(), nWanted, nFarPlayer, nNoLight, nNoModel, (int)order.Size(), usedMaps);
+		for (int m = 0; m < usedMaps; m++)
 		{
-			lastKey = key;
-			Printf("Model shadows: %d lights in the map, %d casting models near a light, %d lights reach a model, %d maps rendered\n", (int)lights.Size(), (int)infos.Size(), (int)order.Size(), usedMaps);
+			FString u;
+			u.Format("; map %d: light at %.0f %.0f %.0f radius %.0f, %d models", m, f.ModelLight[m][0], f.ModelLight[m][1], f.ModelLight[m][2], f.ModelLight[m][3], pickedCount[m]);
+			t += u;
 		}
+		ModelShadowReport(t);
 	}
 	// the caller binds its own viewpoint again afterwards
 }
