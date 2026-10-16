@@ -1133,9 +1133,6 @@ void HWDrawInfo::DrawScene(int drawmode)
 	}
 	auto& RenderState = *screen->RenderState();
 
-	if (drawmode == DM_MAINVIEW && recursion == 0)
-		modelShadowCasters.Clear();
-
 	RenderState.SetDepthMask(true);
 	if (!gl_no_skyclear) portalState.RenderFirstSkyPortal(recursion, this, RenderState);
 

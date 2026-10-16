@@ -19,6 +19,10 @@
 #include "models.h"
 #include "actor.h"
 #include "actorinlines.h"
+#include "g_levellocals.h"
+#include "d_net.h"
+#include "d_player.h"
+#include "r_utility.h"
 #include "v_video.h"
 #include "matrix.h"
 #include "hwrenderer/postprocessing/hw_postprocess.h"
@@ -31,32 +35,61 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 	for (int i = 0; i < 2; i++)
 		f.ModelLight[i][3] = 0.f;
 
-	if (!gl_model_shadow_map || !gl_scene_shadow || !f.Valid || modelShadowCasters.Size() == 0)
-	{
-		modelShadowCasters.Clear();
+	if (!gl_model_shadow_map || !gl_scene_shadow || !f.Valid)
 		return;
-	}
 
+	// all models that can cast a shadow, near one of the lights (also those that are not on the screen: their shadow can be)
 	struct Info
 	{
 		AActor *actor;
+		FSpriteModelFrame *smf;
+		float x, y, z;		// position as RenderModel wants it (map coordinates)
 		float cx, cy, cz;	// centre in render space (x = X, y = Z up, z = Y)
 		float r;		// radius of a sphere around the model
+		double ticFrac;
 	};
 	TArray<Info> infos;
-	for (auto &c : modelShadowCasters)
 	{
-		AActor *a = c.actor;
-		if (a == nullptr || (a->ObjectFlags & OF_EuthanizeMe))
-			continue;
-		Info in;
-		in.actor = a;
-		in.cx = (float)a->X();
-		in.cy = (float)(a->Z() + a->Height * 0.5);
-		in.cz = (float)a->Y();
-		in.r = (float)max(a->radius, a->Height * 0.5) + 8.f;
-		infos.Push(in);
+		auto it = di->Level->GetThinkerIterator<AActor>();
+		AActor *a;
+		while ((a = it.Next()) != nullptr)
+		{
+			if ((a->ObjectFlags & OF_EuthanizeMe) || (a->renderflags & RF_INVISIBLE) || a->sprite == 0 || a->Sector == nullptr)
+				continue;
+			if (!WantsModelShadow(a))
+				continue;
+			DVector3 pos = a->InterpolatedPosition(di->Viewpoint.TicFrac);
+			float r = (float)max(a->radius, a->Height * 0.5) + 8.f;
+			float cx = (float)pos.X, cy = (float)(pos.Z + a->Height * 0.5), cz = (float)pos.Y;
+			bool near = false;
+			for (int li = 0; li < 3 && !near; li++)
+			{
+				if (f.Light[li][3] <= 0.f)
+					continue;
+				float dx = cx - f.Light[li][0], dy = cy - f.Light[li][1], dz = cz - f.Light[li][2];
+				near = dx * dx + dy * dy + dz * dz < (f.Light[li][3] + r) * (f.Light[li][3] + r);
+			}
+			if (!near)
+				continue;
+			int spritenum = a->sprite;
+			DVector2 sprscale = a->InterpolatedScale(di->Viewpoint.TicFrac);
+			if (a->player != nullptr)
+				P_CheckPlayerSprite(a, spritenum, sprscale);
+			FSpriteModelFrame *smf = FindModelFrame(a, spritenum, a->frame, !!(a->flags & MF_DROPPED));
+			if (smf == nullptr)
+				continue;
+			Info in;
+			in.actor = a; in.smf = smf;
+			in.x = (float)pos.X; in.y = (float)pos.Y; in.z = (float)pos.Z;
+			in.cx = cx; in.cy = cy; in.cz = cz; in.r = r;
+			in.ticFrac = Net_ModifyObjectFrac(a, di->Viewpoint.TicFrac);
+			infos.Push(in);
+			if (infos.Size() >= 128)
+				break;
+		}
 	}
+	if (infos.Size() == 0)
+		return;
 
 	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 2);
 	int usedMaps = 0;
@@ -135,14 +168,8 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		FHWModelRenderer renderer(di, state, -1);
 		for (unsigned k = 0; k < picked.Size(); k++)
 		{
-			for (auto &c : modelShadowCasters)
-			{
-				if (c.actor == infos[picked[k]].actor)
-				{
-					RenderModelShadowCaster(&renderer, c.x, c.y, c.z, c.smf, c.actor, c.ticFrac);
-					break;
-				}
-			}
+			const Info &in = infos[picked[k]];
+			RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac);
 		}
 		state.SetVertexBuffer(screen->mVertexData);
 		state.SetColorMask(true);
@@ -161,6 +188,5 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 	}
 
 	f.ModelShadowActive = usedMaps > 0;
-	modelShadowCasters.Clear();
 	// the caller binds its own viewpoint again afterwards
 }

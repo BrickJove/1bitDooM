@@ -51,7 +51,6 @@ CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// m
 extern bool hudModelOutlineAllowed;
 // The far-model inner outline is off for non-solid actors only (decals, graffiti, blood, corpses, items); every solid actor gets it.
 bool modelInnerOutlineClass = false;
-TArray<ModelShadowCaster> modelShadowCasters;
 bool modelShadowOnly = false;	// set while drawing the first person player: only the drop shadow is drawn
 
 // Weapon hull outline (player's 3D weapon only): on/off, width in screen pixels, colour.
@@ -96,7 +95,7 @@ EXTERN_CVAR(Bool, gl_scene_shadow)
 EXTERN_CVAR(Bool, gl_scene_shadow_sun)
 EXTERN_CVAR(Bool, gl_model_shadow_map)
 
-static bool WantsModelShadow(AActor* actor)
+bool WantsModelShadow(AActor* actor)
 {
 	if (actor->flags & MF_MISSILE) return false;
 	if (!(actor->RenderStyle == DefaultRenderStyle())) return false;	// translucent / fuzzy / invisible actors cast no shadow
@@ -156,10 +155,6 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		if (blackModel) renderer->EndBlack();
 	}
 
-	// shadow map of the dynamic lights: replayed by hw_modelshadow.cpp after the scene
-	if (gl_model_shadow_map && gl_scene_shadow && (gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor) && modelShadowCasters.Size() < 256)
-		modelShadowCasters.Push({ x, y, z, smf, actor, ticFrac });
-
 	if ((gl_model_shadow_monsters || gl_model_shadow_decor || gl_model_shadow_player) && WantsModelShadow(actor))
 	{
 		// Style 1: the shadow is projected onto the floor along the direction from the nearest dynamic light through the
@@ -172,9 +167,12 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
 		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
 		bool mapShadow = gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive;
-		bool lit = !sunLit && !mapShadow && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
+		bool nearLight = gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
+		bool lit = !sunLit && !mapShadow && nearLight;
 		float shadowScale = 1.f;
-		if (!lit && !sunLit && gl_model_shadow_fade_height > 0.f)
+		if (mapShadow && nearLight && !sunLit)
+			shadowScale = 0.f;	// the shadow map of this light replaces the drop shadow
+		if (shadowScale > 0.f && !lit && !sunLit && gl_model_shadow_fade_height > 0.f)
 		{
 			float height = (float)(actor->Z() - actor->floorz);
 			shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);

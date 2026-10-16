@@ -113,15 +113,7 @@ void BSPWalkCircle(FLevelLocals *Level, float x, float y, float radiusSquared, c
 void RenderModel(FModelRenderer* renderer, float x, float y, float z, FSpriteModelFrame* smf, AActor* actor, double ticFrac);
 // Jupiter3D: draws only the geometry of the model (for the shadow maps)
 void RenderModelShadowCaster(FModelRenderer* renderer, float x, float y, float z, FSpriteModelFrame* smf, AActor* actor, double ticFrac);
-// Jupiter3D: models drawn this frame that cast shadows (collected by RenderModel, used by hw_modelshadow.cpp)
-struct ModelShadowCaster
-{
-	float x, y, z;
-	FSpriteModelFrame* smf;
-	AActor* actor;
-	double ticFrac;
-};
-extern TArray<ModelShadowCaster> modelShadowCasters;
+bool WantsModelShadow(AActor* actor);
 void RenderHUDModel(FModelRenderer* renderer, DPSprite* psp, FVector3 translation, FVector3 rotation, FVector3 rotation_pivot, FSpriteModelFrame *smf, double ticFrac);
 
 struct CalcModelFrameInfo
