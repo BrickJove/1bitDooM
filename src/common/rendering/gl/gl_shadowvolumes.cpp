@@ -186,6 +186,43 @@ bool RenderSceneShadowVolumes(FGLRenderBuffers *buffers)
 		}
 	}
 
+	if (gl_scene_shadow_debug != 0 && gl_scene_shadow_sun && f.SunPosValid)
+	{
+		// CPU check: which plates lie between the camera and the sun (the camera is in the shadow of them)
+		const float C[3] = { f.InvView[0][3], f.InvView[1][3], f.InvView[2][3] };
+		const float *Lp = f.SunPos;
+		int blockers = 0, roofs = 0;
+		for (const auto &pl : f.Volumes->plates)
+		{
+			double dc = pl.normal[0] * (C[0] - pl.point[0]) + pl.normal[1] * (C[1] - pl.point[1]) + pl.normal[2] * (C[2] - pl.point[2]);
+			double dl = pl.normal[0] * (Lp[0] - pl.point[0]) + pl.normal[1] * (Lp[1] - pl.point[1]) + pl.normal[2] * (Lp[2] - pl.point[2]);
+			if ((dc > 0) == (dl > 0) || dc == dl)
+				continue;
+			double t = dc / (dc - dl);
+			double H[3] = { C[0] + (Lp[0] - C[0]) * t, C[1] + (Lp[1] - C[1]) * t, C[2] + (Lp[2] - C[2]) * t };
+			int ax = 0;
+			double an = fabs(pl.normal[0]);
+			if (fabs(pl.normal[1]) > an) { ax = 1; an = fabs(pl.normal[1]); }
+			if (fabs(pl.normal[2]) > an) ax = 2;
+			int u = (ax + 1) % 3, v = (ax + 2) % 3;
+			bool inside = false;
+			for (unsigned i = 0, j = pl.count - 1; i < pl.count; j = i++)
+			{
+				const float *a = &f.Volumes->vertices[(pl.first + i) * 8];
+				const float *b = &f.Volumes->vertices[(pl.first + j) * 8];
+				if ((a[v] > H[v]) != (b[v] > H[v]) && H[u] < (b[u] - a[u]) * (H[v] - a[v]) / (b[v] - a[v]) + a[u])
+					inside = !inside;
+			}
+			if (inside) { blockers++; if (pl.roof) roofs++; }
+		}
+		static int lastBlockers = -2;
+		if (blockers != lastBlockers)
+		{
+			lastBlockers = blockers;
+			Printf("Shadow volumes CPU check: camera (%.0f %.0f %.0f), sun (%.0f %.0f %.0f): %d plates block the sun (%d roofs)\n", C[0], C[1], C[2], Lp[0], Lp[1], Lp[2], blockers, roofs);
+		}
+	}
+
 	struct Source { float pos[3]; float radius; bool sun; };
 	Source sources[4];
 	int numSources = 0;
