@@ -107,11 +107,6 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			if (!WantsModelShadow(a))
 				continue;
 			nWanted++;
-			if ((a->Pos() - di->Viewpoint.Pos).LengthSquared() > 4096.0 * 4096.0)
-			{
-				nFarPlayer++;
-				continue;	// far away from the player: not worth a shadow
-			}
 			DVector3 pos = a->InterpolatedPosition(di->Viewpoint.TicFrac);
 			float r = (float)max(a->radius, a->Height * 0.5) + 8.f;
 			float cx = (float)pos.X, cy = (float)(pos.Z + a->Height * 0.5), cz = (float)pos.Y;
