@@ -225,6 +225,68 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 	return 0.0;
 }
 
+// Walls: the depth buffer position is imprecise, so the pixel is moved along its exact view ray onto the plane of the
+// nearest map line that is parallel to the wall (the line is looked up in the cell of the pixel and the cell in front).
+void SnapWall(inout vec3 P, inout vec3 n, float cell)
+{
+	vec3 cam = vec3(CamX.w, CamY.w, CamZ.w);
+	vec3 vd = normalize(P - cam);
+	vec2 n2 = normalize(n.xz);
+	float best = 1.0e9;
+	vec2 bA = vec2(0.0), bM = vec2(0.0);
+	for (int ci = 0; ci < 2; ci++)
+	{
+		ivec2 c = CellOf(ci == 0 ? P : P + n * (cell * 2.0));
+		if (c.x < 0)
+			continue;
+		int count = int(CellValue(c, 3) + 0.5);
+		int start = int(CellValue(c, 2) + 0.5);
+		for (int k = 0; k < 48; k++)
+		{
+			if (k >= count)
+				break;
+			int idx = start + k;
+			int id = int(texelFetch(ListTexture, ivec2(idx & 4095, idx >> 12), 0).x + 0.5);
+			ivec2 base = ivec2((id & 511) * 8, id >> 9);
+			vec2 A = vec2(texelFetch(LineTexture, base, 0).x, texelFetch(LineTexture, base + ivec2(1, 0), 0).x);
+			vec2 B = vec2(texelFetch(LineTexture, base + ivec2(2, 0), 0).x, texelFetch(LineTexture, base + ivec2(3, 0), 0).x);
+			vec2 sv = B - A;
+			float len = length(sv);
+			if (len < 1.0e-3)
+				continue;
+			vec2 d = sv / len;
+			if (abs(dot(d, n2)) > 0.2)
+				continue;	// not parallel to this wall
+			vec2 m = vec2(-d.y, d.x);
+			if (dot(m, n2) < 0.0)
+				m = -m;
+			float along = dot(d, P.xz - A);
+			if (along < -8.0 || along > len + 8.0)
+				continue;
+			float dist = abs(dot(m, P.xz - A));
+			if (dist < best)
+			{
+				best = dist;
+				bA = A;
+				bM = m;
+			}
+		}
+	}
+	if (best < 10.0)
+	{
+		float den = dot(bM, vd.xz);
+		if (abs(den) > 1.0e-4)
+		{
+			float tt = dot(bM, bA - cam.xz) / den;
+			if (tt > 0.0)
+			{
+				P = cam + vd * tt;
+				n = vec3(bM.x, 0.0, bM.y);
+			}
+		}
+	}
+}
+
 // world position (render space) of a depth buffer pixel
 vec3 PosAt(ivec2 p)
 {
@@ -269,6 +331,8 @@ void main()
 		n = normalize(inverse(mat3(CamX.xyz, CamY.xyz, CamZ.xyz)) * n);
 	else
 		n = vec3(0.0);
+
+	bool mapNormal = hasNormal;
 
 	// Models and sprites have no normal in the buffer (they are marked with 1,1,1): take it from the neighbouring depth
 	// values so they can be lit / shadowed like the map (surface facing away from the light = black).
@@ -317,6 +381,8 @@ void main()
 			P = cam + vd * tt;
 		}
 	}
+	if (mapNormal && abs(n.y) < 0.3 && dot(n.xz, n.xz) > 0.5)
+		SnapWall(P, n, cell);
 	vec3 Q = P + n * (cell * 1.5);
 	gOrigin = Q;
 	// start point of the rays, a bit off the surface
