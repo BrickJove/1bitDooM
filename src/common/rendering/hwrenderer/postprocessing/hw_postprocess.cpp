@@ -884,7 +884,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
 	u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], sun ? 1.f : 0.f);
-	u.Light = FVector4((float)lights, 0.f, 0.f, 0.f);	// x = number of lights, the lights are in the light texture
+	u.Light = FVector4((float)lights, (float)gl_scene_shadow_fence_range, 0.f, 0.f);	// x = number of lights, the lights are in the light texture
 
 	renderstate->PushGroup("sceneshadow");
 	renderstate->Clear();

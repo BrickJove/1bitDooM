@@ -38,7 +38,7 @@ const float NearSkyMark = 90000.0;
 ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
-vec3 gOrigin = vec3(0.0);	// start of the ray: fence shadows only count close to the receiver (far away the lattice aliases)
+vec3 gOrigin = vec3(0.0);	// start of the ray: fence shadows only count within gl_scene_shadow_fence_range of the receiver
 
 ivec2 ClampPos(ivec2 p)
 {
@@ -152,7 +152,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
 			return true;
 		int fence = int(texelFetch(LineTexture, base + ivec2(6, 0), 0).x + 0.5) - 1;
-		if (fence >= 0 && gFences && distance(mix(S0, S1, clamp(t, 0.0, 1.0)), gOrigin) < 128.0 && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
+		if (fence >= 0 && gFences && distance(mix(S0, S1, clamp(t, 0.0, 1.0)), gOrigin) < (Light.y > 0.5 ? Light.y : 1.0e9) && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
 			return true;
 	}
 	return false;

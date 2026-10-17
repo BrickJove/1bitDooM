@@ -144,3 +144,5 @@ CUSTOM_CVAR(Bool, gl_paltonemap_reverselookup, true, CVAR_ARCHIVE | CVAR_NOINITC
 CVAR(Float, gl_menu_blur, -1.0f, CVAR_ARCHIVE)
 
 CVAR(Float, gl_model_shadow_max_length, 512.f, CVAR_ARCHIVE)
+
+CVARD(Float, gl_scene_shadow_fence_range, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How far from the surface that receives it the shadow of a fence (transparent middle texture) reaches, 0 = unlimited (only the light decides the length)")

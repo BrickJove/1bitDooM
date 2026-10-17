@@ -168,3 +168,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten: fließender Übergang zwischen Lichtkarten-Schatten und einfachem flachen Schatten. Am Rand des Wirkradius schrumpft der Karten-Schatten, während der flache Schatten im gleichen Maß wächst (statt harter Umschaltung).
 
 - Modellschatten: nie zwei Schatten pro Actor. Ein Model mit Lichtkarten-Schatten hat keinen flachen Schatten; zum Rand des Wirkradius wird es in der Schattenkarte immer weiter zu den Füßen hin gestaucht, sein Schatten wird zum flachen Schatten direkt unter dem Model, und dieser übernimmt, sobald das Model den Radius verlässt. (Ersetzt das Überblenden von vorhin.)
+
+- Zaunschatten: die feste Grenze von 128 Einheiten ist weg. Neu `gl_scene_shadow_fence_range` (Standard 0 = unbegrenzt): Der Schatten der transparenten Textur (Zaun, Gitter) in Schwarz reicht so weit, wie das Licht ihn wirft, auf Wänden, Boden und Models; nur die Länge auf dem Boden hängt von der Lichtquelle ab. Ein Wert > 0 begrenzt die Reichweite wieder (gegen Moiré in der Ferne).
