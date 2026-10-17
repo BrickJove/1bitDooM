@@ -920,7 +920,10 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
 	g_ModelShadowRenderCalls++;
-	if (!gl_scene_shadow || !f.Valid || !f.ModelShadowActive || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || sceneWidth <= 0 || sceneHeight <= 0)
+		return;
+	// test mode 5 runs even without active lights, to prove the shader is executed
+	if (!(gl_model_shadow_map_debug_light == 5) && (!f.Valid || !f.ModelShadowActive))
 		return;
 
 	ModelShadowUniforms u;

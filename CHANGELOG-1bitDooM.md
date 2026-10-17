@@ -150,3 +150,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten, neuer Ansatz für die Wände: Zu jeder Modell-Schattenkarte gibt es jetzt eine Welt-Karte (gleicher Cubemap-Atlas), in die die Level-Geometrie aus dem Level-Mesh der Engine (Wände, Böden, Decken) aus Sicht des Lichts gerendert wird (nur wenn sich Licht oder Level ändern). `modelshadow.fp` prüft pro Pixel, ob das Licht ihn sieht (nichts Näheres in der Welt-Karte) und lässt nur dann den Schatten eines Models zu. Eine Wand begrenzt damit die Reichweite des Schattens. Der Strahltest durch die Höhenkarte ist entfernt. Grenzen: das Level-Mesh ist statisch (Türen/Aufzüge sind in der Ausgangshöhe), nur OpenGL.
 
 - Diagnose: Konsolenbefehl `gl_model_shadow_info` gibt Build-Zeit der Exe, Anzahl der Shader-Aufrufe und den Zustand der Modell-/Welt-Schattenkarten aus.
+
+- Testmodus `gl_model_shadow_map_debug_light 5` läuft jetzt auch ohne aktive Lichter/Modelle (vorher kehrte der Shader dann sofort zurück und der Test zeigte nichts).
