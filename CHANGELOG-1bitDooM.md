@@ -154,3 +154,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Testmodus `gl_model_shadow_map_debug_light 5` läuft jetzt auch ohne aktive Lichter/Modelle (vorher kehrte der Shader dann sofort zurück und der Test zeigte nichts).
 
 - Modellschatten: Flächen, die das Licht nur streift (Winkel zur Lichtrichtung unter ca. 1°; ein größerer Wert schnitt lange Schatten ab), bekommen keinen Modellschatten mehr, weil der Tiefenvergleich dort instabil ist und flimmerte (z. B. Oberseite einer erhöhten Sektorfläche auf Lichthöhe).
+
+- Modellschatten: niedrige Hindernisse (Stufen, flache Erhöhungen; Blockierpunkt weniger als 32 Einheiten über dem Pixel dahinter) unterbrechen den Schatten nicht mehr; echte Wände beenden ihn weiterhin.

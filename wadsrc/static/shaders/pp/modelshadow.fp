@@ -107,6 +107,11 @@ int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map
 			// surfaces seen at a grazing angle change their depth a lot within one texel
 			float slope = dot(n, n) > 0.5 ? 1.0 / max(abs(dot(n, d)) / dist, 0.1) : 3.0;
 			hidden = m > wall + texel * (1.0 + slope) + 4.0;
+			// a low obstacle (step, low platform) does not end the shadow: only things that rise
+			// clearly above the pixel behind them hide it (height of the blocking point above the pixel)
+			float blockerY = L.y + d.y * (wall / m);
+			if (blockerY - P.y < 32.0)
+				hidden = false;
 		}
 	}
 
