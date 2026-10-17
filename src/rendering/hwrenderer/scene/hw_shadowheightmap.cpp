@@ -426,10 +426,10 @@ struct ShadowHeightMap
 	}
 
 	// Lines with a (transparent) middle texture, e.g. chain link fences: their texture alpha casts a shadow.
-	// Per fence 16 floats, and an atlas with the alpha masks (64 x 64 per texture, 16 x 16 slots).
+	// Per fence 16 floats, and an atlas with the alpha masks (256 x 256 per texture, 8 x 8 slots).
 	void BuildFences(FLevelLocals *level)
 	{
-		const int Slot = 128, SlotsPerRow = 16, MaxSlots = SlotsPerRow * SlotsPerRow, MaxFences = 8192;
+		const int Slot = 256, SlotsPerRow = 8, MaxSlots = SlotsPerRow * SlotsPerRow, MaxFences = 8192;
 		lineFence.assign(level->lines.Size(), 0);
 		std::vector<float> params;
 		std::vector<float> atlas((size_t)Slot * SlotsPerRow * Slot * SlotsPerRow, 0.f);

@@ -29,7 +29,7 @@ layout(binding=3) uniform sampler2D ListTexture;	// line indices
 layout(binding=4) uniform sampler2D LineTexture;	// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
 layout(binding=7) uniform sampler2D LightTexture;	// 3 rows: x, y, z, radius of the nearest dynamic lights
-layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 128 x 128 per fence texture
+layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 256 x 256 per fence texture (8 x 8 slots)
 
 const float Big = 100000.0;
 const float SolidOff = 200000.0;	// solid cells: floor channel = height + SolidOff
@@ -125,8 +125,17 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, bool solid)
 	if (solid)
 		return FenceParam(id, 14) >= 0.25;	// lattice finer than the pixel: the mean coverage of the texture decides
 	float uu = fract((u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7));
-	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + min(vec2(uu, v) * 128.0, vec2(127.0));
-	return texelFetch(FenceAtlasTexture, ivec2(apos), 0).x > 0.2;
+	// bilinear coverage inside the slot (256 x 256 texels): smooth edges of the lattice instead of blocks
+	vec2 slot0 = vec2(FenceParam(id, 8), FenceParam(id, 9));
+	vec2 fp = clamp(vec2(uu, v) * 256.0 - 0.5, vec2(0.0), vec2(254.999));
+	ivec2 ip = ivec2(floor(fp));
+	vec2 fr = fp - vec2(ip);
+	ivec2 b0 = ivec2(slot0) + ip;
+	float c00 = texelFetch(FenceAtlasTexture, b0, 0).x;
+	float c10 = texelFetch(FenceAtlasTexture, b0 + ivec2(1, 0), 0).x;
+	float c01 = texelFetch(FenceAtlasTexture, b0 + ivec2(0, 1), 0).x;
+	float c11 = texelFetch(FenceAtlasTexture, b0 + ivec2(1, 1), 0).x;
+	return mix(mix(c00, c10, fr.x), mix(c01, c11, fr.x), fr.y) > 0.3;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
@@ -180,7 +189,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 					{
 						// the footprint of the pixel at the fence against the texel size of the texture (from its scale, so
 						// 128 and 256 pixel high or scaled textures all work): finer than the pixel = mean coverage
-						float texel = max(1.0 / (FenceParam(fence, 7) * 128.0), FenceParam(fence, 5) / 128.0);
+						float texel = max(1.0 / (FenceParam(fence, 7) * 256.0), FenceParam(fence, 5) / 256.0);
 						bool solid = gFoot * 0.7 > texel;
 						if (FencePixel(fence, A, B, up, Hp.y, solid))
 							return true;
