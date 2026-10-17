@@ -231,7 +231,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 	renderer->EndDrawModel(actor->RenderStyle, smf_flags);
 }
 
-void RenderModelShadowCaster(FModelRenderer *renderer, float x, float y, float z, FSpriteModelFrame *smf, AActor *actor, double ticFrac)
+void RenderModelShadowCaster(FModelRenderer *renderer, float x, float y, float z, FSpriteModelFrame *smf, AActor *actor, double ticFrac, float squash, float baseY)
 {
 	int smf_flags = smf->getFlags(actor->modelData);
 	FTranslationID translation = NO_TRANSLATION;
@@ -239,6 +239,17 @@ void RenderModelShadowCaster(FModelRenderer *renderer, float x, float y, float z
 		translation = actor->Translation;
 
 	VSMatrix objectToWorldMatrix = smf->ObjectToWorldMatrix(actor, x, y, z, ticFrac);
+	if (squash < 0.999f)
+	{
+		// squash the model towards its feet (render space: y is up): the shadow then falls as if the light were higher
+		VSMatrix sq;
+		sq.loadIdentity();
+		sq.translate(0.f, baseY, 0.f);
+		sq.scale(1.f, squash, 1.f);
+		sq.translate(0.f, -baseY, 0.f);
+		sq.multMatrix(objectToWorldMatrix);
+		objectToWorldMatrix = sq;
+	}
 	const DVector2 scale = actor->InterpolatedScale(ticFrac);
 	float orientation = scale.X * smf->xscale * scale.X * smf->yscale * scale.Y * smf->zscale;
 

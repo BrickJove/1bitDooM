@@ -112,7 +112,7 @@ void BSPWalkCircle(FLevelLocals *Level, float x, float y, float radiusSquared, c
 
 void RenderModel(FModelRenderer* renderer, float x, float y, float z, FSpriteModelFrame* smf, AActor* actor, double ticFrac);
 // Jupiter3D: draws only the geometry of the model (for the shadow maps)
-void RenderModelShadowCaster(FModelRenderer* renderer, float x, float y, float z, FSpriteModelFrame* smf, AActor* actor, double ticFrac);
+void RenderModelShadowCaster(FModelRenderer* renderer, float x, float y, float z, FSpriteModelFrame* smf, AActor* actor, double ticFrac, float squash = 1.f, float baseY = 0.f);
 bool WantsModelShadow(AActor* actor);
 void RenderHUDModel(FModelRenderer* renderer, DPSprite* psp, FVector3 translation, FVector3 rotation, FVector3 rotation_pivot, FSpriteModelFrame *smf, double ticFrac);
 

@@ -300,7 +300,20 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			for (unsigned k = 0; k < inFace.Size(); k++)
 			{
 				const Info &in = infos[inFace[k]];
-				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac);
+				// the length of the shadow is limited: a model is squashed towards its feet so that the whole shadow
+				// (feet to head) stays within gl_model_shadow_max_length, as if the light were higher
+				float squash = 1.f;
+				const float maxLen = gl_model_shadow_max_length;
+				if (maxLen > 1.f)
+				{
+					float h = ly - in.z;	// height of the light above the feet
+					float hm = (float)in.actor->Height;
+					float ddx = in.x - lx, ddy = in.y - lz;
+					float D = sqrtf(ddx * ddx + ddy * ddy);
+					if (h > 1.f && hm > 1.f)
+						squash = clamp(h / (hm * (1.f + D / maxLen)), 0.15f, 1.f);
+				}
+				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac, squash, in.z);
 			}
 		}
 		state.SetVertexBuffer(screen->mVertexData);
