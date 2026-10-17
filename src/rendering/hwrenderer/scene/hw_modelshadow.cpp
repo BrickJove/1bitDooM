@@ -313,6 +313,14 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 					if (h > 1.f && hm > 1.f)
 						squash = clamp(h / (hm * (1.f + D / maxLen)), 0.15f, 1.f);
 				}
+				// at the edge of the radius of the light the shadow shrinks to nothing instead of vanishing at once
+				{
+					float fx = in.cx - lx, fy = in.cy - ly, fz = in.cz - lz;
+					float fd = sqrtf(fx * fx + fy * fy + fz * fz);
+					squash *= clamp((radius - fd) / (radius * 0.3f), 0.f, 1.f);
+					if (squash < 0.03f)
+						continue;
+				}
 				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac, squash, in.z);
 			}
 		}

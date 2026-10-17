@@ -160,3 +160,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - `gl_model_shadow_info` listet jetzt Position (x, y, Höhe) und Reichweite jeder Schattenkarte, damit man sieht, welche Lampe welche Karte (`gl_model_shadow_map_debug_light 1..4`) hat.
 
 - Modellschatten: Länge begrenzt, Schatten bleibt ganz (CVar `gl_model_shadow_max_length`, Standard 512, 0 = aus). Ursache der fehlenden Teile: Liegt die Lampe niedriger als der Kopf des Models (z. B. Lampenhöhe 16 oder 64), fällt der Schatten der oberen Körperteile nie auf den Boden, sondern ins Unendliche. Jetzt wird das Model in der Schattenkarte zu den Füßen hin gestaucht (Faktor aus Lichthöhe, Modellhöhe und Abstand), so als wäre die Lampe höher: Der Schatten reicht dann höchstens ca. 512 Einheiten und ist vom Fuß bis zum Kopf vollständig.
+
+- Modellschatten: Am Rand des Wirkradius einer Lampe (letzte 30 %) schrumpft der Schatten des Models zu den Füßen hin zusammen, statt schlagartig zu verschwinden.
