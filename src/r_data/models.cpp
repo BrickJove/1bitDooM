@@ -108,6 +108,7 @@ bool WantsModelShadow(AActor* actor)
 	if (gl_model_shadow_skip_nonsolid && !(actor->flags & MF_SOLID)) return false;
 	return true;
 }
+bool ModelHasMapShadow(const AActor* actor);
 // the dynamic light that shines on the actor most (hw_spritelight.cpp)
 bool ModelShadowLight(AActor* actor, DVector3& pos);
 
@@ -166,7 +167,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			&& actor->Sector != nullptr && (actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum
 				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
 		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
-		bool mapShadow = gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive;
+		bool mapShadow = gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive && ModelHasMapShadow(actor);
 		bool nearLight = gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
 		bool lit = !sunLit && !mapShadow && nearLight;
 		float shadowScale = 1.f;
@@ -177,8 +178,9 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			float height = (float)(actor->Z() - actor->floorz);
 			shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
 		}
-		// with the model shadow maps on the flat drop shadow is gone altogether: only the lights of the map cast shadows
-		if (gl_model_shadow_map && gl_scene_shadow)
+		// with the model shadow maps on, models that a light map shadows have no flat drop shadow
+		// (models that no light map shadows keep the flat drop shadow)
+		if (gl_model_shadow_map && gl_scene_shadow && mapShadow)
 			shadowScale = 0.f;
 		if (shadowScale > 0.05f)
 		{

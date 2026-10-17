@@ -42,7 +42,26 @@ static void ModelShadowReport(const FString &text)
 	}
 }
 
+#include <unordered_set>
+
+// the models that got a shadow from a light map in the last frame: they need no flat drop shadow
+static std::unordered_set<const AActor *> g_coveredModels, g_buildModels;
+
+bool ModelHasMapShadow(const AActor *actor)
+{
+	return g_coveredModels.count(actor) != 0;
+}
+
+static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state);
+
 void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
+{
+	g_buildModels.clear();
+	RenderModelShadowMapsImpl(di, state);
+	g_coveredModels.swap(g_buildModels);
+}
+
+static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 {
 	SceneShadowFrame &f = sceneShadowFrame;
 	f.ModelShadowActive = false;
@@ -321,6 +340,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 					if (squash < 0.03f)
 						continue;
 				}
+				g_buildModels.insert(in.actor);
 				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac, squash, in.z);
 			}
 		}
