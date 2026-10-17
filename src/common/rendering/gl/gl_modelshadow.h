@@ -2,8 +2,8 @@
 
 // Jupiter3D: depth maps of the models seen from the dynamic lights (OpenGL only)
 
-constexpr int GL_MODELSHADOW_MAPS = 2;
-constexpr int GL_MODELSHADOW_SIZE = 1024;
+constexpr int GL_MODELSHADOW_MAPS = 4;
+constexpr int GL_MODELSHADOW_SIZE = 768;
 
 // binds the depth map of a light as render target (and clears it); restores nothing yet
 bool GLModelShadow_Begin(int index);

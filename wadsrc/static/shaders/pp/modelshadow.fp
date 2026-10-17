@@ -13,6 +13,8 @@ layout(binding=0) uniform sampler2D DepthTexture;
 layout(binding=1) uniform sampler2D NormalTexture;
 layout(binding=2) uniform sampler2D ShadowMap0;
 layout(binding=3) uniform sampler2D ShadowMap1;
+layout(binding=4) uniform sampler2D ShadowMap2;
+layout(binding=5) uniform sampler2D ShadowMap3;
 
 ivec2 gTexSize;
 
@@ -99,7 +101,8 @@ void main()
 
 	vec3 P = PosAt(ipos);
 	if (InModelShadow(P, Light0, NearFar.xy, ShadowMap0) ||
-	    InModelShadow(P, Light1, NearFar.zw, ShadowMap1))
+	    InModelShadow(P, Light1, NearFar.zw, ShadowMap1) ||
+	    InModelShadow(P, Light2, NearFar2.xy, ShadowMap2) || InModelShadow(P, Light3, NearFar2.zw, ShadowMap3))
 	{
 		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;

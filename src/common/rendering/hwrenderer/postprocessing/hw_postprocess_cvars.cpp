@@ -82,7 +82,7 @@ CVARD(Float, gl_scene_shadow_sun_height, 1024.f, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 CVARD(Bool, gl_model_shadow_map, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "OpenGL: models cast shadows on floors, walls and models from the dynamic lights of the map (shadow maps)")
 CVARD(Bool, gl_model_shadow_map_debug, false, 0, "Print what the model shadow maps do (lights, models, maps) when it changes")
 CVARD(Bool, gl_model_shadow_map_unlimited, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model shadows are not limited by the radius of the light (long shadows)")
-CVARD(Int, gl_model_shadow_map_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (1..2) whose light the models block")
+CVARD(Int, gl_model_shadow_map_lights, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (1..4) whose light the models block")
 CVARD(Int, gl_scene_shadow_lights, 2, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..3) that cast screen space shadows")
 CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
 CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = hard black shadow, 1 = binary dither pattern with gl_scene_shadow_strength as coverage")

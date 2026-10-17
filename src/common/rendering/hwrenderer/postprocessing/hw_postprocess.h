@@ -56,7 +56,7 @@ enum class ETonemapMode : uint8_t
 
 enum class PPFilterMode { Nearest, Linear };
 enum class PPWrapMode { Clamp, Repeat };
-enum class PPTextureType { CurrentPipelineTexture, NextPipelineTexture, PPTexture, SceneColor, SceneFog, SceneNormal, SceneDepth, SwapChain, ShadowMap, ModelShadow0, ModelShadow1 };
+enum class PPTextureType { CurrentPipelineTexture, NextPipelineTexture, PPTexture, SceneColor, SceneFog, SceneNormal, SceneDepth, SwapChain, ShadowMap, ModelShadow0, ModelShadow1, ModelShadow2, ModelShadow3 };
 
 class PPTextureInput
 {
@@ -175,7 +175,7 @@ public:
 
 	void SetInputModelShadow(int index, int map)
 	{
-		SetInputSpecialType(index, map == 0 ? PPTextureType::ModelShadow0 : PPTextureType::ModelShadow1, PPFilterMode::Nearest, PPWrapMode::Clamp);
+		SetInputSpecialType(index, map == 0 ? PPTextureType::ModelShadow0 : map == 1 ? PPTextureType::ModelShadow1 : map == 2 ? PPTextureType::ModelShadow2 : PPTextureType::ModelShadow3, PPFilterMode::Nearest, PPWrapMode::Clamp);
 	}
 
 	void SetInputSpecialType(int index, PPTextureType type, PPFilterMode filter = PPFilterMode::Nearest, PPWrapMode wrap = PPWrapMode::Clamp)
@@ -834,9 +834,9 @@ struct SceneShadowFrame
 	float TopLimit = 0;			// highest floor / ceiling: rays above it are free
 	// shadow maps of the models (OpenGL only, hw_modelshadow.cpp)
 	bool ModelShadowActive = false;		// the maps of this frame are valid
-	float ModelLight[2][4] = {};		// render space position + radius of the light of each map, radius 0 = map unused
+	float ModelLight[4][4] = {};		// render space position + radius of the light of each map, radius 0 = map unused
 	float ModelVP[2][16] = {};		// light projection * view (render space -> clip space), column major
-	float ModelNearFar[2][2] = {};
+	float ModelNearFar[4][2] = {};
 };
 extern SceneShadowFrame sceneShadowFrame;
 
@@ -880,6 +880,9 @@ struct ModelShadowUniforms
 	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]
 	FVector4 Light0;	// xyz = position, w = radius (0 = unused)
 	FVector4 Light1;
+	FVector4 Light2;
+	FVector4 Light3;
+	FVector4 NearFar2;	// x, y = near, far of map 2; z, w = of map 3
 	FVector4 NearFar;	// x, y = near, far of map 0; z, w = of map 1
 	FVector4 VP0_0, VP0_1, VP0_2, VP0_3;	// rows of the light projection * view of map 0
 	FVector4 VP1_0, VP1_1, VP1_2, VP1_3;
@@ -896,6 +899,9 @@ struct ModelShadowUniforms
 			{ "ProjParams", UniformType::Vec4, offsetof(ModelShadowUniforms, ProjParams) },
 			{ "Light0", UniformType::Vec4, offsetof(ModelShadowUniforms, Light0) },
 			{ "Light1", UniformType::Vec4, offsetof(ModelShadowUniforms, Light1) },
+			{ "Light2", UniformType::Vec4, offsetof(ModelShadowUniforms, Light2) },
+			{ "Light3", UniformType::Vec4, offsetof(ModelShadowUniforms, Light3) },
+			{ "NearFar2", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar2) },
 			{ "NearFar", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar) },
 			{ "VP0_0", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_0) },
 			{ "VP0_1", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_1) },

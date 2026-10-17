@@ -908,6 +908,14 @@ void GLPPRenderState::Draw()
 		case PPTextureType::ModelShadow1:
 			GLModelShadow_BindTexture(1, index);
 			break;
+
+		case PPTextureType::ModelShadow2:
+			GLModelShadow_BindTexture(2, index);
+			break;
+
+		case PPTextureType::ModelShadow3:
+			GLModelShadow_BindTexture(3, index);
+			break;
 		}
 	}
 

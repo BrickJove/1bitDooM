@@ -124,3 +124,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten: ein Model wirft nur für Lichter einen Schatten, in deren echtem Radius es steht (nicht mehr für alle Lichter, wenn die Schattenlänge unbegrenzt ist). Die Länge des Schattens bleibt unbegrenzt.
 
 - Modellschatten: statt eines Sichtfelds, das sich je Frame an die Models anpasst (Flimmern, Models fielen heraus), hat jedes Licht jetzt eine feste Karte in 6 Richtungen (wie eine Cubemap, Atlas 3x2 Kacheln à 1024). Jedes Model wird nur in die Kacheln gezeichnet, die es berührt. Weniger Zeichenarbeit bei vielen Models, kein Springen mehr. modelshadow.fp rechnet die Kachel und Position analytisch aus (geprüft gegen VSMatrix).
+
+- Modellschatten: bis zu 4 Lichter mit eigener Karte (vorher 2), Standard `gl_model_shadow_map_lights 4` (Menü-Slider 1-4). Die Auswahl, welche Lichter eine Karte bekommen (wenn mehr als 4 ein Model erreichen), hängt nicht mehr von der Entfernung zum Spieler ab, sondern von der Zahl der erreichten Models. Kachelgröße 768.

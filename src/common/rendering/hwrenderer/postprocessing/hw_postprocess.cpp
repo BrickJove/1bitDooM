@@ -917,6 +917,9 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
 	u.Light0 = FVector4(f.ModelLight[0][0], f.ModelLight[0][1], f.ModelLight[0][2], f.ModelLight[0][3]);
 	u.Light1 = FVector4(f.ModelLight[1][0], f.ModelLight[1][1], f.ModelLight[1][2], f.ModelLight[1][3]);
+	u.Light2 = FVector4(f.ModelLight[2][0], f.ModelLight[2][1], f.ModelLight[2][2], f.ModelLight[2][3]);
+	u.Light3 = FVector4(f.ModelLight[3][0], f.ModelLight[3][1], f.ModelLight[3][2], f.ModelLight[3][3]);
+	u.NearFar2 = FVector4(f.ModelNearFar[2][0], f.ModelNearFar[2][1], f.ModelNearFar[3][0], f.ModelNearFar[3][1]);
 	u.NearFar = FVector4(f.ModelNearFar[0][0], f.ModelNearFar[0][1], f.ModelNearFar[1][0], f.ModelNearFar[1][1]);
 	// the matrices are column major: row r of the matrix = elements r, r + 4, r + 8, r + 12
 	FVector4 *rows0[4] = { &u.VP0_0, &u.VP0_1, &u.VP0_2, &u.VP0_3 };
@@ -938,6 +941,8 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->SetInputSceneNormal(1);
 	renderstate->SetInputModelShadow(2, 0);
 	renderstate->SetInputModelShadow(3, 1);
+	renderstate->SetInputModelShadow(4, 2);
+	renderstate->SetInputModelShadow(5, 3);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();

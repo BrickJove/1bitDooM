@@ -44,7 +44,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 {
 	SceneShadowFrame &f = sceneShadowFrame;
 	f.ModelShadowActive = false;
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 4; i++)
 		f.ModelLight[i][3] = 0.f;
 
 	if (!gl_model_shadow_map || !gl_scene_shadow || !f.Valid)
@@ -143,9 +143,9 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		return;
 	}
 
-	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 2);
+	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 4);
 	int usedMaps = 0;
-	int pickedCount[2] = { 0, 0 };
+	int pickedCount[4] = { 0, 0, 0, 0 };
 
 	// the lights that reach a model, the closest ones first (distance to the nearest model minus the radius of the light)
 	TArray<int> order;
@@ -160,9 +160,15 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		}
 		if (best < 0.f)
 		{
-			// among the lights that reach a model: the one that is closest to the player first
-			float cdx = lights[li].x - (float)di->Viewpoint.Pos.X, cdy = lights[li].y - (float)di->Viewpoint.Pos.Z, cdz = lights[li].z - (float)di->Viewpoint.Pos.Y;
-			best = sqrtf(cdx * cdx + cdy * cdy + cdz * cdz) - lights[li].radius;
+			// among the lights that reach a model: the ones that reach the most models first (does not depend on the player)
+			int count = 0;
+			for (unsigned i = 0; i < infos.Size(); i++)
+			{
+				float dx = infos[i].cx - lights[li].x, dy = infos[i].cy - lights[li].y, dz = infos[i].cz - lights[li].z;
+				if (sqrtf(dx * dx + dy * dy + dz * dz) < lights[li].radius + infos[i].r)
+					count++;
+			}
+			best = -(float)count;
 			unsigned pos = order.Size();
 			order.Push((int)li);
 			scores.Push(best);
