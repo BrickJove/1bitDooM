@@ -486,7 +486,7 @@ struct ShadowHeightMap
 								mx = std::max(mx, (double)px[(size_t)(yy * bw + xx) * 4 + 3]);
 								cnt++;
 							}
-						atlas[(size_t)(ay + sy) * (Slot * SlotsPerRow) + ax + sx] = cnt ? (float)(mx / 255.0) : 0.f;	// any opaque pixel in the block: thin wires stay in the silhouette
+						atlas[(size_t)(ay + sy) * (Slot * SlotsPerRow) + ax + sx] = cnt ? (float)(sum / cnt / 255.0) : 0.f;	// coverage of the block (textures with more than 128 pixels are averaged down; the shader counts 20 % as a wire)
 					}
 				}
 			}

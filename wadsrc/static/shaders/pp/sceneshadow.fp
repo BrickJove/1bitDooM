@@ -38,6 +38,8 @@ const float NearSkyMark = 90000.0;
 ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
+float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
+float gRayLen = 1.0;	// length of the ray of the shadow test
 vec3 gOrigin = vec3(0.0);	// start of the ray: fence shadows only count within gl_scene_shadow_fence_range of the receiver
 
 ivec2 ClampPos(ivec2 p)
@@ -121,7 +123,7 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y)
 		return false;
 	float uu = fract((u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7));
 	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + min(vec2(uu, v) * 128.0, vec2(127.0));
-	return texelFetch(FenceAtlasTexture, ivec2(apos), 0).x > 0.5;
+	return texelFetch(FenceAtlasTexture, ivec2(apos), 0).x > 0.2;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
@@ -152,8 +154,20 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
 			return true;
 		int fence = int(texelFetch(LineTexture, base + ivec2(6, 0), 0).x + 0.5) - 1;
-		if (fence >= 0 && gFences && distance(mix(S0, S1, clamp(t, 0.0, 1.0)), gOrigin) < (Light.y > 0.5 ? Light.y : 1.0e9) && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
-			return true;
+		if (fence >= 0 && gFences)
+		{
+			float dh = distance(mix(S0, S1, clamp(t, 0.0, 1.0)), gOrigin);
+			if (dh < (Light.y > 0.5 ? Light.y : 1.0e9))
+			{
+				// Where the lattice is finer than the pixel it only makes noise: the footprint of the pixel at the fence
+				// (it shrinks towards the light) must not be larger than two texels of the fence texture. The texel size
+				// comes from the scale of the texture, so 128 and 256 pixel high or scaled textures all work.
+				float footprint = gFoot * clamp((gRayLen - dh) / max(gRayLen, 1.0), 0.0, 1.0);
+				float texel = max(1.0 / (FenceParam(fence, 7) * 128.0), FenceParam(fence, 5) / 128.0);
+				if (footprint <= 2.0 * texel && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
+					return true;
+			}
+		}
 	}
 	return false;
 }
@@ -164,6 +178,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 {
 	float cell = 1.0 / Grid.z;
+	gRayLen = len;
 	float t0 = cell * 0.25;
 	if (len <= t0)
 		return 0.0;
@@ -385,6 +400,14 @@ void main()
 		SnapWall(P, n, cell);
 	vec3 Q = P + n * (cell * 1.5);
 	gOrigin = Q;
+	// no fence shadows on ceilings; the footprint of the pixel on its surface (long on floors seen at a grazing angle)
+	if (hasNormal && n.y < -0.5)
+		gFences = false;
+	{
+		vec3 camp = vec3(CamX.w, CamY.w, CamZ.w);
+		float pix = z * ProjParams.w * 2.0 / float(gTexSize.y);
+		gFoot = pix / (hasNormal ? max(abs(dot(n, normalize(P - camp))), 0.05) : 1.0);
+	}
 	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
 	float topLimit = float(packedBits >> 10);
