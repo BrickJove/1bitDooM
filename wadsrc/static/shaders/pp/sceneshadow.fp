@@ -214,7 +214,14 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 				{
 					float st = dot(nf, A - gSurf.xz) / dn;
 					vec3 Hp = gSurf + dir * st;
-					float up = dot(Hp.xz - A, sd) / flen;
+					// sideways the shadow fans out like a real projection from the light (the ray pixel -> light decides where
+					// the pixel meets the fence), only the height keeps the parallel projection above, so that the end of the
+					// shadow is the top edge of the fence
+					vec2 rd = gLightPos.xz - gSurf.xz;
+					float rn = dot(nf, rd);
+					float up = -1.0;
+					if (abs(rn) > 1.0e-4)
+						up = dot(gSurf.xz + rd * (dot(nf, A - gSurf.xz) / rn) - A, sd) / flen;
 					if (st > 0.0 && up >= 0.0 && up <= 1.0)
 					{
 						if (FencePixel(fence, A, B, up, Hp.y, gPix))

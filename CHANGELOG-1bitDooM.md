@@ -184,3 +184,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Zaunschatten: Ober- und Unterkante stimmen mit der Zaun-Textur überein. Die Projektion startete bisher vom angehobenen Strahlursprung (1,5 Gitterzellen über der Fläche, dadurch um bis zu ein paar Dutzend Einheiten nach oben versetzt); jetzt startet sie von der exakten Position des Pixels auf der Fläche.
 
 - Zaunschatten: Der Schatten bildet jetzt den ganzen Zaun ab (Unterkante bis Oberkante). Liegt die Lichtquelle tiefer als die Zaunoberkante, wurde die Oberkante bisher ins Unendliche bzw. unter den Boden geworfen. Die Projektionsrichtung hat jetzt einen Mindest-Höhenwinkel (Schattenlänge höchstens 2x Zaunhöhe).
+
+- Zaunschatten: Seitlich fächert der Schatten jetzt wie eine echte Projektion von der Lichtquelle auf (Strahl Pixel -> Licht bestimmt die Stelle am Zaun); die Höhe (Länge auf dem Boden, Ende = Zaunoberkante) bleibt wie bisher.
