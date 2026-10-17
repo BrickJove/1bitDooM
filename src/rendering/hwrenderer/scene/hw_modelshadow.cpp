@@ -14,6 +14,7 @@
 #include "hw_viewpointbuffer.h"
 #include "hw_viewpointuniforms.h"
 #include "hw_modelshadow.h"
+#include "p_local.h"
 #include "flatvertices.h"
 #include "hw_models.h"
 #include "models.h"
@@ -51,7 +52,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		return;
 
 	// the lights of the map (not only the ones nearest to the camera: the model that casts can be far away from it)
-	struct Lt { float x, y, z, radius, reach; };	// radius: which models the light affects, reach: how far their shadows go
+	struct Lt { float x, y, z, radius, reach; AActor *source; };	// radius: which models the light affects, reach: how far their shadows go
 	TArray<Lt> lights;
 	{
 		int group = (di->Viewpoint.camera && di->Viewpoint.camera->Sector) ? di->Viewpoint.camera->Sector->PortalGroup : 0;
@@ -64,7 +65,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				continue;
 			DVector3 lp = light->PosRelative(group);
 			float height = (float)lp.Z;	// as the light is placed in the map
-			Lt lt = { (float)lp.X, height, (float)lp.Y, radius, (gl_model_shadow_map_unlimited ? 8192.f : radius) };
+			Lt lt = { (float)lp.X, height, (float)lp.Y, radius, (gl_model_shadow_map_unlimited ? 8192.f : radius), light->target };
 			lights.Push(lt);
 			if (lights.Size() >= 512)
 				break;
@@ -194,6 +195,9 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			float d = sqrtf(dx * dx + dy * dy + dz * dz);
 			if (d > radius + infos[i].r || d < infos[i].r * 0.5f)
 				continue;	// out of reach, or the light is inside the model
+			// a model behind a wall (seen from the light) casts nothing
+			if (L.source != nullptr && L.source != infos[i].actor && !P_CheckSight(L.source, infos[i].actor, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY | SF_SEEPASTSHOOTABLELINES))
+				continue;
 			picked.Push(i);
 		}
 		if (picked.Size() == 0)

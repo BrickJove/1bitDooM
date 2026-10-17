@@ -128,3 +128,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten: bis zu 4 Lichter mit eigener Karte (vorher 2), Standard `gl_model_shadow_map_lights 4` (Menü-Slider 1-4). Die Auswahl, welche Lichter eine Karte bekommen (wenn mehr als 4 ein Model erreichen), hängt nicht mehr von der Entfernung zum Spieler ab, sondern von der Zahl der erreichten Models. Kachelgröße 768.
 
 - Modellschatten gehen nicht mehr durch Wände: modelshadow.fp marschiert für jedes Pixel mit Modellschatten den Strahl zum Licht durch die Höhenkarte des Levels (Trace/SnapWall aus sceneshadow.fp, ohne Zäune). Liegt eine Wand, ein Boden oder eine Decke dazwischen, zählt das Licht für dieses Pixel nicht. Neue Eingaben: CellTex/ListTex/LineTex (Bindings 2-4), Schattenkarten jetzt auf 5-8, Uniform `Grid`.
+
+- Modellschatten: ein Model, das vom Licht aus (P_CheckSight vom Lichtobjekt) hinter einer Wand liegt, wirft für dieses Licht keinen Schatten mehr.
