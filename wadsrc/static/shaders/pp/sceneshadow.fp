@@ -38,6 +38,7 @@ const float NearSkyMark = 90000.0;
 ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
+float gPix = 1.0;	// world size of one screen pixel at the depth of the pixel
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
 float gRayLen = 1.0;	// length of the ray of the shadow test
 vec3 gLightPos = vec3(0.0);	// the source of the ray of the shadow test
@@ -190,7 +191,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 						// the footprint of the pixel at the fence against the texel size of the texture (from its scale, so
 						// 128 and 256 pixel high or scaled textures all work): finer than the pixel = mean coverage
 						float texel = max(1.0 / (FenceParam(fence, 7) * 256.0), FenceParam(fence, 5) / 256.0);
-						bool solid = gFoot * 0.7 > texel;
+						bool solid = gPix > 1.5 * texel;
 						if (FencePixel(fence, A, B, up, Hp.y, solid))
 							return true;
 					}
@@ -436,6 +437,7 @@ void main()
 	{
 		vec3 camp = vec3(CamX.w, CamY.w, CamZ.w);
 		float pix = z * ProjParams.w * 2.0 / float(gTexSize.y);
+		gPix = pix;
 		gFoot = pix / (hasNormal ? max(abs(dot(n, normalize(P - camp))), 0.05) : 1.0);
 	}
 	// start point of the rays, a bit off the surface
