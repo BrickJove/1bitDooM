@@ -178,3 +178,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Zaunschatten: genauer. Die Alpha-Maske jeder Zaun-Textur hat jetzt 256 x 256 Texel (vorher 128 x 128; 8 x 8 Slots = bis zu 64 verschiedene Zaun-Texturen pro Karte) und wird bilinear abgetastet (glatte Kanten statt Blöcke). Das Texel-Maß für die Auflösungsprüfung stimmt mit der neuen Größe überein. Maße und Skalierung (z. B. 256 x 512 Pixel mit Skalierung 2) kommen wie beim Zaun selbst aus der Textur und den Skalierungen der Seite.
 
 - Zaunschatten: der Ersatz „durchgehend schwarz“ für Gitter, die feiner als ein Pixel sind, gilt nur noch bei Pixelgröße > 1,5 Texel der Zaun-Textur (vorher mit Streckfaktor für flache Blickwinkel, wodurch ganze Böden schwarz wurden).
+
+- Zaunschatten in der Ferne: keine schwarze Fläche mehr. Ist das Gitter feiner als ein Pixel, wird die Deckung des Pixel-Fußabdrucks (bis 4 x 4 Abtastungen, bei sehr großem Fußabdruck die mittlere Deckung der Textur) mit der Bayer-Rasterung des Bildschirms als regelmäßiges Grau dargestellt, nah bleibt es das exakte Gitter in Schwarz.

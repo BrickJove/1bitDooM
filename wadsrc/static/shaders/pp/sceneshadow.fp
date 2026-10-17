@@ -38,6 +38,7 @@ const float NearSkyMark = 90000.0;
 ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
+float gBayer = 0.5;	// ordered dither threshold of the screen pixel
 float gPix = 1.0;	// world size of one screen pixel at the depth of the pixel
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
 float gRayLen = 1.0;	// length of the ray of the shadow test
@@ -109,9 +110,25 @@ float FenceParam(int id, int k)
 	return texelFetch(FenceParamTexture, ivec2(k, id), 0).x;
 }
 
-// Does the ray piece S0 -> S1 hit an opaque pixel of the fence texture at the crossing point (A -> B is the line, u the
-// position along it)?
-bool FencePixel(int id, vec2 A, vec2 B, float u, float y, bool solid)
+// Coverage (0 or 1) of the fence texture at uv inside the slot of the atlas (256 x 256 texels, bilinear, 30 % = wire)
+float FenceCover(vec2 slot0, vec2 uv)
+{
+	vec2 fp = clamp(uv * 256.0 - 0.5, vec2(0.0), vec2(254.999));
+	ivec2 ip = ivec2(floor(fp));
+	vec2 fr = fp - vec2(ip);
+	ivec2 b0 = ivec2(slot0) + ip;
+	float c00 = texelFetch(FenceAtlasTexture, b0, 0).x;
+	float c10 = texelFetch(FenceAtlasTexture, b0 + ivec2(1, 0), 0).x;
+	float c01 = texelFetch(FenceAtlasTexture, b0 + ivec2(0, 1), 0).x;
+	float c11 = texelFetch(FenceAtlasTexture, b0 + ivec2(1, 1), 0).x;
+	return mix(mix(c00, c10, fr.x), mix(c01, c11, fr.x), fr.y) > 0.3 ? 1.0 : 0.0;
+}
+
+// Does the fence texture cast a shadow at the crossing point (A -> B is the line, u the position along it, y the height)?
+// foot = world size of the footprint of the pixel. Finer than a texel: the exact texture. Larger: the coverage of the
+// footprint (a few samples, for very large footprints the mean coverage of the texture) is shown with the ordered dither
+// of the screen, so far away the lattice becomes a regular gray instead of noise or a black area.
+bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 {
 	bool wrap = FenceParam(id, 10) > 0.5;
 	if (!wrap && (y < FenceParam(id, 11) || y > FenceParam(id, 12)))
@@ -123,20 +140,26 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, bool solid)
 		v = fract(v);
 	else if (v < 0.0 || v > 1.0)
 		return false;
-	if (solid)
-		return FenceParam(id, 14) >= 0.25;	// lattice finer than the pixel: the mean coverage of the texture decides
-	float uu = fract((u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7));
-	// bilinear coverage inside the slot (256 x 256 texels): smooth edges of the lattice instead of blocks
+	float uu = (u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7);
 	vec2 slot0 = vec2(FenceParam(id, 8), FenceParam(id, 9));
-	vec2 fp = clamp(vec2(uu, v) * 256.0 - 0.5, vec2(0.0), vec2(254.999));
-	ivec2 ip = ivec2(floor(fp));
-	vec2 fr = fp - vec2(ip);
-	ivec2 b0 = ivec2(slot0) + ip;
-	float c00 = texelFetch(FenceAtlasTexture, b0, 0).x;
-	float c10 = texelFetch(FenceAtlasTexture, b0 + ivec2(1, 0), 0).x;
-	float c01 = texelFetch(FenceAtlasTexture, b0 + ivec2(0, 1), 0).x;
-	float c11 = texelFetch(FenceAtlasTexture, b0 + ivec2(1, 1), 0).x;
-	return mix(mix(c00, c10, fr.x), mix(c01, c11, fr.x), fr.y) > 0.3;
+	// footprint in texels of the texture (the scale of the texture and of the wall is in the parameters)
+	float fpU = foot * FenceParam(id, 7) * 256.0;
+	float fpV = foot * 256.0 / max(FenceParam(id, 5), 1.0);
+	float fpT = max(fpU, fpV);
+	if (fpT <= 1.0)
+		return FenceCover(slot0, vec2(fract(uu), v)) > 0.5;
+	int nU = int(clamp(ceil(fpU), 1.0, 4.0)), nV = int(clamp(ceil(fpV), 1.0, 4.0));
+	float c = 0.0;
+	for (int i = 0; i < nU; i++)
+		for (int j = 0; j < nV; j++)
+		{
+			vec2 o = (vec2((float(i) + 0.5) / float(nU), (float(j) + 0.5) / float(nV)) - 0.5) * vec2(fpU, fpV) / 256.0;
+			c += FenceCover(slot0, vec2(fract(uu + o.x + 4.0), clamp(v + o.y, 0.0, 1.0)));
+		}
+	c /= float(nU * nV);
+	if (fpT > 4.0)
+		c = mix(c, FenceParam(id, 14), clamp((fpT - 4.0) / 4.0, 0.0, 1.0));
+	return c > gBayer;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
@@ -188,11 +211,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 					float up = dot(Hp.xz - A, sd) / flen;
 					if (st > 0.0 && up >= 0.0 && up <= 1.0)
 					{
-						// the footprint of the pixel at the fence against the texel size of the texture (from its scale, so
-						// 128 and 256 pixel high or scaled textures all work): finer than the pixel = mean coverage
-						float texel = max(1.0 / (FenceParam(fence, 7) * 256.0), FenceParam(fence, 5) / 256.0);
-						bool solid = gPix > 1.5 * texel;
-						if (FencePixel(fence, A, B, up, Hp.y, solid))
+						if (FencePixel(fence, A, B, up, Hp.y, gPix))
 							return true;
 					}
 				}
@@ -442,6 +461,7 @@ void main()
 	}
 	// start point of the rays, a bit off the surface
 	float jitter = Bayer4(ipos);
+	gBayer = jitter;
 	float topLimit = float(packedBits >> 10);
 
 	// A pixel is black when at least one source reaches it (sun: pixel under an open sky, light: within its radius)
