@@ -537,5 +537,7 @@ void main()
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 3) & 127) / 100.0;
 	float a = dither ? ((shadow > 0.15 ? density : 0.0) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
+	if (Light.z > 0.5 && ((ipos.x + ipos.y) & 1) != 0)
+		a = 0.0;	// checkerboard style: only every second pixel of the shadow is black
 	FragColor = vec4(0.0, 0.0, 0.0, a);
 }

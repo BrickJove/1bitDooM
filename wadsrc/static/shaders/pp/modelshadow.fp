@@ -208,6 +208,8 @@ void main()
 		discard;
 	}
 
+	if (Flags.w > 0.5 && ((ipos.x + ipos.y) & 1) != 0)
+		discard;	// checkerboard style: only every second pixel of the shadow is black
 	if (s0 == 1 || s1 == 1 || s2 == 1 || s3 == 1)
 	{
 		FragColor = vec4(0.0, 0.0, 0.0, 1.0);

@@ -186,3 +186,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Zaunschatten: Der Schatten bildet jetzt den ganzen Zaun ab (Unterkante bis Oberkante). Liegt die Lichtquelle tiefer als die Zaunoberkante, wurde die Oberkante bisher ins Unendliche bzw. unter den Boden geworfen. Die Projektionsrichtung hat jetzt einen Mindest-Höhenwinkel (Schattenlänge höchstens 2x Zaunhöhe).
 
 - Zaunschatten: Seitlich fächert der Schatten jetzt wie eine echte Projektion von der Lichtquelle auf (Strahl Pixel -> Licht bestimmt die Stelle am Zaun); die Höhe (Länge auf dem Boden, Ende = Zaunoberkante) bleibt wie bisher.
+
+- Neue Schattenoption: `gl_scene_shadow_style 2` stellt Szenen-, Zaun- und Modellschatten als Schachbrettmuster dar (jedes zweite Pixel schwarz, die anderen durchsichtig) statt als geschlossene schwarze Fläche. 0 = schwarz, 1 = Dither mit Stärke, 2 = Schachbrett.
