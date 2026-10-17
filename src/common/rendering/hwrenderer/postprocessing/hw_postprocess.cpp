@@ -913,6 +913,9 @@ CCMD(gl_model_shadow_info)
 	Printf("1bitDooM model shadow build %s %s\n", __DATE__, __TIME__);
 	Printf("world depth maps: yes, shader calls: %d\n", g_ModelShadowRenderCalls);
 	Printf("gl_scene_shadow=%d gl_model_shadow_map=%d frame valid=%d models active=%d world maps=%d%d%d%d\n", (int)gl_scene_shadow, (int)gl_model_shadow_map, (int)f.Valid, (int)f.ModelShadowActive, (int)f.ModelWorld[0], (int)f.ModelWorld[1], (int)f.ModelWorld[2], (int)f.ModelWorld[3]);
+	for (int i = 0; i < 4; i++)
+		if (f.ModelLight[i][3] > 0.f)
+			Printf("map %d (debug_light %d): light at x=%.0f y=%.0f height=%.0f, reach %.0f\n", i, i + 1, f.ModelLight[i][0], f.ModelLight[i][2], f.ModelLight[i][1], f.ModelLight[i][3]);
 }
 
 // shadows of the models: pure black where a model lies between the pixel and a dynamic light
