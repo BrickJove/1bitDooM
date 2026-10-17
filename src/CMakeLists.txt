@@ -738,6 +738,7 @@ set (VULKAN_SOURCES
 	common/rendering/vulkan/textures/vk_imagetransition.cpp
 	common/rendering/vulkan/textures/vk_renderbuffers.cpp
 	common/rendering/vulkan/textures/vk_texture.cpp
+	common/rendering/vulkan/textures/vk_modelshadow.cpp
 	common/rendering/vulkan/textures/vk_framebuffer.cpp
 )
 

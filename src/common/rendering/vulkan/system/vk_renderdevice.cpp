@@ -43,6 +43,7 @@
 #include "vulkan/renderer/vk_descriptorset.h"
 #include "vulkan/renderer/vk_postprocess.h"
 #include "vulkan/renderer/vk_raytrace.h"
+#include "vulkan/textures/vk_modelshadow.h"
 #include "vulkan/renderer/vk_renderpass.h"
 #include "vulkan/renderer/vk_renderstate.h"
 #include "vulkan/shaders/vk_shader.h"
@@ -123,6 +124,8 @@ VulkanRenderDevice::VulkanRenderDevice(void *hMonitor, bool fullscreen, std::sha
 VulkanRenderDevice::~VulkanRenderDevice()
 {
 	vkDeviceWaitIdle(device->device); // make sure the GPU is no longer using any objects before RAII tears them down
+
+	mModelShadow.reset();
 
 	delete mVertexData;
 	delete mSkyData;
@@ -555,6 +558,38 @@ void VulkanRenderDevice::AmbientOccludeScene(float m5)
 void VulkanRenderDevice::SetSceneRenderTarget(bool useSSAO)
 {
 	mRenderState->SetRenderTarget(&GetBuffers()->SceneColor, GetBuffers()->SceneDepthStencil.View.get(), GetBuffers()->GetWidth(), GetBuffers()->GetHeight(), VK_FORMAT_R16G16B16A16_SFLOAT, GetBuffers()->GetSceneSamples());
+}
+
+VkModelShadow* VulkanRenderDevice::GetModelShadow()
+{
+	if (!mModelShadow)
+		mModelShadow.reset(new VkModelShadow(this));
+	return mModelShadow.get();
+}
+
+bool VulkanRenderDevice::BeginModelShadowMap(int index)
+{
+	return GetModelShadow()->Begin(index);
+}
+
+void VulkanRenderDevice::SetModelShadowWorld(const float *verts, unsigned nverts, const unsigned int *elems, unsigned nelems, const void *key)
+{
+	GetModelShadow()->SetWorld(verts, nverts, elems, nelems, key);
+}
+
+bool VulkanRenderDevice::RenderModelShadowWorld(int index, const float *lightPos, float farp, const float *faceVP)
+{
+	return GetModelShadow()->RenderWorld(index, lightPos, farp, faceVP);
+}
+
+void VulkanRenderDevice::SelectModelShadowFace(int face)
+{
+	GetModelShadow()->Face(face);
+}
+
+void VulkanRenderDevice::EndModelShadowMap()
+{
+	GetModelShadow()->End();
 }
 
 bool VulkanRenderDevice::RaytracingEnabled()

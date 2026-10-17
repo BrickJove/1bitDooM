@@ -943,16 +943,7 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	if (!gl_model_shadow_map_walls)
 		worldMask = 0;
 	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 5), (float)worldMask, gl_scene_shadow_style == 2 ? 1.f : 0.f);
-	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, gl_model_shadow_map_walls ? f.GridInvCell : 0.f, (float)clamp((int)ceilf(f.TopLimit) + 2, 0, 16383));
 	u.NearFar = FVector4(f.ModelNearFar[0][0], f.ModelNearFar[0][1], f.ModelNearFar[1][0], f.ModelNearFar[1][1]);
-	// the matrices are column major: row r of the matrix = elements r, r + 4, r + 8, r + 12
-	FVector4 *rows0[4] = { &u.VP0_0, &u.VP0_1, &u.VP0_2, &u.VP0_3 };
-	FVector4 *rows1[4] = { &u.VP1_0, &u.VP1_1, &u.VP1_2, &u.VP1_3 };
-	for (int r = 0; r < 4; r++)
-	{
-		*rows0[r] = FVector4(f.ModelVP[0][r], f.ModelVP[0][r + 4], f.ModelVP[0][r + 8], f.ModelVP[0][r + 12]);
-		*rows1[r] = FVector4(f.ModelVP[1][r], f.ModelVP[1][r + 4], f.ModelVP[1][r + 8], f.ModelVP[1][r + 12]);
-	}
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
 

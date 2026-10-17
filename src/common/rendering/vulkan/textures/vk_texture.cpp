@@ -21,6 +21,7 @@
 */
 
 #include "vk_texture.h"
+#include "vk_modelshadow.h"
 #include "vk_hwtexture.h"
 #include "vk_pptexture.h"
 #include "vk_renderbuffers.h"
@@ -117,6 +118,14 @@ VkTextureImage* VkTextureManager::GetTexture(const PPTextureType& type, PPTextur
 	else if (type == PPTextureType::ShadowMap)
 	{
 		return &Shadowmap;
+	}
+	else if (type >= PPTextureType::ModelShadow0 && type <= PPTextureType::ModelShadow3)
+	{
+		return fb->GetModelShadow()->GetModelTexture((int)type - (int)PPTextureType::ModelShadow0);
+	}
+	else if (type >= PPTextureType::ModelWorld0 && type <= PPTextureType::ModelWorld3)
+	{
+		return fb->GetModelShadow()->GetWorldTexture((int)type - (int)PPTextureType::ModelWorld0);
 	}
 	else if (type == PPTextureType::SwapChain)
 	{

@@ -37,6 +37,7 @@ class VkDescriptorSetManager;
 class VkRenderPassManager;
 class VkFramebufferManager;
 class VkRaytrace;
+class VkModelShadow;
 class VkRenderState;
 class VkStreamBuffer;
 class VkHardwareDataBuffer;
@@ -62,6 +63,7 @@ public:
 	VkDescriptorSetManager* GetDescriptorSetManager() { return mDescriptorSetManager.get(); }
 	VkRenderPassManager *GetRenderPassManager() { return mRenderPassManager.get(); }
 	VkRaytrace* GetRaytrace() { return mRaytrace.get(); }
+	VkModelShadow* GetModelShadow();
 	VkRenderState *GetRenderState() { return mRenderState.get(); }
 	VkPostprocess *GetPostprocess() { return mPostprocess.get(); }
 	VkRenderBuffers *GetBuffers() { return mActiveRenderBuffers; }
@@ -89,6 +91,13 @@ public:
 	void PostProcessScene(bool swscene, int fixedcm, float flash, const std::function<void()> &afterBloomDrawEndScene2D) override;
 	void AmbientOccludeScene(float m5) override;
 	void SetSceneRenderTarget(bool useSSAO) override;
+
+	// Jupiter3D: shadow maps of the models
+	bool BeginModelShadowMap(int index) override;
+	void SetModelShadowWorld(const float *verts, unsigned nverts, const unsigned int *elems, unsigned nelems, const void *key) override;
+	bool RenderModelShadowWorld(int index, const float *lightPos, float farp, const float *faceVP) override;
+	void SelectModelShadowFace(int face) override;
+	void EndModelShadowMap() override;
 	void SetLevelMesh(hwrenderer::LevelMesh* mesh) override;
 	void UpdateShadowMap() override;
 	void SetSaveBuffers(bool yes) override;
@@ -132,6 +141,7 @@ private:
 	std::unique_ptr<VkDescriptorSetManager> mDescriptorSetManager;
 	std::unique_ptr<VkRenderPassManager> mRenderPassManager;
 	std::unique_ptr<VkRaytrace> mRaytrace;
+	std::unique_ptr<VkModelShadow> mModelShadow;
 	std::unique_ptr<VkRenderState> mRenderState;
 
 	VkRenderBuffers *mActiveRenderBuffers = nullptr;

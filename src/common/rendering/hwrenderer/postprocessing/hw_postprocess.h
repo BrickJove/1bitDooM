@@ -877,7 +877,7 @@ struct SceneShadowUniforms
 };
 static_assert(sizeof(SceneShadowUniforms) == 128, "SceneShadowUniforms must stay within 128 bytes (Vulkan push constants)");
 
-// shadows of the models, from the depth maps seen from the dynamic lights (OpenGL only, any size: no push constants)
+// shadows of the models, from the depth maps seen from the dynamic lights (in Vulkan the uniforms are push constants: keep this small)
 struct ModelShadowUniforms
 {
 	FVector4 CamX;
@@ -889,11 +889,8 @@ struct ModelShadowUniforms
 	FVector4 Light2;
 	FVector4 Light3;
 	FVector4 Flags;		// x = 1: show where the wall test blocks a shadow (checkerboard), y = 1..4: show what the light of that map does not see
-	FVector4 Grid;		// xy = grid origin of the height map (map X, Y), z = 1 / cell size (0 = no height map), w = highest floor / ceiling
 	FVector4 NearFar2;	// x, y = near, far of map 2; z, w = of map 3
 	FVector4 NearFar;	// x, y = near, far of map 0; z, w = of map 1
-	FVector4 VP0_0, VP0_1, VP0_2, VP0_3;	// rows of the light projection * view of map 0
-	FVector4 VP1_0, VP1_1, VP1_2, VP1_3;
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -910,17 +907,8 @@ struct ModelShadowUniforms
 			{ "Light2", UniformType::Vec4, offsetof(ModelShadowUniforms, Light2) },
 			{ "Light3", UniformType::Vec4, offsetof(ModelShadowUniforms, Light3) },
 			{ "Flags", UniformType::Vec4, offsetof(ModelShadowUniforms, Flags) },
-			{ "Grid", UniformType::Vec4, offsetof(ModelShadowUniforms, Grid) },
 			{ "NearFar2", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar2) },
 			{ "NearFar", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar) },
-			{ "VP0_0", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_0) },
-			{ "VP0_1", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_1) },
-			{ "VP0_2", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_2) },
-			{ "VP0_3", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_3) },
-			{ "VP1_0", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_0) },
-			{ "VP1_1", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_1) },
-			{ "VP1_2", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_2) },
-			{ "VP1_3", UniformType::Vec4, offsetof(ModelShadowUniforms, VP1_3) },
 			{ "Scale", UniformType::Vec2, offsetof(ModelShadowUniforms, Scale) },
 			{ "Offset", UniformType::Vec2, offsetof(ModelShadowUniforms, Offset) }
 		};

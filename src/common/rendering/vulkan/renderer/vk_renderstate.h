@@ -71,6 +71,11 @@ public:
 	void EndRenderPass();
 	void EndFrame();
 
+	// Jupiter3D: temporary render target for the shadow maps of the models (see vk_modelshadow.cpp)
+	void PushRenderTarget();
+	void PopRenderTarget();
+	void FlushClearPass();
+
 protected:
 	void Apply(int dt);
 	void ApplyRenderPass(int dt);
@@ -143,6 +148,15 @@ protected:
 		VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
 		int DrawBuffers = 1;
 	} mRenderTarget;
+
+	struct SavedTarget
+	{
+		RenderTarget Target;
+		int ClearTargets = 0;
+		int ScissorX = 0, ScissorY = 0, ScissorWidth = -1, ScissorHeight = -1;
+		int ViewportX = 0, ViewportY = 0, ViewportWidth = -1, ViewportHeight = -1;
+		float DepthMin = 0.0f, DepthMax = 1.0f;
+	} mSavedTarget;
 };
 
 class VkRenderStateMolten : public VkRenderState

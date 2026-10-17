@@ -530,6 +530,40 @@ void VkRenderState::SetRenderTarget(VkTextureImage *image, VulkanImageView *dept
 	mRenderTarget.Samples = samples;
 }
 
+void VkRenderState::PushRenderTarget()
+{
+	EndRenderPass();
+	mSavedTarget.Target = mRenderTarget;
+	mSavedTarget.ClearTargets = mClearTargets;
+	mSavedTarget.ScissorX = mScissorX; mSavedTarget.ScissorY = mScissorY; mSavedTarget.ScissorWidth = mScissorWidth; mSavedTarget.ScissorHeight = mScissorHeight;
+	mSavedTarget.ViewportX = mViewportX; mSavedTarget.ViewportY = mViewportY; mSavedTarget.ViewportWidth = mViewportWidth; mSavedTarget.ViewportHeight = mViewportHeight;
+	mSavedTarget.DepthMin = mViewportDepthMin; mSavedTarget.DepthMax = mViewportDepthMax;
+}
+
+void VkRenderState::PopRenderTarget()
+{
+	EndRenderPass();
+	mRenderTarget = mSavedTarget.Target;
+	mClearTargets = mSavedTarget.ClearTargets;
+	mScissorX = mSavedTarget.ScissorX; mScissorY = mSavedTarget.ScissorY; mScissorWidth = mSavedTarget.ScissorWidth; mScissorHeight = mSavedTarget.ScissorHeight;
+	mViewportX = mSavedTarget.ViewportX; mViewportY = mSavedTarget.ViewportY; mViewportWidth = mSavedTarget.ViewportWidth; mViewportHeight = mSavedTarget.ViewportHeight;
+	mViewportDepthMin = mSavedTarget.DepthMin; mViewportDepthMax = mSavedTarget.DepthMax;
+	mScissorChanged = true;
+	mViewportChanged = true;
+	mNeedApply = true;
+}
+
+// A requested clear is only done together with the first draw call. When nothing was drawn, it is done with an empty pass.
+void VkRenderState::FlushClearPass()
+{
+	if (mClearTargets != 0 && !mCommandBuffer)
+	{
+		auto cmdbuffer = fb->GetCommands()->GetDrawCommands();
+		BeginRenderPass(cmdbuffer);
+		cmdbuffer->endRenderPass();
+	}
+}
+
 void VkRenderState::BeginRenderPass(VulkanCommandBuffer *cmdbuffer)
 {
 	VkRenderPassKey key = {};
