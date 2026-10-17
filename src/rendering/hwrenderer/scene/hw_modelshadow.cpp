@@ -339,9 +339,9 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 					float fx = in.cx - lx, fy = in.cy - ly, fz = in.cz - lz;
 					float fd = sqrtf(fx * fx + fy * fy + fz * fz);
 					fadeW = clamp((radius - fd) / (radius * 0.3f), 0.f, 1.f);
-					squash *= fadeW;
-					if (squash < 0.03f)
-						continue;
+					// towards the edge of the radius the model is squashed down to (almost) nothing: its shadow becomes the
+					// flat one straight below it, which takes over when the model leaves the radius
+					squash = max(squash * fadeW, 0.03f);
 				}
 				{
 					float &w = g_buildModels[in.actor];

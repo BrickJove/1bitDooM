@@ -176,9 +176,10 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			float height = (float)(actor->Z() - actor->floorz);
 			shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
 		}
-		// the flat drop shadow gives way to the shadow of the light map: it shrinks as the map shadow gets stronger
-		// (models that no light map shadows keep the flat one, at the edge of the radius of a light both blend)
-		shadowScale *= 1.f - mapWeight;
+		// a model that a light map shadows has no flat drop shadow (never two shadows of one actor): towards the edge of
+		// the radius its map shadow collapses to the flat shadow straight below it, which then takes over
+		if (mapWeight > 0.f)
+			shadowScale = 0.f;
 		if (shadowScale > 0.05f)
 		{
 		// The y scale is not exactly 0 so the normal matrix stays invertible.

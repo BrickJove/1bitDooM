@@ -166,3 +166,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten: Models, die in diesem Bild keinen Schatten aus einer Lichtkarte bekommen (außerhalb jedes Wirkradius, hinter einer Wand von der Lampe aus, Schattenkarten aus), haben wieder den einfachen flachen Schatten von früher (Stil und Einstellungen wie `gl_model_shadow_style`, Sonne usw.). Models mit Lichtkarten-Schatten haben ihn weiterhin nicht. Der Wechsel hinkt ein Bild nach.
 
 - Modellschatten: fließender Übergang zwischen Lichtkarten-Schatten und einfachem flachen Schatten. Am Rand des Wirkradius schrumpft der Karten-Schatten, während der flache Schatten im gleichen Maß wächst (statt harter Umschaltung).
+
+- Modellschatten: nie zwei Schatten pro Actor. Ein Model mit Lichtkarten-Schatten hat keinen flachen Schatten; zum Rand des Wirkradius wird es in der Schattenkarte immer weiter zu den Füßen hin gestaucht, sein Schatten wird zum flachen Schatten direkt unter dem Model, und dieser übernimmt, sobald das Model den Radius verlässt. (Ersetzt das Überblenden von vorhin.)
