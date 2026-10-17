@@ -120,3 +120,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Neu: `gl_model_shadow_map_range` (0.5..4, Standard 1): Reichweite der Modellschatten als Vielfaches des Lichtradius. Menü: Slider "reach of model shadows (x light radius)".
 
 - `gl_model_shadow_map_range` ersetzt durch `gl_model_shadow_map_unlimited` (Standard an): Modellschatten sind nicht mehr auf den Lichtradius begrenzt (Reichweite 8192). Der Schatten kann dadurch auch durch Wände auf dahinterliegende Flächen fallen.
+
+- Modellschatten: ein Model wirft nur für Lichter einen Schatten, in deren echtem Radius es steht (nicht mehr für alle Lichter, wenn die Schattenlänge unbegrenzt ist). Die Länge des Schattens bleibt unbegrenzt.

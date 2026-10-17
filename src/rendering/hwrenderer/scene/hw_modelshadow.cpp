@@ -51,7 +51,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		return;
 
 	// the lights of the map (not only the ones nearest to the camera: the model that casts can be far away from it)
-	struct Lt { float x, y, z, radius; };
+	struct Lt { float x, y, z, radius, reach; };	// radius: which models the light affects, reach: how far their shadows go
 	TArray<Lt> lights;
 	{
 		int group = (di->Viewpoint.camera && di->Viewpoint.camera->Sector) ? di->Viewpoint.camera->Sector->PortalGroup : 0;
@@ -64,7 +64,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				continue;
 			DVector3 lp = light->PosRelative(group);
 			float height = (float)lp.Z;	// as the light is placed in the map
-			Lt lt = { (float)lp.X, height, (float)lp.Y, (gl_model_shadow_map_unlimited ? 8192.f : radius) };
+			Lt lt = { (float)lp.X, height, (float)lp.Y, radius, (gl_model_shadow_map_unlimited ? 8192.f : radius) };
 			lights.Push(lt);
 			if (lights.Size() >= 512)
 				break;
@@ -178,7 +178,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 	for (unsigned oi = 0; oi < order.Size() && usedMaps < maxMaps; oi++)
 	{
 		const Lt &L = lights[order[oi]];
-		const float lx = L.x, ly = L.y, lz = L.z, radius = L.radius;
+		const float lx = L.x, ly = L.y, lz = L.z, radius = L.radius, reach = L.reach;
 
 		// the models this light reaches
 		TArray<int> picked;
@@ -243,7 +243,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 			}
 			picked = inside;
 		}
-		float nearp = 4.f, farp = radius + 128.f;
+		float nearp = 4.f, farp = reach + 128.f;
 
 		bool upAxis = fabsf(ay) > 0.95f;
 		VSMatrix view;
@@ -291,7 +291,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 
 		screen->EndModelShadowMap();
 
-		f.ModelLight[usedMaps][0] = lx; f.ModelLight[usedMaps][1] = ly; f.ModelLight[usedMaps][2] = lz; f.ModelLight[usedMaps][3] = radius;
+		f.ModelLight[usedMaps][0] = lx; f.ModelLight[usedMaps][1] = ly; f.ModelLight[usedMaps][2] = lz; f.ModelLight[usedMaps][3] = reach;
 		f.ModelNearFar[usedMaps][0] = nearp; f.ModelNearFar[usedMaps][1] = farp;
 		VSMatrix vp;
 		vp.loadMatrix(proj.get());
