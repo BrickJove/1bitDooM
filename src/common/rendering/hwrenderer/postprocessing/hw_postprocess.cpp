@@ -920,7 +920,7 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.Light2 = FVector4(f.ModelLight[2][0], f.ModelLight[2][1], f.ModelLight[2][2], f.ModelLight[2][3]);
 	u.Light3 = FVector4(f.ModelLight[3][0], f.ModelLight[3][1], f.ModelLight[3][2], f.ModelLight[3][3]);
 	u.NearFar2 = FVector4(f.ModelNearFar[2][0], f.ModelNearFar[2][1], f.ModelNearFar[3][0], f.ModelNearFar[3][1]);
-	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 4), 0.f, 0.f);
+	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 5), 0.f, 0.f);
 	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, gl_model_shadow_map_walls ? f.GridInvCell : 0.f, (float)clamp((int)ceilf(f.TopLimit) + 2, 0, 16383));
 	u.NearFar = FVector4(f.ModelNearFar[0][0], f.ModelNearFar[0][1], f.ModelNearFar[1][0], f.ModelNearFar[1][1]);
 	// the matrices are column major: row r of the matrix = elements r, r + 4, r + 8, r + 12

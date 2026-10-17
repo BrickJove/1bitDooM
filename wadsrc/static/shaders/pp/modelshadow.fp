@@ -295,6 +295,16 @@ void main()
 	ivec2 ipos = ivec2((Offset + TexCoord * Scale) * vec2(gTexSize));
 	vec4 ns = texelFetch(NormalTexture, ClampPos(ipos), 0);
 
+	// test mode 5: the left half of the screen black
+	if (Flags.y > 4.5)
+	{
+		if (ipos.x < gTexSize.x / 2)
+			FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		else
+			discard;
+		return;
+	}
+
 	// sky, portals: nothing to shade
 	if (InvDepthAt(ipos) <= (ProjParams.x + ProjParams.y) * 1.05 || (ns.a > 0.2 && ns.a < 0.45))
 		discard;

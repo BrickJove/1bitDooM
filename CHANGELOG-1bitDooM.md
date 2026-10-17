@@ -144,3 +144,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Neu: `gl_model_shadow_map_debug_light 1..4` zeichnet ein Schachbrett auf alles, was das Licht der jeweiligen Schattenkarte nicht sieht (Wandtest + abgewandte Flächen); 0 = aus. Zeigt, ob die Sichtbarkeit an Wänden stimmt.
 
 - Fix (Ursache der durchgehenden Schatten): Die Uniform-Felder des Modellschatten-Shaders werden in der Reihenfolge der Beschreibung (`Desc()`) deklariert, die Struktur lag aber in anderer Reihenfolge (Grid / NearFar2 / Flags vertauscht). Dadurch las der Shader als Gitter die Near/Far-Werte und der Wandtest lief mit Unsinn. Reihenfolge angeglichen.
+
+- `gl_model_shadow_map_debug_light 5`: Testmodus, die linke Bildschirmhälfte wird schwarz (prüft, ob der Modellschatten-Shader mit den aktuellen Werten läuft).
