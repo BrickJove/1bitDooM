@@ -108,7 +108,7 @@ bool WantsModelShadow(AActor* actor)
 	if (gl_model_shadow_skip_nonsolid && !(actor->flags & MF_SOLID)) return false;
 	return true;
 }
-bool ModelHasMapShadow(const AActor* actor);
+float ModelMapShadowWeight(const AActor* actor);
 // the dynamic light that shines on the actor most (hw_spritelight.cpp)
 bool ModelShadowLight(AActor* actor, DVector3& pos);
 
@@ -167,21 +167,18 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			&& actor->Sector != nullptr && (actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum
 				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
 		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
-		bool mapShadow = gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive && ModelHasMapShadow(actor);
+		float mapWeight = (gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive) ? ModelMapShadowWeight(actor) : 0.f;
 		bool nearLight = gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
-		bool lit = !sunLit && !mapShadow && nearLight;
+		bool lit = !sunLit && nearLight;
 		float shadowScale = 1.f;
-		if (mapShadow && nearLight && !sunLit)
-			shadowScale = 0.f;	// the shadow map of this light replaces the drop shadow
 		if (shadowScale > 0.f && !lit && !sunLit && gl_model_shadow_fade_height > 0.f)
 		{
 			float height = (float)(actor->Z() - actor->floorz);
 			shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
 		}
-		// with the model shadow maps on, models that a light map shadows have no flat drop shadow
-		// (models that no light map shadows keep the flat drop shadow)
-		if (gl_model_shadow_map && gl_scene_shadow && mapShadow)
-			shadowScale = 0.f;
+		// the flat drop shadow gives way to the shadow of the light map: it shrinks as the map shadow gets stronger
+		// (models that no light map shadows keep the flat one, at the edge of the radius of a light both blend)
+		shadowScale *= 1.f - mapWeight;
 		if (shadowScale > 0.05f)
 		{
 		// The y scale is not exactly 0 so the normal matrix stays invertible.

@@ -42,14 +42,16 @@ static void ModelShadowReport(const FString &text)
 	}
 }
 
-#include <unordered_set>
+#include <unordered_map>
 
 // the models that got a shadow from a light map in the last frame: they need no flat drop shadow
-static std::unordered_set<const AActor *> g_coveredModels, g_buildModels;
+// (with how strong it is: 1 = full, smaller at the edge of the radius of the light, where it fades into the flat one)
+static std::unordered_map<const AActor *, float> g_coveredModels, g_buildModels;
 
-bool ModelHasMapShadow(const AActor *actor)
+float ModelMapShadowWeight(const AActor *actor)
 {
-	return g_coveredModels.count(actor) != 0;
+	auto it = g_coveredModels.find(actor);
+	return it == g_coveredModels.end() ? 0.f : it->second;
 }
 
 static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state);
@@ -321,7 +323,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 				const Info &in = infos[inFace[k]];
 				// the length of the shadow is limited: a model is squashed towards its feet so that the whole shadow
 				// (feet to head) stays within gl_model_shadow_max_length, as if the light were higher
-				float squash = 1.f;
+				float squash = 1.f, fadeW = 1.f;
 				const float maxLen = gl_model_shadow_max_length;
 				if (maxLen > 1.f)
 				{
@@ -336,11 +338,15 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 				{
 					float fx = in.cx - lx, fy = in.cy - ly, fz = in.cz - lz;
 					float fd = sqrtf(fx * fx + fy * fy + fz * fz);
-					squash *= clamp((radius - fd) / (radius * 0.3f), 0.f, 1.f);
+					fadeW = clamp((radius - fd) / (radius * 0.3f), 0.f, 1.f);
+					squash *= fadeW;
 					if (squash < 0.03f)
 						continue;
 				}
-				g_buildModels.insert(in.actor);
+				{
+					float &w = g_buildModels[in.actor];
+					w = max(w, fadeW);
+				}
 				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac, squash, in.z);
 			}
 		}
