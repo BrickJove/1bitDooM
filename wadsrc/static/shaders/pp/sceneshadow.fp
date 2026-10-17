@@ -158,9 +158,11 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 			c += FenceCover(slot0, vec2(fract(uu + o.x + 4.0), clamp(v + o.y, 0.0, 1.0)));
 		}
 	c /= float(nU * nV);
-	if (fpT > 4.0)
-		c = mix(c, FenceParam(id, 14), clamp((fpT - 4.0) / 4.0, 0.0, 1.0));
-	return c > gBayer;
+	// crisp edges (threshold 0.5) as long as the lattice can be resolved; the ordered dither only fades in together with the
+	// mean coverage far away (a dither threshold at the edges of the lattice made grainy stripes)
+	float w = clamp((fpT - 4.0) / 4.0, 0.0, 1.0);
+	c = mix(c, FenceParam(id, 14), w);
+	return c > mix(0.5, gBayer, w);
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?

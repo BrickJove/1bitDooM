@@ -188,3 +188,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Zaunschatten: Seitlich fächert der Schatten jetzt wie eine echte Projektion von der Lichtquelle auf (Strahl Pixel -> Licht bestimmt die Stelle am Zaun); die Höhe (Länge auf dem Boden, Ende = Zaunoberkante) bleibt wie bisher.
 
 - Neue Schattenoption: `gl_scene_shadow_style 2` stellt Szenen-, Zaun- und Modellschatten als Schachbrettmuster dar (jedes zweite Pixel schwarz, die anderen durchsichtig) statt als geschlossene schwarze Fläche. 0 = schwarz, 1 = Dither mit Stärke, 2 = Schachbrett.
+
+- Zaunschatten: Die Gitterkanten sind scharf (Schwelle 0,5), solange das Gitter aufgelöst werden kann; der geordnete Dither blendet erst zusammen mit der mittleren Deckung in der Ferne ein. Das behebt die streifenweise körnigen Kanten (v.a. Boden, Vulkan).
