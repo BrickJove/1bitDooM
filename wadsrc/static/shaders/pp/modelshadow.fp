@@ -87,6 +87,8 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 		float y = mix(S0.y, S1.y, clamp(t, 0.0, 1.0));
 		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
 			return true;
+		// fences (masked mid textures) stop the shadow as well: the lattice would alias
+		if (int(texelFetch(LineTexture, base + ivec2(6, 0), 0).x + 0.5) - 1 >= 0)
 			return true;
 	}
 	return false;
