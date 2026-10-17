@@ -411,6 +411,16 @@ bool OpenGLFrameBuffer::BeginModelShadowMap(int index)
 	return GLModelShadow_Begin(index);
 }
 
+void OpenGLFrameBuffer::SetModelShadowWorld(const float *verts, unsigned nverts, const unsigned int *elems, unsigned nelems, const void *key)
+{
+	GLModelShadow_SetWorld(verts, nverts, elems, nelems, key);
+}
+
+bool OpenGLFrameBuffer::RenderModelShadowWorld(int index, const float *lightPos, float farp, const float *faceVP)
+{
+	return GLModelShadow_RenderWorld(index, lightPos, farp, faceVP);
+}
+
 void OpenGLFrameBuffer::SelectModelShadowFace(int face)
 {
 	GLModelShadow_Face(face);

@@ -22,6 +22,7 @@
 #include "actorinlines.h"
 #include "printf.h"
 #include "g_levellocals.h"
+#include "doom_levelmesh.h"
 #include "a_dynlight.h"
 #include "d_net.h"
 #include "d_player.h"
@@ -46,7 +47,10 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 	SceneShadowFrame &f = sceneShadowFrame;
 	f.ModelShadowActive = false;
 	for (int i = 0; i < 4; i++)
+	{
 		f.ModelLight[i][3] = 0.f;
+		f.ModelWorld[i] = false;
+	}
 
 	if (!gl_model_shadow_map || !gl_scene_shadow || !f.Valid)
 		return;
@@ -209,6 +213,29 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		const float nearp = 4.f, farp = reach + 128.f;
 		static const float faceF[6][3] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
 		static const float faceU[6][3] = { { 0, 1, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 0 } };	// as in modelshadow.fp
+
+		// the level geometry seen from the light (depth only, rendered once per light position): walls end the shadows
+		{
+			VSMatrix wproj;
+			wproj.loadIdentity();
+			wproj.perspective(90.f, 1.f, nearp, farp);
+			float faceVP[6 * 16];
+			for (int face = 0; face < 6; face++)
+			{
+				VSMatrix wview;
+				wview.loadIdentity();
+				wview.lookAt(lx, ly, lz, lx + faceF[face][0], ly + faceF[face][1], lz + faceF[face][2], faceU[face][0], faceU[face][1], faceU[face][2]);
+				VSMatrix wvp;
+				wvp.loadMatrix(wproj.get());
+				wvp.multMatrix(wview.get());
+				memcpy(faceVP + face * 16, wvp.get(), sizeof(float) * 16);
+			}
+			auto *mesh = di->Level->levelMesh;
+			if (mesh != nullptr)
+				screen->SetModelShadowWorld((const float *)mesh->MeshVertices.Data(), mesh->MeshVertices.Size(), (const unsigned int *)mesh->MeshElements.Data(), mesh->MeshElements.Size(), mesh);
+			float lp[3] = { lx, ly, lz };
+			f.ModelWorld[usedMaps] = screen->RenderModelShadowWorld(usedMaps, lp, farp, faceVP);
+		}
 
 		if (!screen->BeginModelShadowMap(usedMaps))
 			break;

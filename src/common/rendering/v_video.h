@@ -262,6 +262,8 @@ public:
 	virtual const char* DeviceName() const { return "Unknown"; }
 	virtual void AmbientOccludeScene(float m5) {}
 	virtual bool BeginModelShadowMap(int index) { return false; }	// Jupiter3D: render target for the shadow map of the models (OpenGL only)
+	virtual void SetModelShadowWorld(const float *verts, unsigned nverts, const unsigned int *elems, unsigned nelems, const void *key) {}
+	virtual bool RenderModelShadowWorld(int index, const float *lightPos, float farp, const float *faceVP) { return false; }
 	virtual void SelectModelShadowFace(int face) {}
 	virtual void EndModelShadowMap() {}
 	virtual void FirstEye() {}

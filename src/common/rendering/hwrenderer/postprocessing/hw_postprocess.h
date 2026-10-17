@@ -56,7 +56,7 @@ enum class ETonemapMode : uint8_t
 
 enum class PPFilterMode { Nearest, Linear };
 enum class PPWrapMode { Clamp, Repeat };
-enum class PPTextureType { CurrentPipelineTexture, NextPipelineTexture, PPTexture, SceneColor, SceneFog, SceneNormal, SceneDepth, SwapChain, ShadowMap, ModelShadow0, ModelShadow1, ModelShadow2, ModelShadow3 };
+enum class PPTextureType { CurrentPipelineTexture, NextPipelineTexture, PPTexture, SceneColor, SceneFog, SceneNormal, SceneDepth, SwapChain, ShadowMap, ModelShadow0, ModelShadow1, ModelShadow2, ModelShadow3, ModelWorld0, ModelWorld1, ModelWorld2, ModelWorld3 };
 
 class PPTextureInput
 {
@@ -171,6 +171,11 @@ public:
 	void SetInputSceneDepth(int index, PPFilterMode filter = PPFilterMode::Nearest, PPWrapMode wrap = PPWrapMode::Clamp)
 	{
 		SetInputSpecialType(index, PPTextureType::SceneDepth, filter, wrap);
+	}
+
+	void SetInputModelWorld(int index, int map)
+	{
+		SetInputSpecialType(index, map == 0 ? PPTextureType::ModelWorld0 : map == 1 ? PPTextureType::ModelWorld1 : map == 2 ? PPTextureType::ModelWorld2 : PPTextureType::ModelWorld3, PPFilterMode::Nearest, PPWrapMode::Clamp);
 	}
 
 	void SetInputModelShadow(int index, int map)
@@ -837,6 +842,7 @@ struct SceneShadowFrame
 	float ModelLight[4][4] = {};		// render space position + radius of the light of each map, radius 0 = map unused
 	float ModelVP[2][16] = {};		// light projection * view (render space -> clip space), column major
 	float ModelNearFar[4][2] = {};
+	bool ModelWorld[4] = {};		// the level geometry is in the world map of this light
 };
 extern SceneShadowFrame sceneShadowFrame;
 

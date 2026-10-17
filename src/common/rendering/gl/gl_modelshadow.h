@@ -13,3 +13,12 @@ void GLModelShadow_Face(int face);
 void GLModelShadow_End();
 // binds the depth texture of a light to a texture unit
 void GLModelShadow_BindTexture(int index, int unit);
+
+// The geometry of the level seen from the lights (depth only, same atlas layout as the models): a pixel that the light
+// does not see (a wall in between) gets no shadow, and a wall ends the shadow.
+// verts: x, y, z per vertex in map coordinates, elems: triangles. key identifies the mesh (the arrays are copied to the GPU
+// when key or sizes change).
+void GLModelShadow_SetWorld(const float *verts, unsigned nverts, const unsigned int *elems, unsigned nelems, const void *key);
+// renders the world into the world map of a light when the light or the mesh changed; faceVP = 6 matrices (projection * view, column major)
+bool GLModelShadow_RenderWorld(int index, const float *lightPos, float farp, const float *faceVP);
+void GLModelShadow_BindWorldTexture(int index, int unit);

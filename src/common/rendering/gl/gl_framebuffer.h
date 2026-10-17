@@ -52,6 +52,8 @@ public:
 
 	void AmbientOccludeScene(float m5) override;
 	bool BeginModelShadowMap(int index) override;
+	void SetModelShadowWorld(const float *verts, unsigned nverts, const unsigned int *elems, unsigned nelems, const void *key) override;
+	bool RenderModelShadowWorld(int index, const float *lightPos, float farp, const float *faceVP) override;
 	void SelectModelShadowFace(int face) override;
 	void EndModelShadowMap() override;
 	void FirstEye() override;

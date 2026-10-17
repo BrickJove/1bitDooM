@@ -907,7 +907,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
-	if (!gl_scene_shadow || !f.Valid || !f.ModelShadowActive || !f.CellTex || !f.ListTex || !f.LineTex || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || !f.Valid || !f.ModelShadowActive || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 
 	ModelShadowUniforms u;
@@ -920,7 +920,10 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.Light2 = FVector4(f.ModelLight[2][0], f.ModelLight[2][1], f.ModelLight[2][2], f.ModelLight[2][3]);
 	u.Light3 = FVector4(f.ModelLight[3][0], f.ModelLight[3][1], f.ModelLight[3][2], f.ModelLight[3][3]);
 	u.NearFar2 = FVector4(f.ModelNearFar[2][0], f.ModelNearFar[2][1], f.ModelNearFar[3][0], f.ModelNearFar[3][1]);
-	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 5), 0.f, 0.f);
+	int worldMask = (f.ModelWorld[0] ? 1 : 0) | (f.ModelWorld[1] ? 2 : 0) | (f.ModelWorld[2] ? 4 : 0) | (f.ModelWorld[3] ? 8 : 0);
+	if (!gl_model_shadow_map_walls)
+		worldMask = 0;
+	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 5), (float)worldMask, 0.f);
 	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, gl_model_shadow_map_walls ? f.GridInvCell : 0.f, (float)clamp((int)ceilf(f.TopLimit) + 2, 0, 16383));
 	u.NearFar = FVector4(f.ModelNearFar[0][0], f.ModelNearFar[0][1], f.ModelNearFar[1][0], f.ModelNearFar[1][1]);
 	// the matrices are column major: row r of the matrix = elements r, r + 4, r + 8, r + 12
@@ -941,13 +944,14 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->Viewport = screen->mSceneViewport;
 	renderstate->SetInputSceneDepth(0);
 	renderstate->SetInputSceneNormal(1);
-	renderstate->SetInputTexture(2, f.CellTex);
-	renderstate->SetInputTexture(3, f.ListTex);
-	renderstate->SetInputTexture(4, f.LineTex);
-	renderstate->SetInputModelShadow(5, 0);
-	renderstate->SetInputModelShadow(6, 1);
-	renderstate->SetInputModelShadow(7, 2);
-	renderstate->SetInputModelShadow(8, 3);
+	renderstate->SetInputModelShadow(2, 0);
+	renderstate->SetInputModelShadow(3, 1);
+	renderstate->SetInputModelShadow(4, 2);
+	renderstate->SetInputModelShadow(5, 3);
+	renderstate->SetInputModelWorld(6, 0);
+	renderstate->SetInputModelWorld(7, 1);
+	renderstate->SetInputModelWorld(8, 2);
+	renderstate->SetInputModelWorld(9, 3);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();
