@@ -130,3 +130,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten gehen nicht mehr durch Wände: modelshadow.fp marschiert für jedes Pixel mit Modellschatten den Strahl zum Licht durch die Höhenkarte des Levels (Trace/SnapWall aus sceneshadow.fp, ohne Zäune). Liegt eine Wand, ein Boden oder eine Decke dazwischen, zählt das Licht für dieses Pixel nicht. Neue Eingaben: CellTex/ListTex/LineTex (Bindings 2-4), Schattenkarten jetzt auf 5-8, Uniform `Grid`.
 
 - Modellschatten: ein Model, das vom Licht aus (P_CheckSight vom Lichtobjekt) hinter einer Wand liegt, wirft für dieses Licht keinen Schatten mehr.
+
+- Neu: `gl_model_shadow_map_walls` (Standard 1, nicht gespeichert): schaltet den Wandtest der Modellschatten ab, um Versionen zu vergleichen.

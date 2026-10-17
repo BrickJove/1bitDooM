@@ -877,7 +877,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.CamX = FVector4(f.InvView[0][0], f.InvView[0][1], f.InvView[0][2], f.InvView[0][3]);
 	u.CamY = FVector4(f.InvView[1][0], f.InvView[1][1], f.InvView[1][2], f.InvView[1][3]);
 	u.CamZ = FVector4(f.InvView[2][0], f.InvView[2][1], f.InvView[2][2], f.InvView[2][3]);
-	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, f.GridInvCell, (float)(flags | (density << 3) | (top << 10)));
+	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, gl_model_shadow_map_walls ? f.GridInvCell : 0.f, (float)(flags | (density << 3) | (top << 10)));
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
