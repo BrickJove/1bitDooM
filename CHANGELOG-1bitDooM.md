@@ -132,3 +132,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten: ein Model, das vom Licht aus (P_CheckSight vom Lichtobjekt) hinter einer Wand liegt, wirft für dieses Licht keinen Schatten mehr.
 
 - Neu: `gl_model_shadow_map_walls` (Standard 1, nicht gespeichert): schaltet den Wandtest der Modellschatten ab, um Versionen zu vergleichen.
+
+- Mit `gl_model_shadow_map` an gibt es den flachen Bodenschatten (Sonne / senkrecht / vom nächsten Licht projiziert) nicht mehr: er lief als langes Band durch Wände. Es werfen nur noch die Lichter der Map Schatten (Schattenkarten).

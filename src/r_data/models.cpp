@@ -177,6 +177,9 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			float height = (float)(actor->Z() - actor->floorz);
 			shadowScale = clamp(1.f - max(height, 0.f) / (float)gl_model_shadow_fade_height, 0.f, 1.f);
 		}
+		// with the model shadow maps on the flat drop shadow is gone altogether: only the lights of the map cast shadows
+		if (gl_model_shadow_map && gl_scene_shadow)
+			shadowScale = 0.f;
 		if (shadowScale > 0.05f)
 		{
 		// The y scale is not exactly 0 so the normal matrix stays invertible.
