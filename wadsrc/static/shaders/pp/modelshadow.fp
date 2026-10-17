@@ -40,29 +40,51 @@ float LinearLightDepth(float d, float n, float f)
 	return 2.0 * n * f / (f + n - (d * 2.0 - 1.0) * (f - n));
 }
 
+// the six faces of a map (like a cube map in a 3 x 2 atlas): viewing direction and up vector, as in hw_modelshadow.cpp
+void FaceBasis(int face, out vec3 f, out vec3 u)
+{
+	u = vec3(0.0, 1.0, 0.0);
+	if (face == 0) f = vec3(1.0, 0.0, 0.0);
+	else if (face == 1) f = vec3(-1.0, 0.0, 0.0);
+	else if (face == 2) { f = vec3(0.0, 1.0, 0.0); u = vec3(0.0, 0.0, 1.0); }
+	else if (face == 3) { f = vec3(0.0, -1.0, 0.0); u = vec3(0.0, 0.0, 1.0); }
+	else if (face == 4) f = vec3(0.0, 0.0, 1.0);
+	else f = vec3(0.0, 0.0, -1.0);
+}
+
 // true when a model is between the point and the light
-bool InModelShadow(vec3 P, vec4 L, vec4 r0, vec4 r1, vec4 r2, vec4 r3, vec2 nf, sampler2D map)
+bool InModelShadow(vec3 P, vec4 L, vec2 nf, sampler2D map)
 {
 	if (L.w <= 0.0)
 		return false;
-	float dist = length(P - L.xyz);
+	vec3 d = P - L.xyz;
+	float dist = length(d);
 	if (dist >= L.w || dist < 12.0)
 		return false;
-	vec4 pp = vec4(P, 1.0);
-	vec4 clip = vec4(dot(r0, pp), dot(r1, pp), dot(r2, pp), dot(r3, pp));
-	if (clip.w <= nf.x)
+
+	vec3 a = abs(d);
+	int face;
+	if (a.x >= a.y && a.x >= a.z) face = d.x > 0.0 ? 0 : 1;
+	else if (a.y >= a.z) face = d.y > 0.0 ? 2 : 3;
+	else face = d.z > 0.0 ? 4 : 5;
+
+	vec3 f, u;
+	FaceBasis(face, f, u);
+	vec3 r = cross(f, u);
+	vec3 u2 = cross(r, f);
+	float m = dot(d, f);	// distance along the viewing direction of the face = w of the clip position
+	if (m <= nf.x)
 		return false;
-	vec2 ndc = clip.xy / clip.w;
-	if (abs(ndc.x) >= 1.0 || abs(ndc.y) >= 1.0)
-		return false;
-	ivec2 size = textureSize(map, 0);
-	ivec2 tp = clamp(ivec2((ndc * 0.5 + 0.5) * vec2(size)), ivec2(0), size - ivec2(1));
+	vec2 ndc = vec2(dot(d, r), dot(d, u2)) / m;
+
+	int size = textureSize(map, 0).x / 3;
+	ivec2 tp = ivec2(face % 3, face / 3) * size + clamp(ivec2((ndc * 0.5 + 0.5) * float(size)), ivec2(0), ivec2(size - 1));
 	float stored = texelFetch(map, tp, 0).x;
 	if (stored >= 1.0)
 		return false;	// nothing was drawn here
 	float occluder = LinearLightDepth(stored, nf.x, nf.y);
-	float texel = 2.0 * clip.w / (float(size.x) * max(length(r0.xyz), 1.0e-4));	// world size of one depth map texel at this distance (length of the row = 1 / tan(fov / 2))
-	return clip.w > occluder + 2.0 * texel + 1.0;
+	float texel = 2.0 * m / float(size);	// world size of one depth map texel at this distance (90 degree field of view)
+	return m > occluder + 2.0 * texel + 1.0;
 }
 
 void main()
@@ -76,8 +98,8 @@ void main()
 		discard;
 
 	vec3 P = PosAt(ipos);
-	if (InModelShadow(P, Light0, VP0_0, VP0_1, VP0_2, VP0_3, NearFar.xy, ShadowMap0) ||
-	    InModelShadow(P, Light1, VP1_0, VP1_1, VP1_2, VP1_3, NearFar.zw, ShadowMap1))
+	if (InModelShadow(P, Light0, NearFar.xy, ShadowMap0) ||
+	    InModelShadow(P, Light1, NearFar.zw, ShadowMap1))
 	{
 		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;

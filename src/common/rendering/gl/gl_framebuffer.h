@@ -52,6 +52,7 @@ public:
 
 	void AmbientOccludeScene(float m5) override;
 	bool BeginModelShadowMap(int index) override;
+	void SelectModelShadowFace(int face) override;
 	void EndModelShadowMap() override;
 	void FirstEye() override;
 	void NextEye(int eyecount) override;

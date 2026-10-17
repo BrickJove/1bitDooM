@@ -411,6 +411,11 @@ bool OpenGLFrameBuffer::BeginModelShadowMap(int index)
 	return GLModelShadow_Begin(index);
 }
 
+void OpenGLFrameBuffer::SelectModelShadowFace(int face)
+{
+	GLModelShadow_Face(face);
+}
+
 void OpenGLFrameBuffer::EndModelShadowMap()
 {
 	GLModelShadow_End();

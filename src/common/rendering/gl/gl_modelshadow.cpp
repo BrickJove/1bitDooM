@@ -36,7 +36,7 @@ namespace
 		for (int i = 0; i < GL_MODELSHADOW_MAPS; i++)
 		{
 			glBindTexture(GL_TEXTURE_2D, depthTex[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, GL_MODELSHADOW_SIZE, GL_MODELSHADOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, GL_MODELSHADOW_SIZE * 3, GL_MODELSHADOW_SIZE * 2, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -44,7 +44,7 @@ namespace
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
 
 			glBindRenderbuffer(GL_RENDERBUFFER, colorRb[i]);
-			glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, GL_MODELSHADOW_SIZE, GL_MODELSHADOW_SIZE);
+			glRenderbufferStorage(GL_RENDERBUFFER, GL_R8, GL_MODELSHADOW_SIZE * 3, GL_MODELSHADOW_SIZE * 2);
 
 			glBindFramebuffer(GL_FRAMEBUFFER, fbo[i]);
 			glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, colorRb[i]);
@@ -77,13 +77,19 @@ bool GLModelShadow_Begin(int index)
 	glGetBooleanv(GL_DEPTH_WRITEMASK, &savedDepthMask);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo[index]);
-	glViewport(0, 0, GL_MODELSHADOW_SIZE, GL_MODELSHADOW_SIZE);
+	glViewport(0, 0, GL_MODELSHADOW_SIZE * 3, GL_MODELSHADOW_SIZE * 2);
 	glDisable(GL_SCISSOR_TEST);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 	glDepthMask(GL_TRUE);
 	glClearDepth(1.0);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	return true;
+}
+
+void GLModelShadow_Face(int face)
+{
+	face = face < 0 ? 0 : (face > 5 ? 5 : face);
+	glViewport((face % 3) * GL_MODELSHADOW_SIZE, (face / 3) * GL_MODELSHADOW_SIZE, GL_MODELSHADOW_SIZE, GL_MODELSHADOW_SIZE);
 }
 
 void GLModelShadow_End()

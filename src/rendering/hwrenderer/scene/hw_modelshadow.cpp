@@ -193,79 +193,19 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		if (picked.Size() == 0)
 			continue;
 
-		// axis: towards the middle of the models (the player's own model does not steer it, so the view does not jump
-		// when the player walks around), field of view wide enough for all of them but not wider than maxFov:
-		// models outside of it are left out
-		bool haveOthers = false;
-		for (unsigned k = 0; k < picked.Size(); k++)
-			if (infos[picked[k]].actor->player == nullptr)
-				haveOthers = true;
-		float ax = 0, ay = 0, az = 0;
-		for (unsigned k = 0; k < picked.Size(); k++)
-		{
-			const Info &in = infos[picked[k]];
-			if (haveOthers && in.actor->player != nullptr)
-				continue;
-			float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
-			float d = sqrtf(dx * dx + dy * dy + dz * dz);
-			ax += dx / d; ay += dy / d; az += dz / d;
-		}
-		float alen = sqrtf(ax * ax + ay * ay + az * az);
-		if (alen < 1e-3f)
-			continue;
-		ax /= alen; ay /= alen; az /= alen;
-		const float maxFov = 130.f;
-		float maxAngle = 0.f;
-		for (unsigned k = 0; k < picked.Size(); k++)
-		{
-			const Info &in = infos[picked[k]];
-			if (haveOthers && in.actor->player != nullptr)
-				continue;
-			float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
-			float d = sqrtf(dx * dx + dy * dy + dz * dz);
-			float cosA = clamp((dx * ax + dy * ay + dz * az) / d, -1.f, 1.f);
-			float ang = acosf(cosA) + asinf(clamp(in.r / d, 0.f, 0.99f));
-			maxAngle = max(maxAngle, ang);
-		}
-		float fov = clamp(2.f * maxAngle * 1.15f * (180.f / (float)M_PI) + 4.f, 10.f, maxFov);
-		// the models outside of the field of view are not drawn (the player's model, if it is far off the others)
-		{
-			TArray<int> inside;
-			float halfFov = fov * 0.5f * ((float)M_PI / 180.f);
-			for (unsigned k = 0; k < picked.Size(); k++)
-			{
-				const Info &in = infos[picked[k]];
-				float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
-				float d = sqrtf(dx * dx + dy * dy + dz * dz);
-				float cosA = clamp((dx * ax + dy * ay + dz * az) / d, -1.f, 1.f);
-				if (acosf(cosA) - asinf(clamp(in.r / d, 0.f, 0.99f)) < halfFov)
-					inside.Push(picked[k]);
-			}
-			picked = inside;
-		}
-		float nearp = 4.f, farp = reach + 128.f;
-
-		bool upAxis = fabsf(ay) > 0.95f;
-		VSMatrix view;
-		view.loadIdentity();
-		view.lookAt(lx, ly, lz, lx + ax, ly + ay, lz + az, upAxis ? 1.f : 0.f, upAxis ? 0.f : 1.f, 0.f);
-		VSMatrix proj;
-		proj.loadIdentity();
-		proj.perspective(fov, 1.f, nearp, farp);
+		// A fixed map in the six directions around the light (like a cube map, a 3 x 2 atlas of 90 degree faces):
+		// nothing in it depends on which models there are, so the shadows do not flicker when models come and go.
+		// Every model is drawn into the faces it reaches only.
+		const float nearp = 4.f, farp = reach + 128.f;
+		static const float faceF[6][3] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
+		static const float faceU[6][3] = { { 0, 1, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 0 } };	// as in modelshadow.fp
 
 		if (!screen->BeginModelShadowMap(usedMaps))
 			break;
 
-		// the viewpoint of the light (the model shaders read their matrices from the viewpoint uniforms)
-		HWViewpointUniforms vpu = di->VPUniforms;
-		vpu.ProjectionMatrix = proj;
-		vpu.ViewMatrix = view;
-		vpu.CalcDependencies();
-		vpu.mCameraPos = FVector4(lx, ly, lz, 1.f);
-		vpu.mClipLine = FVector4(-10000001.f, 0.f, 0.f, 0.f);
-		vpu.mClipHeight = 0.f;
-		vpu.mClipHeightDirection = 0.f;
-		screen->mViewpoints->SetViewpoint(state, &vpu);
+		VSMatrix proj;
+		proj.loadIdentity();
+		proj.perspective(90.f, 1.f, nearp, farp);
 
 		state.SetDepthMask(true);
 		state.SetDepthFunc(DF_Less);
@@ -279,10 +219,52 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 		state.SetLightIndex(-1);
 
 		FHWModelRenderer renderer(di, state, -1);
-		for (unsigned k = 0; k < picked.Size(); k++)
+		for (int face = 0; face < 6; face++)
 		{
-			const Info &in = infos[picked[k]];
-			RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac);
+			const float *ff = faceF[face], *fu = faceU[face];
+			const float rx = ff[1] * fu[2] - ff[2] * fu[1], ry = ff[2] * fu[0] - ff[0] * fu[2], rz = ff[0] * fu[1] - ff[1] * fu[0];
+			const float ux = ry * ff[2] - rz * ff[1], uy = rz * ff[0] - rx * ff[2], uz = rx * ff[1] - ry * ff[0];
+
+			// the models that reach into the pyramid of this face
+			TArray<int> inFace;
+			for (unsigned k = 0; k < picked.Size(); k++)
+			{
+				const Info &in = infos[picked[k]];
+				float dx = in.cx - lx, dy = in.cy - ly, dz = in.cz - lz;
+				float df = dx * ff[0] + dy * ff[1] + dz * ff[2];
+				float dr = dx * rx + dy * ry + dz * rz;
+				float du = dx * ux + dy * uy + dz * uz;
+				float rad = in.r * 1.05f;
+				if (df + rad <= nearp)
+					continue;
+				if ((df - dr) * 0.70711f < -rad || (df + dr) * 0.70711f < -rad || (df - du) * 0.70711f < -rad || (df + du) * 0.70711f < -rad)
+					continue;
+				inFace.Push(picked[k]);
+			}
+			if (inFace.Size() == 0)
+				continue;
+
+			screen->SelectModelShadowFace(face);
+			VSMatrix view;
+			view.loadIdentity();
+			view.lookAt(lx, ly, lz, lx + ff[0], ly + ff[1], lz + ff[2], fu[0], fu[1], fu[2]);
+
+			// the viewpoint of the light (the model shaders read their matrices from the viewpoint uniforms)
+			HWViewpointUniforms vpu = di->VPUniforms;
+			vpu.ProjectionMatrix = proj;
+			vpu.ViewMatrix = view;
+			vpu.CalcDependencies();
+			vpu.mCameraPos = FVector4(lx, ly, lz, 1.f);
+			vpu.mClipLine = FVector4(-10000001.f, 0.f, 0.f, 0.f);
+			vpu.mClipHeight = 0.f;
+			vpu.mClipHeightDirection = 0.f;
+			screen->mViewpoints->SetViewpoint(state, &vpu);
+
+			for (unsigned k = 0; k < inFace.Size(); k++)
+			{
+				const Info &in = infos[inFace[k]];
+				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac);
+			}
 		}
 		state.SetVertexBuffer(screen->mVertexData);
 		state.SetColorMask(true);
@@ -293,10 +275,6 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 
 		f.ModelLight[usedMaps][0] = lx; f.ModelLight[usedMaps][1] = ly; f.ModelLight[usedMaps][2] = lz; f.ModelLight[usedMaps][3] = reach;
 		f.ModelNearFar[usedMaps][0] = nearp; f.ModelNearFar[usedMaps][1] = farp;
-		VSMatrix vp;
-		vp.loadMatrix(proj.get());
-		vp.multMatrix(view.get());
-		memcpy(f.ModelVP[usedMaps], vp.get(), sizeof(float) * 16);
 		pickedCount[usedMaps] = (int)picked.Size();
 		usedMaps++;
 	}
