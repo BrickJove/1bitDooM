@@ -882,7 +882,7 @@ struct ModelShadowUniforms
 	FVector4 Light1;
 	FVector4 Light2;
 	FVector4 Light3;
-	FVector4 Flags;		// x = 1: show where the wall test blocks a shadow (checkerboard)
+	FVector4 Flags;		// x = 1: show where the wall test blocks a shadow (checkerboard), y = 1..4: show what the light of that map does not see
 	FVector4 Grid;		// xy = grid origin of the height map (map X, Y), z = 1 / cell size (0 = no height map), w = highest floor / ceiling
 	FVector4 NearFar2;	// x, y = near, far of map 2; z, w = of map 3
 	FVector4 NearFar;	// x, y = near, far of map 0; z, w = of map 1

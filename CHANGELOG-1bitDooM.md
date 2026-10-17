@@ -140,3 +140,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - modelshadow.fp: beim Entfernen der Zaun-Texturen aus LinesBlock blieb ein `return true;` übrig, das bei jeder gekreuzten Linie blockierte (auch bei offenen Sektorgrenzen). Jetzt blockieren nur Wände (außerhalb der Durchgangshöhe) und Zäune (Mid-Texturen) den Modellschatten.
 
 - Modellschatten: Flächen, die vom Licht abgewandt sind (Rückseite einer Wand, Boden von unten …), bekommen keinen Modellschatten dieses Lichts mehr (Normale gegen Richtung zum Licht, wie bei den Kartenschatten).
+
+- Neu: `gl_model_shadow_map_debug_light 1..4` zeichnet ein Schachbrett auf alles, was das Licht der jeweiligen Schattenkarte nicht sieht (Wandtest + abgewandte Flächen); 0 = aus. Zeigt, ob die Sichtbarkeit an Wänden stimmt.

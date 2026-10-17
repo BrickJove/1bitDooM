@@ -338,6 +338,26 @@ void main()
 	vec3 Q = P + n * (cell * 1.5);
 	float topLimit = Grid.w;
 
+	// debug: what does the light of map k see? Everything it does not see gets a checkerboard.
+	if (Flags.y > 0.5)
+	{
+		vec4 L = Flags.y < 1.5 ? Light0 : (Flags.y < 2.5 ? Light1 : (Flags.y < 3.5 ? Light2 : Light3));
+		if (L.w > 0.0 && ((ipos.x + ipos.y) & 1) == 0)
+		{
+			bool hidden = dot(n, n) > 0.5 && dot(n, L.xyz - P) <= 0.0;
+			if (!hidden && Grid.z > 0.0 && distance(L.xyz, Q) > 64.0)
+			{
+				vec3 D = (L.xyz - Q) / distance(L.xyz, Q);
+				hidden = Trace(Q, D, distance(L.xyz, Q) - 24.0, 0.0, topLimit) > 0.5;
+			}
+			if (hidden)
+			{
+				FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+				return;
+			}
+		}
+		discard;
+	}
 	int s0 = InModelShadow(P, Q, n, topLimit, Light0, NearFar.xy, ShadowMap0);
 	int s1 = InModelShadow(P, Q, n, topLimit, Light1, NearFar.zw, ShadowMap1);
 	int s2 = InModelShadow(P, Q, n, topLimit, Light2, NearFar2.xy, ShadowMap2);
