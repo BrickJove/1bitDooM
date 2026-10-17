@@ -118,3 +118,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - modelshadow.fp: die Texelgröße der Schattenkarte (für die Toleranz beim Tiefenvergleich) wurde aus `VP[0].x` berechnet, das von der Blickrichtung des Lichts abhängt und gegen 0 gehen kann: dann wurde die Toleranz riesig und Teile des Schattens (oder alles) verschwanden. Jetzt aus der Länge der Zeile (= 1 / tan(fov/2)).
 
 - Neu: `gl_model_shadow_map_range` (0.5..4, Standard 1): Reichweite der Modellschatten als Vielfaches des Lichtradius. Menü: Slider "reach of model shadows (x light radius)".
+
+- `gl_model_shadow_map_range` ersetzt durch `gl_model_shadow_map_unlimited` (Standard an): Modellschatten sind nicht mehr auf den Lichtradius begrenzt (Reichweite 8192). Der Schatten kann dadurch auch durch Wände auf dahinterliegende Flächen fallen.

@@ -64,7 +64,7 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 				continue;
 			DVector3 lp = light->PosRelative(group);
 			float height = (float)lp.Z;	// as the light is placed in the map
-			Lt lt = { (float)lp.X, height, (float)lp.Y, radius * clamp((float)gl_model_shadow_map_range, 0.5f, 4.0f) };
+			Lt lt = { (float)lp.X, height, (float)lp.Y, (gl_model_shadow_map_unlimited ? 8192.f : radius) };
 			lights.Push(lt);
 			if (lights.Size() >= 512)
 				break;
