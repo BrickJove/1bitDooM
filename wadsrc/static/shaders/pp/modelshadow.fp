@@ -242,9 +242,12 @@ void FaceBasis(int face, out vec3 f, out vec3 u)
 
 // true when a model is between the point and the light
 // 0 = no shadow of this light, 1 = shadow, 2 = a model is in the way but a wall blocks the light
-int InModelShadow(vec3 P, vec3 Q, float topLimit, vec4 L, vec2 nf, sampler2D map)
+int InModelShadow(vec3 P, vec3 Q, vec3 n, float topLimit, vec4 L, vec2 nf, sampler2D map)
 {
 	if (L.w <= 0.0)
+		return 0;
+	// surfaces that face away from the light cannot be seen from it: no shadow of this light (back of a wall, ...)
+	if (dot(n, n) > 0.5 && dot(n, L.xyz - P) <= 0.0)
 		return 0;
 	vec3 d = P - L.xyz;
 	float dist = length(d);
@@ -335,10 +338,10 @@ void main()
 	vec3 Q = P + n * (cell * 1.5);
 	float topLimit = Grid.w;
 
-	int s0 = InModelShadow(P, Q, topLimit, Light0, NearFar.xy, ShadowMap0);
-	int s1 = InModelShadow(P, Q, topLimit, Light1, NearFar.zw, ShadowMap1);
-	int s2 = InModelShadow(P, Q, topLimit, Light2, NearFar2.xy, ShadowMap2);
-	int s3 = InModelShadow(P, Q, topLimit, Light3, NearFar2.zw, ShadowMap3);
+	int s0 = InModelShadow(P, Q, n, topLimit, Light0, NearFar.xy, ShadowMap0);
+	int s1 = InModelShadow(P, Q, n, topLimit, Light1, NearFar.zw, ShadowMap1);
+	int s2 = InModelShadow(P, Q, n, topLimit, Light2, NearFar2.xy, ShadowMap2);
+	int s3 = InModelShadow(P, Q, n, topLimit, Light3, NearFar2.zw, ShadowMap3);
 	if (s0 == 1 || s1 == 1 || s2 == 1 || s3 == 1)
 	{
 		FragColor = vec4(0.0, 0.0, 0.0, 1.0);

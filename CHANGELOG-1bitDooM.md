@@ -138,3 +138,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Fix: `gl_model_shadow_map_walls` hing versehentlich am Kartenschatten-Shader (Boden wurde bei 0 schwarz) statt am Modellschatten-Shader. Neu: `gl_model_shadow_map_debug_walls 1` zeichnet Pixel, an denen ein Model im Weg ist, aber eine Wand den Schatten stoppt, als Schachbrett.
 
 - modelshadow.fp: beim Entfernen der Zaun-Texturen aus LinesBlock blieb ein `return true;` übrig, das bei jeder gekreuzten Linie blockierte (auch bei offenen Sektorgrenzen). Jetzt blockieren nur Wände (außerhalb der Durchgangshöhe) und Zäune (Mid-Texturen) den Modellschatten.
+
+- Modellschatten: Flächen, die vom Licht abgewandt sind (Rückseite einer Wand, Boden von unten …), bekommen keinen Modellschatten dieses Lichts mehr (Normale gegen Richtung zum Licht, wie bei den Kartenschatten).
