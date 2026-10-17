@@ -239,14 +239,15 @@ void FaceBasis(int face, out vec3 f, out vec3 u)
 }
 
 // true when a model is between the point and the light
-bool InModelShadow(vec3 P, vec3 Q, float topLimit, vec4 L, vec2 nf, sampler2D map)
+// 0 = no shadow of this light, 1 = shadow, 2 = a model is in the way but a wall blocks the light
+int InModelShadow(vec3 P, vec3 Q, float topLimit, vec4 L, vec2 nf, sampler2D map)
 {
 	if (L.w <= 0.0)
-		return false;
+		return 0;
 	vec3 d = P - L.xyz;
 	float dist = length(d);
 	if (dist >= L.w || dist < 12.0)
-		return false;
+		return 0;
 
 	vec3 a = abs(d);
 	int face;
@@ -260,26 +261,26 @@ bool InModelShadow(vec3 P, vec3 Q, float topLimit, vec4 L, vec2 nf, sampler2D ma
 	vec3 u2 = cross(r, f);
 	float m = dot(d, f);	// distance along the viewing direction of the face = w of the clip position
 	if (m <= nf.x)
-		return false;
+		return 0;
 	vec2 ndc = vec2(dot(d, r), dot(d, u2)) / m;
 
 	int size = textureSize(map, 0).x / 3;
 	ivec2 tp = ivec2(face % 3, face / 3) * size + clamp(ivec2((ndc * 0.5 + 0.5) * float(size)), ivec2(0), ivec2(size - 1));
 	float stored = texelFetch(map, tp, 0).x;
 	if (stored >= 1.0)
-		return false;	// nothing was drawn here
+		return 0;	// nothing was drawn here
 	float occluder = LinearLightDepth(stored, nf.x, nf.y);
 	float texel = 2.0 * m / float(size);	// world size of one depth map texel at this distance (90 degree field of view)
 	if (m <= occluder + 2.0 * texel + 1.0)
-		return false;
+		return 0;
 	// a wall between the pixel and the light: the shadow stops there
 	if (dist > 64.0 && Grid.z > 0.0)
 	{
 		vec3 D = (L.xyz - Q) / max(distance(L.xyz, Q), 1.0e-3);
 		if (Trace(Q, D, distance(L.xyz, Q) - 24.0, 0.0, topLimit) > 0.5)
-			return false;
+			return 2;
 	}
-	return true;
+	return 1;
 }
 
 void main()
@@ -332,12 +333,18 @@ void main()
 	vec3 Q = P + n * (cell * 1.5);
 	float topLimit = Grid.w;
 
-	if (InModelShadow(P, Q, topLimit, Light0, NearFar.xy, ShadowMap0) ||
-	    InModelShadow(P, Q, topLimit, Light1, NearFar.zw, ShadowMap1) ||
-	    InModelShadow(P, Q, topLimit, Light2, NearFar2.xy, ShadowMap2) ||
-	    InModelShadow(P, Q, topLimit, Light3, NearFar2.zw, ShadowMap3))
+	int s0 = InModelShadow(P, Q, topLimit, Light0, NearFar.xy, ShadowMap0);
+	int s1 = InModelShadow(P, Q, topLimit, Light1, NearFar.zw, ShadowMap1);
+	int s2 = InModelShadow(P, Q, topLimit, Light2, NearFar2.xy, ShadowMap2);
+	int s3 = InModelShadow(P, Q, topLimit, Light3, NearFar2.zw, ShadowMap3);
+	if (s0 == 1 || s1 == 1 || s2 == 1 || s3 == 1)
 	{
 		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		return;
+	}
+	if (Flags.x > 0.5 && (s0 == 2 || s1 == 2 || s2 == 2 || s3 == 2) && ((ipos.x + ipos.y) & 1) == 0)
+	{
+		FragColor = vec4(0.0, 0.0, 0.0, 1.0);	// debug: a model is in the way, but a wall stops the shadow
 		return;
 	}
 	discard;

@@ -882,6 +882,7 @@ struct ModelShadowUniforms
 	FVector4 Light1;
 	FVector4 Light2;
 	FVector4 Light3;
+	FVector4 Flags;		// x = 1: show where the wall test blocks a shadow (checkerboard)
 	FVector4 Grid;		// xy = grid origin of the height map (map X, Y), z = 1 / cell size (0 = no height map), w = highest floor / ceiling
 	FVector4 NearFar2;	// x, y = near, far of map 2; z, w = of map 3
 	FVector4 NearFar;	// x, y = near, far of map 0; z, w = of map 1
@@ -904,6 +905,7 @@ struct ModelShadowUniforms
 			{ "Light3", UniformType::Vec4, offsetof(ModelShadowUniforms, Light3) },
 			{ "NearFar2", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar2) },
 			{ "Grid", UniformType::Vec4, offsetof(ModelShadowUniforms, Grid) },
+			{ "Flags", UniformType::Vec4, offsetof(ModelShadowUniforms, Flags) },
 			{ "NearFar", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar) },
 			{ "VP0_0", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_0) },
 			{ "VP0_1", UniformType::Vec4, offsetof(ModelShadowUniforms, VP0_1) },

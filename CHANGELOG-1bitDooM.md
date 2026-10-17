@@ -134,3 +134,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Neu: `gl_model_shadow_map_walls` (Standard 1, nicht gespeichert): schaltet den Wandtest der Modellschatten ab, um Versionen zu vergleichen.
 
 - Mit `gl_model_shadow_map` an gibt es den flachen Bodenschatten (Sonne / senkrecht / vom nächsten Licht projiziert) nicht mehr: er lief als langes Band durch Wände. Es werfen nur noch die Lichter der Map Schatten (Schattenkarten).
+
+- Fix: `gl_model_shadow_map_walls` hing versehentlich am Kartenschatten-Shader (Boden wurde bei 0 schwarz) statt am Modellschatten-Shader. Neu: `gl_model_shadow_map_debug_walls 1` zeichnet Pixel, an denen ein Model im Weg ist, aber eine Wand den Schatten stoppt, als Schachbrett.
