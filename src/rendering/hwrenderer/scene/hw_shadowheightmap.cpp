@@ -434,6 +434,7 @@ struct ShadowHeightMap
 		std::vector<float> params;
 		std::vector<float> atlas((size_t)Slot * SlotsPerRow * Slot * SlotsPerRow, 0.f);
 		std::vector<int> slotTex;	// texture id per slot
+		std::vector<float> slotDensity;	// mean coverage of the alpha mask per slot
 
 		for (unsigned li = 0; li < level->lines.Size(); li++)
 		{
@@ -471,6 +472,7 @@ struct ShadowHeightMap
 					continue;
 				slot = (int)slotTex.size();
 				slotTex.push_back(texid.GetIndex());
+				double densSum = 0;
 				int ax = (slot % SlotsPerRow) * Slot, ay = (slot / SlotsPerRow) * Slot;
 				for (int sy = 0; sy < Slot; sy++)
 				{
@@ -487,8 +489,12 @@ struct ShadowHeightMap
 								cnt++;
 							}
 						atlas[(size_t)(ay + sy) * (Slot * SlotsPerRow) + ax + sx] = cnt ? (float)(sum / cnt / 255.0) : 0.f;	// coverage of the block (textures with more than 128 pixels are averaged down; the shader counts 20 % as a wire)
+						if (cnt) densSum += sum / cnt / 255.0;
 					}
 				}
+				if (slot >= (int)slotDensity.size())
+					slotDensity.resize(slot + 1, 0.f);
+				slotDensity[slot] = (float)(densSum / (Slot * Slot));
 			}
 
 			DVector2 a = line.v1->p, b = line.v2->p;
@@ -524,6 +530,7 @@ struct ShadowHeightMap
 			row[10] = wrap ? 1.f : 0.f;
 			row[11] = (float)std::max(ffloor, bfloor); row[12] = (float)std::min(fceil, bceil);
 			row[13] = flip ? 1.f : 0.f;
+			row[14] = slotDensity[slot];	// mean coverage of the texture (shadow of a lattice that is finer than a pixel)
 			lineFence[li] = (int)(params.size() / 16) + 1;
 			params.insert(params.end(), row, row + 16);
 		}

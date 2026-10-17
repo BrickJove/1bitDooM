@@ -40,6 +40,7 @@ ivec2 gGridSize;
 bool gFences = true;
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
 float gRayLen = 1.0;	// length of the ray of the shadow test
+vec3 gLightPos = vec3(0.0);	// the source of the ray of the shadow test
 vec3 gOrigin = vec3(0.0);	// start of the ray: fence shadows only count within gl_scene_shadow_fence_range of the receiver
 
 ivec2 ClampPos(ivec2 p)
@@ -109,7 +110,7 @@ float FenceParam(int id, int k)
 
 // Does the ray piece S0 -> S1 hit an opaque pixel of the fence texture at the crossing point (A -> B is the line, u the
 // position along it)?
-bool FencePixel(int id, vec2 A, vec2 B, float u, float y)
+bool FencePixel(int id, vec2 A, vec2 B, float u, float y, bool solid)
 {
 	bool wrap = FenceParam(id, 10) > 0.5;
 	if (!wrap && (y < FenceParam(id, 11) || y > FenceParam(id, 12)))
@@ -121,6 +122,8 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y)
 		v = fract(v);
 	else if (v < 0.0 || v > 1.0)
 		return false;
+	if (solid)
+		return FenceParam(id, 14) >= 0.25;	// lattice finer than the pixel: the mean coverage of the texture decides
 	float uu = fract((u * length(B - A) + FenceParam(id, 6)) * FenceParam(id, 7));
 	vec2 apos = vec2(FenceParam(id, 8), FenceParam(id, 9)) + min(vec2(uu, v) * 128.0, vec2(127.0));
 	return texelFetch(FenceAtlasTexture, ivec2(apos), 0).x > 0.2;
@@ -159,13 +162,30 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 			float dh = distance(mix(S0, S1, clamp(t, 0.0, 1.0)), gOrigin);
 			if (dh < (Light.y > 0.5 ? Light.y : 1.0e9))
 			{
-				// Where the lattice is finer than the pixel it only makes noise: the footprint of the pixel at the fence
-				// (it shrinks towards the light) must not be larger than two texels of the fence texture. The texel size
-				// comes from the scale of the texture, so 128 and 256 pixel high or scaled textures all work.
-				float footprint = gFoot * clamp((gRayLen - dh) / max(gRayLen, 1.0), 0.0, 1.0);
-				float texel = max(1.0 / (FenceParam(fence, 7) * 128.0), FenceParam(fence, 5) / 128.0);
-				if (footprint <= 2.0 * texel && FencePixel(fence, A, B, clamp(u, 0.0, 1.0), y))
-					return true;
+				// The shadow of a fence is the texture itself in black, as large as the texture: parallel projection along the
+				// direction fence -> light (only the length of the shadow on the floor depends on the light). The ray above only
+				// decides that this fence is between the pixel and the light.
+				vec2 sv = B - A;
+				float flen = max(length(sv), 1.0e-3);
+				vec2 sd = sv / flen;
+				vec2 nf = vec2(-sd.y, sd.x);
+				vec3 dir = normalize(gLightPos - vec3(0.5 * (A.x + B.x), y, 0.5 * (A.y + B.y)));
+				float dn = dot(nf, dir.xz);
+				if (abs(dn) > 0.04)
+				{
+					float st = dot(nf, A - gOrigin.xz) / dn;
+					vec3 Hp = gOrigin + dir * st;
+					float up = dot(Hp.xz - A, sd) / flen;
+					if (st > 0.0 && up >= 0.0 && up <= 1.0)
+					{
+						// the footprint of the pixel at the fence against the texel size of the texture (from its scale, so
+						// 128 and 256 pixel high or scaled textures all work): finer than the pixel = mean coverage
+						float texel = max(1.0 / (FenceParam(fence, 7) * 128.0), FenceParam(fence, 5) / 128.0);
+						bool solid = gFoot * 0.7 > texel;
+						if (FencePixel(fence, A, B, up, Hp.y, solid))
+							return true;
+					}
+				}
 			}
 		}
 	}
@@ -179,6 +199,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 {
 	float cell = 1.0 / Grid.z;
 	gRayLen = len;
+	gLightPos = P + D * len;
 	float t0 = cell * 0.25;
 	if (len <= t0)
 		return 0.0;
