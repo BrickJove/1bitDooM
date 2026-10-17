@@ -43,6 +43,7 @@ float gPix = 1.0;	// world size of one screen pixel at the depth of the pixel
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
 float gRayLen = 1.0;	// length of the ray of the shadow test
 vec3 gLightPos = vec3(0.0);	// the source of the ray of the shadow test
+vec3 gSurf = vec3(0.0);	// exact position of the pixel on its surface (the origin above is lifted off the surface)
 vec3 gOrigin = vec3(0.0);	// start of the ray: fence shadows only count within gl_scene_shadow_fence_range of the receiver
 
 ivec2 ClampPos(ivec2 p)
@@ -206,8 +207,8 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 				float dn = dot(nf, dir.xz);
 				if (abs(dn) > 0.04)
 				{
-					float st = dot(nf, A - gOrigin.xz) / dn;
-					vec3 Hp = gOrigin + dir * st;
+					float st = dot(nf, A - gSurf.xz) / dn;
+					vec3 Hp = gSurf + dir * st;
 					float up = dot(Hp.xz - A, sd) / flen;
 					if (st > 0.0 && up >= 0.0 && up <= 1.0)
 					{
@@ -450,6 +451,7 @@ void main()
 		SnapWall(P, n, cell);
 	vec3 Q = P + n * (cell * 1.5);
 	gOrigin = Q;
+	gSurf = P;
 	// no fence shadows on ceilings; the footprint of the pixel on its surface (long on floors seen at a grazing angle)
 	if (hasNormal && n.y < -0.5)
 		gFences = false;

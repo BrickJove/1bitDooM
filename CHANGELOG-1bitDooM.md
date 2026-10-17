@@ -180,3 +180,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Zaunschatten: der Ersatz „durchgehend schwarz“ für Gitter, die feiner als ein Pixel sind, gilt nur noch bei Pixelgröße > 1,5 Texel der Zaun-Textur (vorher mit Streckfaktor für flache Blickwinkel, wodurch ganze Böden schwarz wurden).
 
 - Zaunschatten in der Ferne: keine schwarze Fläche mehr. Ist das Gitter feiner als ein Pixel, wird die Deckung des Pixel-Fußabdrucks (bis 4 x 4 Abtastungen, bei sehr großem Fußabdruck die mittlere Deckung der Textur) mit der Bayer-Rasterung des Bildschirms als regelmäßiges Grau dargestellt, nah bleibt es das exakte Gitter in Schwarz.
+
+- Zaunschatten: Ober- und Unterkante stimmen mit der Zaun-Textur überein. Die Projektion startete bisher vom angehobenen Strahlursprung (1,5 Gitterzellen über der Fläche, dadurch um bis zu ein paar Dutzend Einheiten nach oben versetzt); jetzt startet sie von der exakten Position des Pixels auf der Fläche.
