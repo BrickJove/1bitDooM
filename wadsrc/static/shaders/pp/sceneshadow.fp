@@ -203,7 +203,12 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 				float flen = max(length(sv), 1.0e-3);
 				vec2 sd = sv / flen;
 				vec2 nf = vec2(-sd.y, sd.x);
-				vec3 dir = normalize(gLightPos - vec3(0.5 * (A.x + B.x), y, 0.5 * (A.y + B.y)));
+				// Direction fence -> light. The light is usually lower than the top of the fence, which would throw the top edge
+				// of the fence infinitely far (or below the floor), so the elevation is limited: the shadow of the whole fence
+				// (bottom edge to top edge) is at most twice as long as the fence is high.
+				vec3 dl = gLightPos - vec3(0.5 * (A.x + B.x), FenceParam(fence, 11), 0.5 * (A.y + B.y));
+				float hl = max(length(dl.xz), 1.0e-3);
+				vec3 dir = normalize(vec3(dl.x, max(dl.y, 0.5 * hl), dl.z));
 				float dn = dot(nf, dir.xz);
 				if (abs(dn) > 0.04)
 				{
