@@ -74,7 +74,7 @@ int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map
 
 	// surfaces that face away from the light or that it only grazes cannot show a stable shadow
 	// (the depth comparison is meaningless there and the result would flicker)
-	if (dot(n, n) > 0.5 && dot(n, -d) <= 0.12 * dist)
+	if (dot(n, n) > 0.5 && dot(n, -d) <= 0.02 * dist)
 		return 0;
 
 	vec3 a = abs(d);
