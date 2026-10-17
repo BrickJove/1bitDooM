@@ -20,6 +20,8 @@
 **
 */
 
+#include "printf.h"
+#include "c_dispatch.h"
 #include "v_video.h"
 #include "hw_postprocess.h"
 #include "hw_cvars.h"
@@ -903,10 +905,21 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->PopGroup();
 }
 
+static int g_ModelShadowRenderCalls = 0;
+
+CCMD(gl_model_shadow_info)
+{
+	const SceneShadowFrame &f = sceneShadowFrame;
+	Printf("1bitDooM model shadow build %s %s\n", __DATE__, __TIME__);
+	Printf("world depth maps: yes, shader calls: %d\n", g_ModelShadowRenderCalls);
+	Printf("gl_scene_shadow=%d gl_model_shadow_map=%d frame valid=%d models active=%d world maps=%d%d%d%d\n", (int)gl_scene_shadow, (int)gl_model_shadow_map, (int)f.Valid, (int)f.ModelShadowActive, (int)f.ModelWorld[0], (int)f.ModelWorld[1], (int)f.ModelWorld[2], (int)f.ModelWorld[3]);
+}
+
 // shadows of the models: pure black where a model lies between the pixel and a dynamic light
 void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
+	g_ModelShadowRenderCalls++;
 	if (!gl_scene_shadow || !f.Valid || !f.ModelShadowActive || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 
