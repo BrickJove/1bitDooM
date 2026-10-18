@@ -864,7 +864,7 @@ SceneShadowFrame sceneShadowFrame;
 void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
-	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || !f.LightTex || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || !f.LightTex || !f.SectorLightTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 	bool sun = gl_scene_shadow_sun && f.SunPosValid;
 	int lights = clamp((int)gl_scene_shadow_lights, 0, 3);
@@ -884,7 +884,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
 	u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], sun ? 1.f : 0.f);
-	u.Light = FVector4((float)lights, (float)gl_scene_shadow_fence_range, gl_scene_shadow_style == 2 ? 1.f : 0.f, 0.f);	// x = number of lights, the lights are in the light texture
+	u.Light = FVector4((float)lights, (float)gl_scene_shadow_fence_range, gl_scene_shadow_style == 2 ? 1.f : 0.f, clamp((float)gl_scene_shadow_ambient, 0.f, 1.f));	// x = number of lights (they are in the light texture), y = fence range, z = checkerboard, w = strength of the sector light
 
 	renderstate->PushGroup("sceneshadow");
 	renderstate->Clear();
@@ -899,6 +899,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->SetInputTexture(5, f.FenceParamTex);
 	renderstate->SetInputTexture(6, f.FenceAtlasTex);
 	renderstate->SetInputTexture(7, f.LightTex);
+	renderstate->SetInputTexture(8, f.SectorLightTex);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();
@@ -929,23 +930,35 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	if (!(gl_model_shadow_map_debug_light == 5) && (!f.Valid || !f.ModelShadowActive))
 		return;
 
+	if (!f.CellTex || !f.SectorLightTex)
+		return;
+
 	ModelShadowUniforms u;
 	u.CamX = FVector4(f.InvView[0][0], f.InvView[0][1], f.InvView[0][2], f.InvView[0][3]);
 	u.CamY = FVector4(f.InvView[1][0], f.InvView[1][1], f.InvView[1][2], f.InvView[1][3]);
 	u.CamZ = FVector4(f.InvView[2][0], f.InvView[2][1], f.InvView[2][2], f.InvView[2][3]);
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
-	u.Light0 = FVector4(f.ModelLight[0][0], f.ModelLight[0][1], f.ModelLight[0][2], f.ModelLight[0][3]);
-	u.Light1 = FVector4(f.ModelLight[1][0], f.ModelLight[1][1], f.ModelLight[1][2], f.ModelLight[1][3]);
-	u.Light2 = FVector4(f.ModelLight[2][0], f.ModelLight[2][1], f.ModelLight[2][2], f.ModelLight[2][3]);
-	u.Light3 = FVector4(f.ModelLight[3][0], f.ModelLight[3][1], f.ModelLight[3][2], f.ModelLight[3][3]);
-	u.NearFar2 = FVector4(f.ModelNearFar[2][0], f.ModelNearFar[2][1], f.ModelNearFar[3][0], f.ModelNearFar[3][1]);
 	int worldMask = (f.ModelWorld[0] ? 1 : 0) | (f.ModelWorld[1] ? 2 : 0) | (f.ModelWorld[2] ? 4 : 0) | (f.ModelWorld[3] ? 8 : 0);
 	if (!gl_model_shadow_map_walls)
 		worldMask = 0;
 	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 5), (float)worldMask, gl_scene_shadow_style == 2 ? 1.f : 0.f);
-	u.NearFar = FVector4(f.ModelNearFar[0][0], f.ModelNearFar[0][1], f.ModelNearFar[1][0], f.ModelNearFar[1][1]);
+	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, f.GridInvCell, clamp((float)gl_scene_shadow_ambient, 0.f, 1.f));
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
+
+	// data texture: rows 0..3 = position + radius of the light of each map, row 4 = near / far of map 0 and 1, row 5 = of map 2 and 3
+	{
+		std::shared_ptr<float> data(new float[24], std::default_delete<float[]>());
+		float *d = data.get();
+		for (int i = 0; i < 4; i++)
+			for (int k = 0; k < 4; k++)
+				d[i * 4 + k] = f.ModelLight[i][k];
+		d[16] = f.ModelNearFar[0][0]; d[17] = f.ModelNearFar[0][1]; d[18] = f.ModelNearFar[1][0]; d[19] = f.ModelNearFar[1][1];
+		d[20] = f.ModelNearFar[2][0]; d[21] = f.ModelNearFar[2][1]; d[22] = f.ModelNearFar[3][0]; d[23] = f.ModelNearFar[3][1];
+		DataTex[DataTexNext].reset(new PPTexture(4, 6, PixelFormat::R32f, std::shared_ptr<void>(data)));
+	}
+	PPTexture *dataTex = DataTex[DataTexNext].get();
+	DataTexNext = (DataTexNext + 1) % 8;
 
 	renderstate->PushGroup("modelshadow");
 	renderstate->Clear();
@@ -962,6 +975,9 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->SetInputModelWorld(7, 1);
 	renderstate->SetInputModelWorld(8, 2);
 	renderstate->SetInputModelWorld(9, 3);
+	renderstate->SetInputTexture(10, dataTex);
+	renderstate->SetInputTexture(11, f.CellTex);
+	renderstate->SetInputTexture(12, f.SectorLightTex);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();

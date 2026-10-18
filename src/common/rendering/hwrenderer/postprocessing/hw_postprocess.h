@@ -834,6 +834,7 @@ struct SceneShadowFrame
 	PPTexture *FenceParamTex = nullptr;	// 16 floats per fence
 	PPTexture *FenceAtlasTex = nullptr;	// alpha masks of the fence textures
 	PPTexture *LightTex = nullptr;		// 3 rows: position + radius of the nearest dynamic lights
+	PPTexture *SectorLightTex = nullptr;	// light level (0..255) per sector, 4096 per row; the cells carry the sector index
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
 	float MidX = 0, MidY = 0;		// centre of the bounding box of the level
 	float TopLimit = 0;			// highest floor / ceiling: rays above it are free
@@ -877,20 +878,16 @@ struct SceneShadowUniforms
 };
 static_assert(sizeof(SceneShadowUniforms) == 128, "SceneShadowUniforms must stay within 128 bytes (Vulkan push constants)");
 
-// shadows of the models, from the depth maps seen from the dynamic lights (in Vulkan the uniforms are push constants: keep this small)
+// shadows of the models, from the depth maps seen from the dynamic lights. In Vulkan the uniforms are push constants
+// (128 bytes are guaranteed): the lights and near / far planes of the maps are in a small data texture (4 x 6 floats).
 struct ModelShadowUniforms
 {
 	FVector4 CamX;
 	FVector4 CamY;
 	FVector4 CamZ;
 	FVector4 ProjParams;	// LinearizeDepthA, LinearizeDepthB, 1/proj[0], 1/proj[5]
-	FVector4 Light0;	// xyz = position, w = radius (0 = unused)
-	FVector4 Light1;
-	FVector4 Light2;
-	FVector4 Light3;
-	FVector4 Flags;		// x = 1: show where the wall test blocks a shadow (checkerboard), y = 1..4: show what the light of that map does not see
-	FVector4 NearFar2;	// x, y = near, far of map 2; z, w = of map 3
-	FVector4 NearFar;	// x, y = near, far of map 0; z, w = of map 1
+	FVector4 Flags;		// x = 1: show where the wall test blocks a shadow (checkerboard), y = 1..4: show what the light of that map does not see, z = world map mask, w = 1: checkerboard style
+	FVector4 Grid;		// xy = grid origin of the height map (map X, Y), z = 1 / cell size, w = strength of the sector light (gl_scene_shadow_ambient)
 	FVector2 Scale;
 	FVector2 Offset;
 
@@ -902,13 +899,8 @@ struct ModelShadowUniforms
 			{ "CamY", UniformType::Vec4, offsetof(ModelShadowUniforms, CamY) },
 			{ "CamZ", UniformType::Vec4, offsetof(ModelShadowUniforms, CamZ) },
 			{ "ProjParams", UniformType::Vec4, offsetof(ModelShadowUniforms, ProjParams) },
-			{ "Light0", UniformType::Vec4, offsetof(ModelShadowUniforms, Light0) },
-			{ "Light1", UniformType::Vec4, offsetof(ModelShadowUniforms, Light1) },
-			{ "Light2", UniformType::Vec4, offsetof(ModelShadowUniforms, Light2) },
-			{ "Light3", UniformType::Vec4, offsetof(ModelShadowUniforms, Light3) },
 			{ "Flags", UniformType::Vec4, offsetof(ModelShadowUniforms, Flags) },
-			{ "NearFar2", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar2) },
-			{ "NearFar", UniformType::Vec4, offsetof(ModelShadowUniforms, NearFar) },
+			{ "Grid", UniformType::Vec4, offsetof(ModelShadowUniforms, Grid) },
 			{ "Scale", UniformType::Vec2, offsetof(ModelShadowUniforms, Scale) },
 			{ "Offset", UniformType::Vec2, offsetof(ModelShadowUniforms, Offset) }
 		};
@@ -922,6 +914,8 @@ public:
 
 private:
 	PPShader ModelShadow = { "shaders/pp/modelshadow.fp", "", ModelShadowUniforms::Desc() };
+	std::unique_ptr<PPTexture> DataTex[8];	// the data texture of the last frames (the GPU may still use the older ones)
+	int DataTexNext = 0;
 };
 
 class PPSceneShadow

@@ -23,6 +23,9 @@ layout(binding=6) uniform sampler2D WorldMap0;
 layout(binding=7) uniform sampler2D WorldMap1;
 layout(binding=8) uniform sampler2D WorldMap2;
 layout(binding=9) uniform sampler2D WorldMap3;
+layout(binding=10) uniform sampler2D DataTexture;	// 4 x 6 floats: position + radius of the 4 lights, near / far of the maps
+layout(binding=11) uniform sampler2D CellTexture;	// height map of the level (see sceneshadow.fp): the count channel carries the sector index + 1 above 7 bits
+layout(binding=12) uniform sampler2D SectorLightTexture;	// light level (0..255) per sector, 4096 per row
 
 ivec2 gTexSize;
 
@@ -43,6 +46,27 @@ vec3 PosAt(ivec2 p)
 	float z = 1.0 / max(InvDepthAt(p), 1.0e-8);
 	vec3 eye = vec3((tc * 2.0 - 1.0) * ProjParams.zw * z, -z);
 	return vec3(dot(CamX.xyz, eye) + CamX.w, dot(CamY.xyz, eye) + CamY.w, dot(CamZ.xyz, eye) + CamZ.w);
+}
+
+vec4 DataRow(int row)
+{
+	return vec4(texelFetch(DataTexture, ivec2(0, row), 0).x, texelFetch(DataTexture, ivec2(1, row), 0).x,
+	            texelFetch(DataTexture, ivec2(2, row), 0).x, texelFetch(DataTexture, ivec2(3, row), 0).x);
+}
+
+// light level of the sector at a position, 0..1 (0 when the position is in no sector)
+float SectorAmbient(vec3 w)
+{
+	if (Grid.z <= 0.0)
+		return 0.0;
+	ivec2 size = textureSize(CellTexture, 0);
+	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
+	if (c.x < 0 || c.y < 0 || c.x >= size.x / 4 || c.y >= size.y)
+		return 0.0;
+	int sec = (int(texelFetch(CellTexture, ivec2(c.x * 4 + 3, c.y), 0).x + 0.5) >> 7) - 1;
+	if (sec < 0)
+		return 0.0;
+	return clamp(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x / 255.0, 0.0, 1.0);
 }
 
 float LinearLightDepth(float d, float n, float f)
@@ -127,6 +151,8 @@ int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map
 void main()
 {
 	gTexSize = textureSize(DepthTexture, 0);
+	vec4 Light0 = DataRow(0), Light1 = DataRow(1), Light2 = DataRow(2), Light3 = DataRow(3);
+	vec4 NearFar = DataRow(4), NearFar2 = DataRow(5);
 	ivec2 ipos = ivec2((Offset + TexCoord * Scale) * vec2(gTexSize));
 	vec4 ns = texelFetch(NormalTexture, ClampPos(ipos), 0);
 
@@ -212,6 +238,9 @@ void main()
 		discard;	// checkerboard style: only every second pixel of the shadow is black
 	if (s0 == 1 || s1 == 1 || s2 == 1 || s3 == 1)
 	{
+		// the light level of the sector: a lit sector has nothing that a light could still brighten
+		if (Grid.w > 0.0 && 1.0 - Grid.w * SectorAmbient(P + n * 3.0) <= 0.5)
+			discard;
 		FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		return;
 	}

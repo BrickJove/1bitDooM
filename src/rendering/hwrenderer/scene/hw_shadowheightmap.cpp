@@ -53,6 +53,8 @@ struct ShadowHeightMap
 	unsigned sectorCount = 0, lineCount = 0, vertexCount = 0;
 	int W = 0, H = 0;
 	float cell = 8.f, ox = 0, oy = 0, midX = 0, midY = 0, topLimit = 0;
+	std::vector<int> cellSector;		// sector index + 1 per cell (0 = solid), packed into the count channel
+	std::vector<float> sectorLight;	// light level (0..255) per sector, 4096 per row
 	std::vector<float> cellData;		// 4 floats per cell
 	std::vector<float> topNum;		// numeric ceiling height of the open cells (-Big = none), for the height of the solids
 	std::unique_ptr<PPTexture> texLight;
@@ -62,7 +64,7 @@ struct ShadowHeightMap
 	std::vector<SectorState> states;
 	bool cellsDirty = false, linesDirty = false;
 	unsigned frame = 0, lastUpload = 0;
-	std::unique_ptr<PPTexture> texCell, texList, texLine, texFenceParam, texFenceAtlas;
+	std::unique_ptr<PPTexture> texSector, texCell, texList, texLine, texFenceParam, texFenceAtlas;
 	std::deque<std::pair<unsigned, std::unique_ptr<PPTexture>>> retired;
 
 	bool Matches(FLevelLocals *level) const
@@ -153,6 +155,7 @@ struct ShadowHeightMap
 					if (!inside)
 						continue;
 					size_t idx = ((size_t)cy * W + cx) * 4;
+					cellSector[idx / 4] = sec->Index() + 1;
 					cellData[idx] = (float)sec->floorplane.ZatPoint(px, py);
 					cellData[idx + 1] = CeilingOf(sec, DVector2(px, py));
 					double fz = sec->floorplane.ZatPoint(px, py), cz = sec->ceilingplane.ZatPoint(px, py);
@@ -229,7 +232,7 @@ struct ShadowHeightMap
 		sectorCount = level->sectors.Size();
 		lineCount = level->lines.Size();
 		vertexCount = level->vertexes.Size();
-		texCell.reset(); texList.reset(); texLight.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
+		texSector.reset(); texCell.reset(); texList.reset(); texLight.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
 		retired.clear();
 
 		double minx = 1e30, maxx = -1e30, miny = 1e30, maxy = -1e30;
@@ -256,6 +259,8 @@ struct ShadowHeightMap
 		H = std::max(1, (int)ceil((maxy - miny + 16.0) / cell));
 
 		cellData.assign((size_t)W * H * 4, 0.f);
+		cellSector.assign((size_t)W * H, 0);
+		sectorLight.clear();
 		for (size_t i = 0; i < (size_t)W * H; i++)
 		{
 			cellData[i * 4] = Big;
@@ -391,7 +396,8 @@ struct ShadowHeightMap
 		for (size_t c = 0; c < counts.size(); c++)
 		{
 			cellData[c * 4 + 2] = (float)total;
-			cellData[c * 4 + 3] = (float)counts[c];
+			// count (at most 127) in the low 7 bits, sector index + 1 above (the light level of the sector is looked up per frame)
+			cellData[c * 4 + 3] = (float)(std::min(counts[c], 127u) + (unsigned)cellSector[c] * 128u);
 			total += counts[c];
 		}
 		std::vector<float> list(((total + ListWidth - 1) / ListWidth + 1) * ListWidth, 0.f);
@@ -619,6 +625,22 @@ struct ShadowHeightMap
 				retired.emplace_back(frame, std::move(texLight));
 			texLight = MakeTexture(4, 4, ld);
 			out.LightTex = texLight.get();
+		}
+		// light level of every sector (flickering lights, light specials): a small texture, only new when something changed
+		{
+			size_t n = level->sectors.Size();
+			size_t rows = std::max<size_t>(1, (n + 4095) / 4096);
+			std::vector<float> now(rows * 4096, 0.f);
+			for (size_t i = 0; i < n; i++)
+				now[i] = (float)level->sectors[i].GetLightLevel();
+			if (!texSector || now != sectorLight)
+			{
+				if (texSector)
+					retired.emplace_back(frame, std::move(texSector));
+				sectorLight = now;
+				texSector = MakeTexture(4096, (int)rows, now);
+			}
+			out.SectorLightTex = texSector.get();
 		}
 		out.CellTex = texCell.get();
 		out.ListTex = texList.get();

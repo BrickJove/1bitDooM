@@ -146,3 +146,4 @@ CVAR(Float, gl_menu_blur, -1.0f, CVAR_ARCHIVE)
 CVAR(Float, gl_model_shadow_max_length, 512.f, CVAR_ARCHIVE)
 
 CVARD(Float, gl_scene_shadow_fence_range, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How far from the surface that receives it the shadow of a fence (transparent middle texture) reaches, 0 = unlimited (only the light decides the length)")
+CVARD(Float, gl_scene_shadow_ambient, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How much the light level of the sector weakens the shadows (0..1): 0 = shadows are always shown, 1 = a sector with light level 255 shows none, shadows only show in dark sectors (hard shadows below 50% light)")

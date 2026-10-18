@@ -28,6 +28,7 @@ layout(binding=2) uniform sampler2D CellTexture;	// 4 floats per cell: floor, ce
 layout(binding=3) uniform sampler2D ListTexture;	// line indices
 layout(binding=4) uniform sampler2D LineTexture;	// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
+layout(binding=8) uniform sampler2D SectorLightTexture;	// light level (0..255) per sector, 4096 per row
 layout(binding=7) uniform sampler2D LightTexture;	// 3 rows: x, y, z, radius of the nearest dynamic lights
 layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 256 x 256 per fence texture (8 x 8 slots)
 
@@ -90,6 +91,24 @@ ivec2 CellOf(vec3 w)
 float CellValue(ivec2 c, int k)
 {
 	return texelFetch(CellTexture, ivec2(c.x * 4 + k, c.y), 0).x;
+}
+
+// the count channel carries the number of lines of the cell (low 7 bits) and the sector index + 1 (above)
+int CellCount(ivec2 c)
+{
+	return int(CellValue(c, 3) + 0.5) & 127;
+}
+
+// light level of the sector at a position, 0..1 (0 when the position is in no sector)
+float SectorAmbient(vec3 w)
+{
+	ivec2 c = CellOf(w);
+	if (c.x < 0)
+		return 0.0;
+	int sec = (int(CellValue(c, 3) + 0.5) >> 7) - 1;
+	if (sec < 0)
+		return 0.0;
+	return clamp(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x / 255.0, 0.0, 1.0);
 }
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
@@ -168,7 +187,7 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
 bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 {
-	int count = int(CellValue(c, 3) + 0.5);
+	int count = CellCount(c);
 	int start = int(CellValue(c, 2) + 0.5);
 	vec2 r = S1.xz - S0.xz;
 	for (int k = 0; k < 96; k++)
@@ -275,7 +294,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 			return 0.0;	// left the map
 		float tout = min(min(tMax.x, tMax.y), tEnd);
 		vec3 S0 = A + D * tin, S1 = A + D * tout;
-		if (CellValue(c, 3) > 0.5)
+		if (CellCount(c) > 0)
 		{
 			if (LinesBlock(c, S0, S1))
 				return 1.0;
@@ -319,7 +338,7 @@ void SnapWall(inout vec3 P, inout vec3 n, float cell)
 		ivec2 c = CellOf(ci == 0 ? P : P + n * (cell * 2.0));
 		if (c.x < 0)
 			continue;
-		int count = int(CellValue(c, 3) + 0.5);
+		int count = CellCount(c);
 		int start = int(CellValue(c, 2) + 0.5);
 		for (int k = 0; k < 48; k++)
 		{
@@ -449,7 +468,7 @@ void main()
 		for (int it = 0; it < 3; it++)
 		{
 			ivec2 sc = CellOf(P);
-			if (sc.x < 0 || CellValue(sc, 3) > 0.5)
+			if (sc.x < 0 || CellCount(sc) > 0)
 				break;
 			float sf = CellValue(sc, 0);
 			float target = n.y > 0.0 ? sf : CellValue(sc, 1);
@@ -538,7 +557,11 @@ void main()
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 3) & 127) / 100.0;
-	float a = dither ? ((shadow > 0.15 ? density : 0.0) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 ? 1.0 : 0.0);
+	// the light level of the sector weakens the shadow: a lit sector has nothing that a light could still brighten
+	float remain = 1.0;
+	if (Light.w > 0.0 && shadow > 0.15)
+		remain = 1.0 - Light.w * SectorAmbient(Q);
+	float a = dither ? ((shadow > 0.15 ? density * remain : 0.0) > Bayer4(ipos) ? 1.0 : 0.0) : (shadow > 0.15 && remain > 0.5 ? 1.0 : 0.0);
 	if (Light.z > 0.5 && ((ipos.x + ipos.y) & 1) != 0)
 		a = 0.0;	// checkerboard style: only every second pixel of the shadow is black
 	FragColor = vec4(0.0, 0.0, 0.0, a);
