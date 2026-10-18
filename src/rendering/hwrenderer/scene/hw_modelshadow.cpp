@@ -278,10 +278,12 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 				memcpy(faceVP + face * 16, wvp.get(), sizeof(float) * 16);
 			}
 			auto *mesh = di->Level->levelMesh;
-			if (mesh != nullptr)
+			if (mesh != nullptr && !isSun)
 				screen->SetModelShadowWorld((const float *)mesh->MeshVertices.Data(), mesh->MeshVertices.Size(), (const unsigned int *)mesh->MeshElements.Data(), mesh->MeshElements.Size(), mesh);
 			float lp[3] = { lx, ly, lz };
-			f.ModelWorld[usedMaps] = screen->RenderModelShadowWorld(usedMaps, lp, farp, faceVP);
+			// no world map for the sun: the roofs of the level (sky ceilings) would hide everything below them, and the
+			// pixels under an open sky are chosen in modelshadow.fp
+			f.ModelWorld[usedMaps] = isSun ? false : screen->RenderModelShadowWorld(usedMaps, lp, farp, faceVP);
 		}
 
 		if (!screen->BeginModelShadowMap(usedMaps))
