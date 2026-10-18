@@ -500,7 +500,9 @@ void main()
 	}
 	if (mapNormal && abs(n.y) < 0.3 && dot(n.xz, n.xz) > 0.5)
 		SnapWall(P, n, cell);
-	vec3 Q = P + n * (cell * 1.5);
+	// start of the rays: just off the surface. The cell size depends on the size of the map (30..50 units on a big map), an offset
+	// of that size would let the rays start above low walls and boxes, so it is limited
+	vec3 Q = P + n * min(cell * 1.5, 3.0);
 	gOrigin = Q;
 	gSurf = P;
 	// no fence shadows on ceilings; the footprint of the pixel on its surface (long on floors seen at a grazing angle)
