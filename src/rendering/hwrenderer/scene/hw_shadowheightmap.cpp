@@ -703,6 +703,41 @@ struct ShadowHeightMap
 		out.MidY = midY;
 		out.TopLimit = topLimit;
 	}
+
+	// Debug (console command scene_shadow_info): what the height map knows about the lines of a sector
+	void Dump(FLevelLocals *level, sector_t *sec)
+	{
+		Printf("height map: %d x %d cells of %.0f units, %d lines in the list, level has %d lines\n", W, H, cell, (int)lineData.size() / 8, (int)level->lines.Size());
+		Printf("sector %d: floor %.0f ceiling %.0f (%s)\n", (int)sec->Index(), sec->floorplane.ZatPoint(sec->centerspot), sec->ceilingplane.ZatPoint(sec->centerspot),
+			sec->GetTexture(sector_t::ceiling) == skyflatnum ? "sky" : "ceiling");
+		int shown = 0;
+		for (unsigned k = 0; k < sec->Lines.Size(); k++)
+		{
+			line_t *l = sec->Lines[k];
+			int li = (int)(l - &level->lines[0]);
+			if (l->frontsector == nullptr || l->backsector == nullptr)
+				continue;	// one sided walls are always in the list
+			sector_t *other = l->frontsector == sec ? l->backsector : l->frontsector;
+			DVector2 mid = (l->v1->p + l->v2->p) * 0.5;
+			double of = other->floorplane.ZatPoint(mid), sf = sec->floorplane.ZatPoint(mid);
+			float lo, hi;
+			LineRange(*l, lo, hi);
+			bool step = of != sf;
+			if (!step && lineFence[li] <= 0)
+				continue;
+			Printf("line %d (%.0f,%.0f)-(%.0f,%.0f) to sector %d: floor here %.0f there %.0f, blocks below %.0f above %.0f, in list: %s%s%s\n",
+				li, l->v1->p.X, l->v1->p.Y, l->v2->p.X, l->v2->p.Y, (int)other->Index(), sf, of, lo, hi > Big * 0.5f ? 99999.f : hi,
+				lineIndex.size() > (size_t)li && lineIndex[li] >= 0 ? "yes" : "NO", lineFence[li] > 0 ? ", fence" : "",
+				level->SectorHasTags(other) || level->SectorHasTags(sec) ? ", tagged" : "");
+			if (++shown >= 40)
+			{
+				Printf("(more lines not shown)\n");
+				break;
+			}
+		}
+		if (shown == 0)
+			Printf("no line of this sector has a height step or a fence\n");
+	}
 };
 
 ShadowHeightMap heightMap;
@@ -712,6 +747,12 @@ ShadowHeightMap heightMap;
 void hw_UpdateShadowHeightMap(FLevelLocals *level, SceneShadowFrame &frame)
 {
 	heightMap.Update(level, frame);
+}
+
+void hw_DumpShadowHeightMap(FLevelLocals *level, sector_t *sec)
+{
+	if (level != nullptr && sec != nullptr)
+		heightMap.Dump(level, sec);
 }
 
 void hw_ResetShadowHeightMap()

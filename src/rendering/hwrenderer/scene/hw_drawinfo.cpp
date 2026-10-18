@@ -1208,3 +1208,14 @@ void HWDrawInfo::AddSubsectorToPortal(FSectorPortalGroup *ptg, subsector_t *sub)
 	auto ptl = static_cast<HWSectorStackPortal*>(portal);
 	ptl->AddSubsector(sub);
 }
+
+
+// console command: what the shadow height map knows about the lines around the player (height steps, fences)
+#include "c_dispatch.h"
+CCMD(scene_shadow_info)
+{
+	if (players[consoleplayer].mo == nullptr)
+		return;
+	AActor *mo = players[consoleplayer].mo;
+	hw_DumpShadowHeightMap(mo->Level, mo->Sector);
+}
