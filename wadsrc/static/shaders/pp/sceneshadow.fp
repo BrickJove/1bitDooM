@@ -224,9 +224,12 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 		// foot of a wall can lie a little on the wrong side of its line)
 		if (t < -tol || t > 1.00001 || u < -1.0e-5 || u > 1.00001)
 			continue;
+		bool behind = t < -1.0e-5;	// only the tolerance reaches this line: counts for walls, not for fences
 		float y = mix(S0.y, S1.y, clamp(t, 0.0, 1.0));
 		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
 			return true;
+		if (behind)
+			continue;
 		int fence = int(texelFetch(LineTexture, base + ivec2(6, 0), 0).x + 0.5) - 1;
 		if (fence >= 0 && gFences)
 		{
