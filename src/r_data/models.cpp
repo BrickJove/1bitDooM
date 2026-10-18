@@ -169,8 +169,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		bool litSector = gl_scene_shadow_ambient > 0.f && actor->Sector != nullptr
 			&& 1.f - gl_scene_shadow_ambient * clamp(actor->Sector->GetLightLevel(), 0, 255) / 255.f <= 0.5f;
 		bool sunLit = !litSector && gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
-			&& actor->Sector != nullptr && (actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum
-				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
+			&& actor->Sector != nullptr && actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum;
 		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
 		float mapWeight = (!litSector && gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive) ? ModelMapShadowWeight(actor) : 0.f;
 		bool nearLight = !litSector && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);

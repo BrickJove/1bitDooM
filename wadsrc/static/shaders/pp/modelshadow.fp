@@ -97,7 +97,7 @@ bool UnderSky(vec3 w)
 	float f = texelFetch(CellTexture, ivec2(c.x * 4, c.y), 0).x;
 	float ce = texelFetch(CellTexture, ivec2(c.x * 4 + 1, c.y), 0).x;
 	if (f < SolidOff * 0.75)
-		return ce > Big * 0.5 || ce - f >= 512.0;	// open sky, or a ceiling so high that the sun reaches in (as for the flat drop shadow, models.cpp)
+		return ce > Big * 0.5;	// the sun only shines under an open sky (sky ceiling)
 	return abs(ce - NearSkyMark) < 1.0;
 }
 
