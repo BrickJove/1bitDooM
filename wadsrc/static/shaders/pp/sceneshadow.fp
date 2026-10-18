@@ -283,7 +283,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 	gLightPos = gLightWorld;
 	// the ray skips the start of its way; limited, because on a big map the cell is large and a wall closer than the skipped piece
 	// would be missed (lit gap between the foot of the wall and its shadow)
-	float t0 = min(cell * 0.25, 0.25);
+	float t0 = min(cell * 0.25, 0.05);
 	if (len <= t0)
 		return 0.0;
 	vec3 A = P + D * t0;
@@ -504,7 +504,7 @@ void main()
 		SnapWall(P, n, cell);
 	// start of the rays: just off the surface. The cell size depends on the size of the map (30..50 units on a big map), an offset
 	// of that size would let the rays start above low walls and boxes, so it is limited
-	vec3 Q = P + n * min(cell * 1.5, 1.5);
+	vec3 Q = P + n * min(cell * 1.5, 0.75);
 	gOrigin = Q;
 	gSurf = P;
 	// no fence shadows on ceilings; the footprint of the pixel on its surface (long on floors seen at a grazing angle)
