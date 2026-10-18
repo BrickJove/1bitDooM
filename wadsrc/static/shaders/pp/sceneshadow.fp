@@ -203,6 +203,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 	int count = CellCount(c);
 	int start = int(CellValue(c, 2) + 0.5);
 	vec2 r = S1.xz - S0.xz;
+	float tol = max(0.3 / max(length(r), 0.01), 1.0e-5);
 	for (int k = 0; k < 96; k++)
 	{
 		if (k >= count)
@@ -219,7 +220,9 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 		vec2 qp = A - S0.xz;
 		float t = (qp.x * s.y - qp.y * s.x) / rxs;
 		float u = (qp.x * r.y - qp.y * r.x) / rxs;
-		if (t < -1.0e-5 || t > 1.00001 || u < -1.0e-5 || u > 1.00001)
+		// a line up to 0.3 units behind the start of the piece still counts (the depth of the pixel is not exact, a pixel at the
+		// foot of a wall can lie a little on the wrong side of its line)
+		if (t < -tol || t > 1.00001 || u < -1.0e-5 || u > 1.00001)
 			continue;
 		float y = mix(S0.y, S1.y, clamp(t, 0.0, 1.0));
 		if (y < texelFetch(LineTexture, base + ivec2(4, 0), 0).x || y > texelFetch(LineTexture, base + ivec2(5, 0), 0).x)
@@ -283,7 +286,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 	gLightPos = gLightWorld;
 	// the ray skips the start of its way; limited, because on a big map the cell is large and a wall closer than the skipped piece
 	// would be missed (lit gap between the foot of the wall and its shadow)
-	float t0 = min(cell * 0.25, 0.05);
+	float t0 = min(cell * 0.25, 0.02);
 	if (len <= t0)
 		return 0.0;
 	vec3 A = P + D * t0;
@@ -504,7 +507,7 @@ void main()
 		SnapWall(P, n, cell);
 	// start of the rays: just off the surface. The cell size depends on the size of the map (30..50 units on a big map), an offset
 	// of that size would let the rays start above low walls and boxes, so it is limited
-	vec3 Q = P + n * min(cell * 1.5, 0.75);
+	vec3 Q = P + n * min(cell * 1.5, 0.5);
 	gOrigin = Q;
 	gSurf = P;
 	// no fence shadows on ceilings; the footprint of the pixel on its surface (long on floors seen at a grazing angle)
