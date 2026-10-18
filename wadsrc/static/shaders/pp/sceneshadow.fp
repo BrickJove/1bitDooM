@@ -521,6 +521,8 @@ void main()
 	// and every source that reaches it is blocked (the surface faces away, or the ray hits the map).
 	int reached = 0;
 	int lit = 0;
+	int blocked = 0;	// sources that reach the pixel but are blocked (like the flat shadow of a model: one blocked source is enough)
+	bool nearLit = false;
 
 	// sun: a point light above the centre of the level
 	// The shadows of the map are projected like the flat shadows of the models (models.cpp): from the light lowered by the
@@ -541,9 +543,13 @@ void main()
 				gLightWorld = sunP;
 				if (Trace(Q, D, dS, jitter, topLimit) < 0.5)
 					lit++;
+				else
+					blocked++;
 			}
 			else if (!facingShade)
 				lit++;
+			else
+				blocked++;
 		}
 	}
 
@@ -568,6 +574,7 @@ void main()
 		if (dist <= 64.0)
 		{
 			lit++;
+			nearLit = true;
 			continue;
 		}
 		vec3 D = toL / dist;
@@ -577,11 +584,15 @@ void main()
 			gLightWorld = lightP;
 			if (Trace(Q, D, dist - 24.0, jitter, topLimit) < 0.5)
 				lit++;
+			else
+				blocked++;
 		}
 		else if (!facingShade)
 			lit++;
+		else
+			blocked++;
 	}
-	float shadow = (reached > 0 && lit == 0) ? 1.0 : 0.0;
+	float shadow = (reached > 0 && blocked > 0 && !nearLit) ? 1.0 : 0.0;
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 3) & 127) / 100.0;
