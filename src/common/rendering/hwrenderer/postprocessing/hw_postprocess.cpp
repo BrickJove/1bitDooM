@@ -883,7 +883,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
-	u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], sun ? 1.f : 0.f);
+	u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], (sun ? 1.f : 0.f) + clamp((float)gl_scene_shadow_caster_height, 0.f, 128.f) * 0.001f);	// w: sun on + the reference height of the casters / 1000
 	u.Light = FVector4((float)lights, (float)gl_scene_shadow_fence_range, gl_scene_shadow_style == 2 ? 1.f : 0.f, clamp((float)gl_scene_shadow_ambient, 0.f, 1.f));	// x = number of lights (they are in the light texture), y = fence range, z = checkerboard, w = strength of the sector light
 
 	renderstate->PushGroup("sceneshadow");

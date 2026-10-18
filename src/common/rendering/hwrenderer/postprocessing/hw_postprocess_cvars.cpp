@@ -78,6 +78,7 @@ CUSTOM_CVAR(Bool, gl_model_inner_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 // Screen space shadows (sun + dynamic lights) on the map geometry and models, see sceneshadow.fp
 CUSTOM_CVAR(Bool, gl_scene_shadow, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG) {}
 CVAR(Bool, gl_scene_shadow_sun, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVARD(Float, gl_scene_shadow_caster_height, 28.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Shadow length of the map geometry: it is projected as if the light were this much lower (like the flat shadow of a model, which is projected from its centre; 28 = centre of a 56 high monster, 0 = exact projection)")
 CVARD(Float, gl_scene_shadow_sun_x, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Position of the sun (map X). 0 / 0 = the origin of the map; for a map far away from the origin use scene_shadow_sun_place")
 CVARD(Float, gl_scene_shadow_sun_y, 0.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Position of the sun (map Y)")
 CVARD(Float, gl_scene_shadow_sun_height, 1024.f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Height of the sun in map units. The sun is a point light above the map origin (0, 0); lower = longer shadows")

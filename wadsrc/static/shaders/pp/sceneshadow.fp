@@ -523,9 +523,13 @@ void main()
 	int lit = 0;
 
 	// sun: a point light above the centre of the level
-	if (Sun.w > 0.0 && (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5)))))
+	// The shadows of the map are projected like the flat shadows of the models (models.cpp): from the light lowered by the
+	// reference height of the casters, so a model and a wall of the same height cast shadows of the same length.
+	float casterH = (Sun.w > 0.5 ? Sun.w - 1.0 : Sun.w) * 1000.0;
+	if (Sun.w > 0.5 && (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5)))))
 	{
-		vec3 toS = Sun.xyz - Q;
+		vec3 sunP = vec3(Sun.x, max(Sun.y - casterH, min(Sun.y, Q.y + 4.0)), Sun.z);
+		vec3 toS = sunP - Q;
 		float dS = length(toS);
 		if (dS > 8.0)
 		{
@@ -534,7 +538,7 @@ void main()
 			float facing = hasNormal ? dot(n, D) : 1.0;
 			if (facing > 0.0)
 			{
-				gLightWorld = Sun.xyz;
+				gLightWorld = sunP;
 				if (Trace(Q, D, dS, jitter, topLimit) < 0.5)
 					lit++;
 			}
@@ -555,7 +559,8 @@ void main()
 		              texelFetch(LightTexture, ivec2(2, i), 0).x, texelFetch(LightTexture, ivec2(3, i), 0).x);
 		if (L.w <= 0.0)
 			continue;
-		vec3 toL = L.xyz - Q;
+		vec3 lightP = vec3(L.x, max(L.y - casterH, min(L.y, Q.y + 4.0)), L.z);
+		vec3 toL = lightP - Q;
 		float dist = length(toL);
 		if (dist >= L.w)
 			continue;
@@ -569,7 +574,7 @@ void main()
 		float facing = hasNormal ? dot(n, D) : 1.0;
 		if (facing > 0.0)
 		{
-			gLightWorld = L.xyz;
+			gLightWorld = lightP;
 			if (Trace(Q, D, dist - 24.0, jitter, topLimit) < 0.5)
 				lit++;
 		}
