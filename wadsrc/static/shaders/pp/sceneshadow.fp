@@ -108,7 +108,19 @@ float SectorAmbient(vec3 w)
 	int sec = (int(CellValue(c, 3) + 0.5) >> 7) - 1;
 	if (sec < 0)
 		return 0.0;
-	return clamp(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x / 255.0, 0.0, 1.0);
+	return float(int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) & 255) / 255.0;
+}
+
+// which lights reach the sector at a position (bit 0..2: the scene lights, 3..6: the model lights), all when unknown
+int SectorLightMask(vec3 w)
+{
+	ivec2 c = CellOf(w);
+	if (c.x < 0)
+		return 127;
+	int sec = (int(CellValue(c, 3) + 0.5) >> 7) - 1;
+	if (sec < 0)
+		return 127;
+	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 127;
 }
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
@@ -525,10 +537,13 @@ void main()
 	}
 
 	// the nearest dynamic lights (surfaces close to a light are always lit by it: the light and its fixture)
+	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 127;
 	for (int i = 0; i < 3; i++)
 	{
 		if (float(i) >= Light.x)
 			break;
+		if ((reachMask & (1 << i)) == 0)
+			continue;	// behind a wall (another room): this light makes no shadow there
 		vec4 L = vec4(texelFetch(LightTexture, ivec2(0, i), 0).x, texelFetch(LightTexture, ivec2(1, i), 0).x,
 		              texelFetch(LightTexture, ivec2(2, i), 0).x, texelFetch(LightTexture, ivec2(3, i), 0).x);
 		if (L.w <= 0.0)

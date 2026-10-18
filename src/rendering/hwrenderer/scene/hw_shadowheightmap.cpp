@@ -633,6 +633,55 @@ struct ShadowHeightMap
 			std::vector<float> now(rows * 4096, 0.f);
 			for (size_t i = 0; i < n; i++)
 				now[i] = (float)level->sectors[i].GetLightLevel();
+			// Which sectors does a light reach? The sectors that are connected to the sector of the light through open
+			// lines (not through walls, closed doors). A light only makes shadows there: a wall of the neighbouring room
+			// is not "in the shadow" of a lamp on the other side of the wall. Bits 0..2: the scene lights, 3..6: the model lights.
+			if (n > 0)
+			{
+				std::vector<unsigned char> mask(n, 0);
+				std::vector<sector_t *> stack;
+				for (int l = 0; l < 7; l++)
+				{
+					const float *lp = l < 3 ? out.Light[l] : out.ModelLight[l - 3];
+					if (lp[3] <= 0.f)
+						continue;	// unused light
+					DVector2 lpos(lp[0], lp[2]);	// render space: x = X, z = Y
+					sector_t *start = level->PointInSector(lpos);
+					if (start == nullptr)
+					{
+						for (size_t i = 0; i < n; i++)
+							mask[i] |= (unsigned char)(1 << l);	// unknown: no restriction
+						continue;
+					}
+					unsigned char bit = (unsigned char)(1 << l);
+					stack.clear();
+					stack.push_back(start);
+					mask[start->Index()] |= bit;
+					while (!stack.empty())
+					{
+						sector_t *sec = stack.back();
+						stack.pop_back();
+						for (unsigned k = 0; k < sec->Lines.Size(); k++)
+						{
+							line_t *line = sec->Lines[k];
+							if (line->frontsector == nullptr || line->backsector == nullptr)
+								continue;
+							sector_t *other = line->frontsector == sec ? line->backsector : line->frontsector;
+							if (other == sec || (mask[other->Index()] & bit))
+								continue;
+							DVector2 mid = (line->v1->p + line->v2->p) * 0.5;
+							double top = std::min(line->frontsector->ceilingplane.ZatPoint(mid), line->backsector->ceilingplane.ZatPoint(mid));
+							double bottom = std::max(line->frontsector->floorplane.ZatPoint(mid), line->backsector->floorplane.ZatPoint(mid));
+							if (top - bottom < 1.0)
+								continue;	// closed (door, lift): the light does not pass
+							mask[other->Index()] |= bit;
+							stack.push_back(other);
+						}
+					}
+				}
+				for (size_t i = 0; i < n; i++)
+					now[i] += 256.f * (float)mask[i];
+			}
 			if (!texSector || now != sectorLight)
 			{
 				if (texSector)

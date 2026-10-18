@@ -66,7 +66,20 @@ float SectorAmbient(vec3 w)
 	int sec = (int(texelFetch(CellTexture, ivec2(c.x * 4 + 3, c.y), 0).x + 0.5) >> 7) - 1;
 	if (sec < 0)
 		return 0.0;
-	return clamp(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x / 255.0, 0.0, 1.0);
+	return float(int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) & 255) / 255.0;
+}
+
+// which lights reach the sector at a position (bit 3..6: the model lights), all when unknown
+int SectorLightMask(vec3 w)
+{
+	ivec2 size = textureSize(CellTexture, 0);
+	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
+	if (Grid.z <= 0.0 || c.x < 0 || c.y < 0 || c.x >= size.x / 4 || c.y >= size.y)
+		return 127;
+	int sec = (int(texelFetch(CellTexture, ivec2(c.x * 4 + 3, c.y), 0).x + 0.5) >> 7) - 1;
+	if (sec < 0)
+		return 127;
+	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 127;
 }
 
 float LinearLightDepth(float d, float n, float f)
@@ -187,6 +200,15 @@ void main()
 	int s1 = InModelShadow(P, n, Light1, NearFar.zw, (worldMask & 2) != 0, ShadowMap1, WorldMap1);
 	int s2 = InModelShadow(P, n, Light2, NearFar2.xy, (worldMask & 4) != 0, ShadowMap2, WorldMap2);
 	int s3 = InModelShadow(P, n, Light3, NearFar2.zw, (worldMask & 8) != 0, ShadowMap3, WorldMap3);
+
+	// the light of a map only makes shadows in the sectors that it reaches through open lines (not behind walls)
+	{
+		int reach = SectorLightMask(P + n * 3.0);
+		if ((reach & 8) == 0) s0 = 0;
+		if ((reach & 16) == 0) s1 = 0;
+		if ((reach & 32) == 0) s2 = 0;
+		if ((reach & 64) == 0) s3 = 0;
+	}
 
 	// debug: what does the light of map k see? Everything it does not see gets a checkerboard.
 	if (Flags.y > 0.5)
