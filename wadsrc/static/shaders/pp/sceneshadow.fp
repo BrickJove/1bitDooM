@@ -521,6 +521,7 @@ void main()
 	// and every source that reaches it is blocked (the surface faces away, or the ray hits the map).
 	int reached = 0;
 	int lit = 0;
+	int dbg = 0;	// debug colours: 1 lit, 2 blocked by the map, 3 faces away
 	int blocked = 0;	// sources that reach the pixel but are blocked (like the flat shadow of a model: one blocked source is enough)
 	bool nearLit = false;
 
@@ -542,14 +543,23 @@ void main()
 			{
 				gLightWorld = sunP;
 				if (Trace(Q, D, dS, jitter, topLimit) < 0.5)
+				{
 					lit++;
+					dbg = 1;
+				}
 				else
+				{
 					blocked++;
+					dbg = 2;
+				}
 			}
 			else if (!facingShade)
 				lit++;
 			else
+			{
 				blocked++;
+				dbg = 3;
+			}
 		}
 	}
 
@@ -591,6 +601,11 @@ void main()
 			lit++;
 		else
 			blocked++;
+	}
+	if (Light.z > 1.5)
+	{
+		FragColor = reached == 0 ? vec4(0.0, 0.0, 1.0, 0.6) : (dbg == 1 ? vec4(0.0, 1.0, 0.0, 0.35) : (dbg == 2 ? vec4(1.0, 0.0, 0.0, 0.8) : (dbg == 3 ? vec4(1.0, 1.0, 0.0, 0.8) : vec4(0.0))));
+		return;
 	}
 	float shadow = (reached > 0 && blocked > 0 && !nearLit) ? 1.0 : 0.0;
 
