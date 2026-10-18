@@ -407,6 +407,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			u.Format("; map %d: light at %.0f %.0f %.0f radius %.0f, %d models", m, f.ModelLight[m][0], f.ModelLight[m][1], f.ModelLight[m][2], f.ModelLight[m][3], pickedCount[m]);
 			t += u;
 		}
+		{ FString u; u.Format("; sun map: %d (sun light %s)", f.ModelSunMap, sunLight >= 0 ? "on" : "off: needs gl_model_shadow_map_sun, gl_scene_shadow_sun"); t += u; }
 		ModelShadowReport(t);
 	}
 	// the caller binds its own viewpoint again afterwards

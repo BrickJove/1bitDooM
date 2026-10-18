@@ -950,7 +950,7 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	{
 		std::shared_ptr<float> data(new float[28], std::default_delete<float[]>());
 		float *d = data.get();
-		d[24] = (float)f.ModelSunMap; d[25] = d[26] = d[27] = 0.f;	// row 6: which map belongs to the sun (-1 = none)
+		d[24] = (float)f.ModelSunMap; d[25] = gl_model_shadow_map_sun_anywhere ? 1.f : 0.f; d[26] = d[27] = 0.f;	// row 6: which map belongs to the sun (-1 = none)
 		for (int i = 0; i < 4; i++)
 			for (int k = 0; k < 4; k++)
 				d[i * 4 + k] = f.ModelLight[i][k];

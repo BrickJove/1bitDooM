@@ -227,7 +227,7 @@ void main()
 		int sunMap = int(floor(DataRow(6).x + 0.5));
 		if (sunMap >= 0)
 		{
-			bool sky = UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
+			bool sky = DataRow(6).y > 0.5 || UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
 			bool floorPixel = hasNormal && abs(n.y) > 0.7;
 			if (!sky || floorPixel)
 			{
