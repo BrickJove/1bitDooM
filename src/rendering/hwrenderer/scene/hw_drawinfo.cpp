@@ -1092,6 +1092,24 @@ void HWDrawInfo::PrepareSceneShadow()
 	f.SunPos[1] = (float)gl_scene_shadow_sun_height;
 	f.SunPos[2] = 0.f;
 	f.SunPosValid = f.CellTex != nullptr;
+	if (gl_model_shadow_map_debug)
+	{
+		// which light sources the scene shadows use (printed when it changes)
+		static FString last;
+		FString t;
+		t.Format("Scene shadows: sun %s at height %.0f; %d dynamic lights:", gl_scene_shadow_sun ? "on" : "off", f.SunPos[1], count);
+		for (int i = 0; i < count; i++)
+		{
+			FString u;
+			u.Format(" [x=%.0f y=%.0f z=%.0f radius %.0f]", f.Light[i][0], f.Light[i][2], f.Light[i][1], f.Light[i][3]);
+			t += u;
+		}
+		if (t != last)
+		{
+			last = t;
+			Printf("%s\n", t.GetChars());
+		}
+	}
 	f.Valid = f.CellTex != nullptr && f.ListTex != nullptr && f.LineTex != nullptr && f.FenceParamTex != nullptr && f.FenceAtlasTex != nullptr && f.LightTex != nullptr;
 }
 
