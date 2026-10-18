@@ -102,7 +102,8 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 	int sunLight = -1;
 	if (gl_model_shadow_map_sun && gl_scene_shadow_sun && f.SunPosValid)
 	{
-		Lt lt = { f.SunPos[0], f.SunPos[1], f.SunPos[2], 16384.f, 8192.f, nullptr };
+		// reach: the height of the sun plus the extent of a level (a sun at 8192 is further away than 8192 from everything)
+		Lt lt = { f.SunPos[0], f.SunPos[1], f.SunPos[2], 16384.f + f.SunPos[1], f.SunPos[1] + 16384.f, nullptr };
 		sunLight = (int)lights.Size();
 		lights.Push(lt);
 	}
@@ -257,7 +258,9 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		// A fixed map in the six directions around the light (like a cube map, a 3 x 2 atlas of 90 degree faces):
 		// nothing in it depends on which models there are, so the shadows do not flicker when models come and go.
 		// Every model is drawn into the faces it reaches only.
-		const float nearp = 4.f, farp = reach + 128.f;
+		// the sun is far away from everything: a larger near plane keeps the depth precision
+		const float nearp = isSun ? clamp(ly - 4096.f, 4.f, ly * 0.5f) : 4.f;
+		const float farp = reach + 128.f;
 		static const float faceF[6][3] = { { 1, 0, 0 }, { -1, 0, 0 }, { 0, 1, 0 }, { 0, -1, 0 }, { 0, 0, 1 }, { 0, 0, -1 } };
 		static const float faceU[6][3] = { { 0, 1, 0 }, { 0, 1, 0 }, { 0, 0, 1 }, { 0, 0, 1 }, { 0, 1, 0 }, { 0, 1, 0 } };	// as in modelshadow.fp
 
