@@ -948,14 +948,15 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 
 	// data texture: rows 0..3 = position + radius of the light of each map, row 4 = near / far of map 0 and 1, row 5 = of map 2 and 3
 	{
-		std::shared_ptr<float> data(new float[24], std::default_delete<float[]>());
+		std::shared_ptr<float> data(new float[28], std::default_delete<float[]>());
 		float *d = data.get();
+		d[24] = (float)f.ModelSunMap; d[25] = d[26] = d[27] = 0.f;	// row 6: which map belongs to the sun (-1 = none)
 		for (int i = 0; i < 4; i++)
 			for (int k = 0; k < 4; k++)
 				d[i * 4 + k] = f.ModelLight[i][k];
 		d[16] = f.ModelNearFar[0][0]; d[17] = f.ModelNearFar[0][1]; d[18] = f.ModelNearFar[1][0]; d[19] = f.ModelNearFar[1][1];
 		d[20] = f.ModelNearFar[2][0]; d[21] = f.ModelNearFar[2][1]; d[22] = f.ModelNearFar[3][0]; d[23] = f.ModelNearFar[3][1];
-		DataTex[DataTexNext].reset(new PPTexture(4, 6, PixelFormat::R32f, std::shared_ptr<void>(data)));
+		DataTex[DataTexNext].reset(new PPTexture(4, 7, PixelFormat::R32f, std::shared_ptr<void>(data)));
 	}
 	PPTexture *dataTex = DataTex[DataTexNext].get();
 	DataTexNext = (DataTexNext + 1) % 8;

@@ -67,6 +67,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 {
 	SceneShadowFrame &f = sceneShadowFrame;
 	f.ModelShadowActive = false;
+	f.ModelSunMap = -1;
 	for (int i = 0; i < 4; i++)
 	{
 		f.ModelLight[i][3] = 0.f;
@@ -95,6 +96,15 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			if (lights.Size() >= 512)
 				break;
 		}
+	}
+	// the sun: one more point light (above the centre of the level, as in the scene shadows) that reaches every model;
+	// it always gets the first map. Its shadows only fall on pixels under an open sky (modelshadow.fp).
+	int sunLight = -1;
+	if (gl_model_shadow_map_sun && gl_scene_shadow_sun && f.SunPosValid)
+	{
+		Lt lt = { f.SunPos[0], f.SunPos[1], f.SunPos[2], 16384.f, 8192.f, nullptr };
+		sunLight = (int)lights.Size();
+		lights.Push(lt);
 	}
 	if (lights.Size() == 0)
 	{
@@ -169,7 +179,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		return;
 	}
 
-	int maxMaps = clamp((int)gl_model_shadow_map_lights, 1, 4);
+	int maxMaps = clamp((int)gl_model_shadow_map_lights + (sunLight >= 0 ? 1 : 0), 1, 4);
 	int usedMaps = 0;
 	int pickedCount[4] = { 0, 0, 0, 0 };
 
@@ -207,8 +217,24 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		}
 	}
 
+	// the sun first
+	if (sunLight >= 0)
+	{
+		for (unsigned oi = 0; oi < order.Size(); oi++)
+		{
+			if (order[oi] == sunLight)
+			{
+				for (unsigned k = oi; k > 0; k--)
+					order[k] = order[k - 1];
+				order[0] = sunLight;
+				break;
+			}
+		}
+	}
+
 	for (unsigned oi = 0; oi < order.Size() && usedMaps < maxMaps; oi++)
 	{
+		const bool isSun = order[oi] == sunLight;
 		const Lt &L = lights[order[oi]];
 		const float lx = L.x, ly = L.y, lz = L.z, radius = L.radius, reach = L.reach;
 
@@ -344,8 +370,11 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 					squash = max(squash * fadeW, 0.03f);
 				}
 				{
-					float &w = g_buildModels[in.actor];
-					w = max(w, fadeW);
+					if (!isSun)	// the flat shadow of the sun on the floor stays (it is sharper than the map of the sun)
+					{
+						float &w = g_buildModels[in.actor];
+						w = max(w, fadeW);
+					}
 				}
 				RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac, squash, in.z);
 			}
@@ -360,6 +389,8 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		f.ModelLight[usedMaps][0] = lx; f.ModelLight[usedMaps][1] = ly; f.ModelLight[usedMaps][2] = lz; f.ModelLight[usedMaps][3] = reach;
 		f.ModelNearFar[usedMaps][0] = nearp; f.ModelNearFar[usedMaps][1] = farp;
 		pickedCount[usedMaps] = (int)picked.Size();
+		if (isSun)
+			f.ModelSunMap = usedMaps;
 		usedMaps++;
 	}
 

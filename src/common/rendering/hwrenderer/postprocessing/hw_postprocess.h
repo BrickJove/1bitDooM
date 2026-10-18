@@ -844,6 +844,7 @@ struct SceneShadowFrame
 	float ModelVP[2][16] = {};		// light projection * view (render space -> clip space), column major
 	float ModelNearFar[4][2] = {};
 	bool ModelWorld[4] = {};		// the level geometry is in the world map of this light
+	int ModelSunMap = -1;			// index of the map that belongs to the sun, -1 = none
 };
 extern SceneShadowFrame sceneShadowFrame;
 

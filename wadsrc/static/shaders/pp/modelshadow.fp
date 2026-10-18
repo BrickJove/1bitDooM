@@ -82,6 +82,24 @@ int SectorLightMask(vec3 w)
 	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 127;
 }
 
+// Is there an open sky above the position? (same rule as sceneshadow.fp: solid cells next to an open sky carry a marker)
+const float Big = 100000.0;
+const float SolidOff = 200000.0;
+const float NearSkyMark = 90000.0;
+
+bool UnderSky(vec3 w)
+{
+	ivec2 size = textureSize(CellTexture, 0);
+	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
+	if (Grid.z <= 0.0 || c.x < 0 || c.y < 0 || c.x >= size.x / 4 || c.y >= size.y)
+		return false;
+	float f = texelFetch(CellTexture, ivec2(c.x * 4, c.y), 0).x;
+	float ce = texelFetch(CellTexture, ivec2(c.x * 4 + 1, c.y), 0).x;
+	if (f < SolidOff * 0.75)
+		return ce > Big * 0.5;
+	return abs(ce - NearSkyMark) < 1.0;
+}
+
 float LinearLightDepth(float d, float n, float f)
 {
 	return 2.0 * n * f / (f + n - (d * 2.0 - 1.0) * (f - n));
@@ -204,6 +222,22 @@ void main()
 	// the light of a map only makes shadows in the sectors that it reaches through open lines (not behind walls)
 	{
 		int reach = SectorLightMask(P + n * 3.0);
+		// the map of the sun (row 6 of the data): no sector rule, but only pixels under an open sky, and not the floor
+		// (the floor gets the flat projected shadow of the sun)
+		int sunMap = int(floor(DataRow(6).x + 0.5));
+		if (sunMap >= 0)
+		{
+			bool sky = UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
+			bool floorPixel = hasNormal && abs(n.y) > 0.7;
+			if (!sky || floorPixel)
+			{
+				if (sunMap == 0) s0 = 0;
+				else if (sunMap == 1) s1 = 0;
+				else if (sunMap == 2) s2 = 0;
+				else s3 = 0;
+			}
+			reach |= 8 << sunMap;
+		}
 		if ((reach & 8) == 0) s0 = 0;
 		if ((reach & 16) == 0) s1 = 0;
 		if ((reach & 32) == 0) s2 = 0;
