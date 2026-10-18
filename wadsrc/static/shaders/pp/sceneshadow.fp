@@ -281,7 +281,9 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 	float cell = 1.0 / Grid.z;
 	gRayLen = len;
 	gLightPos = gLightWorld;
-	float t0 = cell * 0.25;
+	// the ray skips the start of its way; limited, because on a big map the cell is large and a wall closer than the skipped piece
+	// would be missed (lit gap between the foot of the wall and its shadow)
+	float t0 = min(cell * 0.25, 0.75);
 	if (len <= t0)
 		return 0.0;
 	vec3 A = P + D * t0;
