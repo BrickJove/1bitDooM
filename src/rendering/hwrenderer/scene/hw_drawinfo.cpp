@@ -1088,9 +1088,9 @@ void HWDrawInfo::PrepareSceneShadow()
 
 	hw_UpdateShadowHeightMap(Level, f);
 	// the sun is a point light above the map origin (0, 0), the cross of the map editor
-	f.SunPos[0] = 0.f;
+	f.SunPos[0] = (float)gl_scene_shadow_sun_x;
 	f.SunPos[1] = (float)gl_scene_shadow_sun_height;
-	f.SunPos[2] = 0.f;
+	f.SunPos[2] = (float)gl_scene_shadow_sun_y;
 	f.SunPosValid = f.CellTex != nullptr;
 	if (gl_model_shadow_map_debug)
 	{
@@ -1218,4 +1218,18 @@ CCMD(scene_shadow_info)
 		return;
 	AActor *mo = players[consoleplayer].mo;
 	hw_DumpShadowHeightMap(mo->Level, mo->Sector);
+}
+
+// console command: put the sun at a distance from the player, in the direction of an angle (the shadows fall the other way)
+//   scene_shadow_sun_place [distance [angle in degrees]]   defaults: the height of the sun, 135
+CCMD(scene_shadow_sun_place)
+{
+	if (players[consoleplayer].mo == nullptr)
+		return;
+	AActor *mo = players[consoleplayer].mo;
+	double dist = argv.argc() > 1 ? atof(argv[1]) : (double)gl_scene_shadow_sun_height;
+	double ang = (argv.argc() > 2 ? atof(argv[2]) : 135.0) * M_PI / 180.0;
+	gl_scene_shadow_sun_x = (float)(mo->X() + dist * cos(ang));
+	gl_scene_shadow_sun_y = (float)(mo->Y() + dist * sin(ang));
+	Printf("sun at x=%.0f y=%.0f height %.0f (the player is at x=%.0f y=%.0f)\n", (double)gl_scene_shadow_sun_x, (double)gl_scene_shadow_sun_y, (double)gl_scene_shadow_sun_height, mo->X(), mo->Y());
 }
