@@ -28,6 +28,7 @@ layout(binding=11) uniform sampler2D CellTexture;	// height map of the level (se
 layout(binding=12) uniform sampler2D SectorLightTexture;	// light level (0..255) per sector, 4096 per row
 
 ivec2 gTexSize;
+vec3 gOcc[4];	// per map: the point of the model that shadows the pixel (set by InModelShadow)
 
 ivec2 ClampPos(ivec2 p)
 {
@@ -100,6 +101,17 @@ bool UnderSky(vec3 w)
 	return abs(ce - NearSkyMark) < 1.0;
 }
 
+// floor height of the sector at a position (a huge value when unknown or solid)
+float FloorAt(vec3 w)
+{
+	ivec2 size = textureSize(CellTexture, 0);
+	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
+	if (Grid.z <= 0.0 || c.x < 0 || c.y < 0 || c.x >= size.x / 4 || c.y >= size.y)
+		return 1.0e9;
+	float f = texelFetch(CellTexture, ivec2(c.x * 4, c.y), 0).x;
+	return f > SolidOff * 0.75 ? 1.0e9 : f;
+}
+
 float LinearLightDepth(float d, float n, float f)
 {
 	return 2.0 * n * f / (f + n - (d * 2.0 - 1.0) * (f - n));
@@ -118,7 +130,7 @@ void FaceBasis(int face, out vec3 f, out vec3 u)
 }
 
 // 0 = no shadow of this light, 1 = shadow, 2 = a model is in the way but the light does not see the pixel
-int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map, sampler2D world)
+int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map, sampler2D world, int mi)
 {
 	if (L.w <= 0.0)
 		return 0;
@@ -176,6 +188,7 @@ int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map
 	float occluder = LinearLightDepth(stored, nf.x, nf.y);
 	if (m <= occluder + 2.0 * texel + 1.0)
 		return 0;	// the model is not nearer to the light than the pixel
+	gOcc[mi] = L.xyz + d * (occluder / m);
 	return hidden ? 2 : 1;
 }
 
@@ -214,10 +227,10 @@ void main()
 		n = vec3(0.0, n.y > 0.0 ? 1.0 : -1.0, 0.0);
 
 	int worldMask = int(Flags.z + 0.5);
-	int s0 = InModelShadow(P, n, Light0, NearFar.xy, (worldMask & 1) != 0, ShadowMap0, WorldMap0);
-	int s1 = InModelShadow(P, n, Light1, NearFar.zw, (worldMask & 2) != 0, ShadowMap1, WorldMap1);
-	int s2 = InModelShadow(P, n, Light2, NearFar2.xy, (worldMask & 4) != 0, ShadowMap2, WorldMap2);
-	int s3 = InModelShadow(P, n, Light3, NearFar2.zw, (worldMask & 8) != 0, ShadowMap3, WorldMap3);
+	int s0 = InModelShadow(P, n, Light0, NearFar.xy, (worldMask & 1) != 0, ShadowMap0, WorldMap0, 0);
+	int s1 = InModelShadow(P, n, Light1, NearFar.zw, (worldMask & 2) != 0, ShadowMap1, WorldMap1, 1);
+	int s2 = InModelShadow(P, n, Light2, NearFar2.xy, (worldMask & 4) != 0, ShadowMap2, WorldMap2, 2);
+	int s3 = InModelShadow(P, n, Light3, NearFar2.zw, (worldMask & 8) != 0, ShadowMap3, WorldMap3, 3);
 
 	// the light of a map only makes shadows in the sectors that it reaches through open lines (not behind walls)
 	{
@@ -229,13 +242,15 @@ void main()
 		{
 			bool sky = DataRow(6).y > 0.5 || UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
 			bool floorPixel = hasNormal && abs(n.y) > 0.7;
-			if (!sky || floorPixel)
-			{
-				if (sunMap == 0) s0 = 0;
-				else if (sunMap == 1) s1 = 0;
-				else if (sunMap == 2) s2 = 0;
-				else s3 = 0;
-			}
+			int sk = sunMap == 0 ? s0 : (sunMap == 1 ? s1 : (sunMap == 2 ? s2 : s3));
+			// Floors get the flat projected shadow of the sun (models.cpp) where the model stands on that floor. A floor that is
+			// higher than the floor under the model (a raised sector) gets the shadow from the map.
+			if (!sky || (floorPixel && !(sk == 1 && P.y > FloorAt(gOcc[sunMap]) + 8.0)))
+				sk = 0;
+			if (sunMap == 0) s0 = sk;
+			else if (sunMap == 1) s1 = sk;
+			else if (sunMap == 2) s2 = sk;
+			else s3 = sk;
 			reach |= 8 << sunMap;
 		}
 		if ((reach & 8) == 0) s0 = 0;

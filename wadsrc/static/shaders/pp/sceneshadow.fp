@@ -43,7 +43,8 @@ float gBayer = 0.5;	// ordered dither threshold of the screen pixel
 float gPix = 1.0;	// world size of one screen pixel at the depth of the pixel
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
 float gRayLen = 1.0;	// length of the ray of the shadow test
-vec3 gLightPos = vec3(0.0);	// the source of the ray of the shadow test
+vec3 gLightPos = vec3(0.0);	// the source of the ray of the shadow test (the real position of the light, not the end of the ray)
+vec3 gLightWorld = vec3(0.0);	// set by the caller before Trace
 vec3 gSurf = vec3(0.0);	// exact position of the pixel on its surface (the origin above is lifted off the surface)
 vec3 gOrigin = vec3(0.0);	// start of the ray: fence shadows only count within gl_scene_shadow_fence_range of the receiver
 
@@ -241,7 +242,12 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 				// (bottom edge to top edge) is at most twice as long as the fence is high.
 				vec3 dl = gLightPos - vec3(0.5 * (A.x + B.x), FenceParam(fence, 11), 0.5 * (A.y + B.y));
 				float hl = max(length(dl.xz), 1.0e-3);
-				vec3 dir = normalize(vec3(dl.x, max(dl.y, 0.5 * hl), dl.z));
+				// A pixel below the foot of the fence (the fence stands on the edge of a raised sector, the pixel is on the lower floor):
+				// the wall under the fence casts the shadow up to the point where the ray from the pixel just passes the foot of the fence.
+				// The shadow of the fence has to go on from exactly there, so the real elevation (foot of the fence -> light) is used,
+				// only protected against a light at the height of the foot.
+				float minElev = gSurf.y < FenceParam(fence, 11) - 4.0 ? 0.05 : 0.5;
+				vec3 dir = normalize(vec3(dl.x, max(dl.y, minElev * hl), dl.z));
 				float dn = dot(nf, dir.xz);
 				if (abs(dn) > 0.04)
 				{
@@ -274,7 +280,7 @@ float Trace(vec3 P, vec3 D, float len, float jitter, float topLimit)
 {
 	float cell = 1.0 / Grid.z;
 	gRayLen = len;
-	gLightPos = P + D * len;
+	gLightPos = gLightWorld;
 	float t0 = cell * 0.25;
 	if (len <= t0)
 		return 0.0;
@@ -528,6 +534,7 @@ void main()
 			float facing = hasNormal ? dot(n, D) : 1.0;
 			if (facing > 0.0)
 			{
+				gLightWorld = Sun.xyz;
 				if (Trace(Q, D, dS, jitter, topLimit) < 0.5)
 					lit++;
 			}
@@ -562,6 +569,7 @@ void main()
 		float facing = hasNormal ? dot(n, D) : 1.0;
 		if (facing > 0.0)
 		{
+			gLightWorld = L.xyz;
 			if (Trace(Q, D, dist - 24.0, jitter, topLimit) < 0.5)
 				lit++;
 		}
