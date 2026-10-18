@@ -94,6 +94,7 @@ CVARD(Float, gl_model_shadow_fade_height, 128.f, CVAR_ARCHIVE | CVAR_GLOBALCONFI
 EXTERN_CVAR(Bool, gl_scene_shadow)
 EXTERN_CVAR(Bool, gl_scene_shadow_sun)
 EXTERN_CVAR(Bool, gl_model_shadow_map)
+EXTERN_CVAR(Float, gl_scene_shadow_ambient)
 
 bool WantsModelShadow(AActor* actor)
 {
@@ -163,12 +164,16 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		// with the height above the floor (gone at gl_model_shadow_fade_height).
 		DVector3 lightPos;
 		// under an open sky with the scene shadows on, the shadow follows the sun of the scene shadows
-		bool sunLit = gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
+		// a fully lit sector (same rule as the scene shadows, gl_scene_shadow_ambient): nothing a light or the sun could still
+		// brighten, so the model only gets the simple flat shadow straight below it
+		bool litSector = gl_scene_shadow_ambient > 0.f && actor->Sector != nullptr
+			&& 1.f - gl_scene_shadow_ambient * clamp(actor->Sector->GetLightLevel(), 0, 255) / 255.f <= 0.5f;
+		bool sunLit = !litSector && gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
 			&& actor->Sector != nullptr && (actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum
 				|| actor->Sector->ceilingplane.ZatPoint(actor->Pos()) - actor->Sector->floorplane.ZatPoint(actor->Pos()) >= 512.0);
 		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
-		float mapWeight = (gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive) ? ModelMapShadowWeight(actor) : 0.f;
-		bool nearLight = gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
+		float mapWeight = (!litSector && gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive) ? ModelMapShadowWeight(actor) : 0.f;
+		bool nearLight = !litSector && gl_model_shadow_style >= 1 && ModelShadowLight(actor, lightPos);
 		bool lit = !sunLit && nearLight;
 		float shadowScale = 1.f;
 		if (shadowScale > 0.f && !lit && !sunLit && gl_model_shadow_fade_height > 0.f)
