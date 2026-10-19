@@ -40,6 +40,7 @@ ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
 float gBayer = 0.5;	// ordered dither threshold of the screen pixel
+float gSoftA = 0.0;	// soft (blurred) fence shadow far away: coverage, drawn with a blue tint so that the 1-bit shader dithers it
 float gDist = 1.0;	// distance of the pixel from the camera
 float gPix = 1.0;	// world size of one screen pixel at the depth of the pixel
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
@@ -183,8 +184,13 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	// far away the fence casts no shadow (pixel size converted to a reference resolution of 1080 lines, so the distance does not
 	// depend on the render resolution)
 	// the limit is moved 256 units further away: the pixel size grows with the distance, so the size at the distance minus 256 counts
-	if (fpT * min(float(gTexSize.y) / 1080.0, 1.0) * max(gDist - 256.0, 0.0) / gDist > 8.0)
+	float farSize = fpT * min(float(gTexSize.y) / 1080.0, 1.0) * max(gDist - 256.0, 0.0) / gDist;
+	if (farSize > 8.0)
+	{
+		// instead of the lattice: the blurred shadow, the mean coverage of the texture, fading in over the next 8 texels
+		gSoftA = max(gSoftA, FenceParam(id, 14) * clamp((farSize - 8.0) / 8.0, 0.0, 1.0));
 		return false;
+	}
 	// the footprint for the sampling: the real footprint on the receiving surface (stretched on floors seen at a grazing angle);
 	// it only decides how finely the lattice is sampled, where the fade to the gray starts is decided by fpT (the pixel size)
 	float fpUs = max(footS, foot) * FenceParam(id, 7) * 256.0;
@@ -639,4 +645,7 @@ void main()
 	if (Light.z > 0.5 && ((ipos.x + ipos.y) & 1) != 0)
 		a = 0.0;	// checkerboard style: only every second pixel of the shadow is black
 	FragColor = vec4(0.0, 0.0, 0.0, a);
+	// far away the fence shadow is blurred (mean coverage) and tinted blue: the 1-bit shader turns the partial blue into its dither pattern
+	if (a < 0.5 && gSoftA > 0.0)
+		FragColor = vec4(0.0, 0.0, 0.35, gSoftA);
 }
