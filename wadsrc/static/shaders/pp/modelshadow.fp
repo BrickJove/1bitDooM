@@ -238,7 +238,7 @@ void main()
 	vec4 ns = texelFetch(NormalTexture, ClampPos(ipos), 0);
 
 	// test mode 5: the left half of the screen black
-	if (Flags.y > 4.5)
+	if (Flags.y > 4.5 && Flags.y < 5.5)
 	{
 		if (ipos.x < gTexSize.x / 2)
 			FragColor = vec4(0.0, 0.0, 0.0, 1.0);
@@ -262,6 +262,35 @@ void main()
 		n = vec3(0.0);
 	if (hasNormal && abs(n.y) > 0.95)
 		n = vec3(0.0, n.y > 0.0 ? 1.0 : -1.0, 0.0);
+
+	// test mode 6: what does the sun map do? (only inside of its area)
+	if (Flags.y > 5.5)
+	{
+		vec4 sr = DataRow(7);
+		int sm = int(floor(DataRow(6).x + 0.5));
+		if (sm < 0 || sr.w <= 0.0)
+		{
+			FragColor = vec4(1.0, 0.0, 1.0, 0.5);	// magenta: no parallel sun map in this frame
+			return;
+		}
+		vec4 Ls = sm == 0 ? Light0 : (sm == 1 ? Light1 : (sm == 2 ? Light2 : Light3));
+		vec2 nfs = sm == 0 ? NearFar.xy : (sm == 1 ? NearFar.zw : (sm == 2 ? NearFar2.xy : NearFar2.zw));
+		vec3 fs = -sr.xyz;
+		vec3 us = abs(fs.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+		vec3 rs = cross(fs, us);
+		vec3 u2s = cross(rs, fs);
+		vec3 ds = P - Ls.xyz;
+		if (abs(dot(ds, rs)) >= sr.w || abs(dot(ds, u2s)) >= sr.w)
+			discard;	// outside of the area of the map
+		bool skyOk = UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
+		int hit = 0;
+		if (sm == 0) hit = InSunOrtho(P, n, Light0, NearFar.xy, sr.w, sr.xyz, ShadowMap0, 0);
+		else if (sm == 1) hit = InSunOrtho(P, n, Light1, NearFar.zw, sr.w, sr.xyz, ShadowMap1, 1);
+		else if (sm == 2) hit = InSunOrtho(P, n, Light2, NearFar2.xy, sr.w, sr.xyz, ShadowMap2, 2);
+		else hit = InSunOrtho(P, n, Light3, NearFar2.zw, sr.w, sr.xyz, ShadowMap3, 3);
+		FragColor = !skyOk ? vec4(0.0, 0.0, 1.0, 0.5) : (hit == 1 ? vec4(1.0, 0.0, 0.0, 0.8) : vec4(0.0, 1.0, 0.0, 0.25));
+		return;
+	}
 
 	int worldMask = int(Flags.z + 0.5);
 	int s0 = InModelShadow(P, n, Light0, NearFar.xy, (worldMask & 1) != 0, ShadowMap0, WorldMap0, 0);

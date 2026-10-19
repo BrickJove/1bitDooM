@@ -941,7 +941,7 @@ void PPModelShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	int worldMask = (f.ModelWorld[0] ? 1 : 0) | (f.ModelWorld[1] ? 2 : 0) | (f.ModelWorld[2] ? 4 : 0) | (f.ModelWorld[3] ? 8 : 0);
 	if (!gl_model_shadow_map_walls)
 		worldMask = 0;
-	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 5), (float)worldMask, gl_scene_shadow_style == 2 ? 1.f : 0.f);
+	u.Flags = FVector4(gl_model_shadow_map_debug_walls ? 1.f : 0.f, (float)clamp((int)gl_model_shadow_map_debug_light, 0, 6), (float)worldMask, gl_scene_shadow_style == 2 ? 1.f : 0.f);
 	u.Grid = FVector4(f.GridOriginX, f.GridOriginY, f.GridInvCell, clamp((float)gl_scene_shadow_ambient, 0.f, 1.f));
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
