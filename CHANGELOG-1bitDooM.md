@@ -22,6 +22,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - `gl_scene_shadow_debug` zeigt jetzt reine Schwarz-Muster (1-Bit-tauglich): waagrechte Linien = Sonne blockiert, senkrechte Linien = Lampen blockieren, voll = beides, Punkte = beleuchtet, nichts = keine Quelle erreicht den Pixel.
 - Lampen werfen Szenenschatten nur noch im Nahbereich (25 %..45 % ihrer Reichweite, gedithert ausgeblendet), damit beim Laufen keine grossen Flaechen mehr kippen, wenn eine andere Lampe zu den drei naechsten gehoert. Konstanten `LampNear0/1` in `sceneshadow.fp`.
 - Der flache Bodenschatten eines Modells (Lampe oder Sonne) wird an der ersten Wand in Schattenrichtung gekuerzt (Linientrace in `models.cpp`), damit er nicht durch die Wand im Nachbarraum auf dem Boden erscheint (z. B. Schatten eines Regals hinter der Wand).
+- Modellschatten der Lichtkarten gingen durch Waende: Die Ausnahme "niedriges Hindernis (Stufe) beendet den Schatten nicht" galt auch fuer hohe Waende, die nur tief getroffen werden (Pixel weit hinter der Wand). Jetzt gilt sie nur, wenn das Hindernis dicht (< 40 Einheiten) vor dem Pixel liegt.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü

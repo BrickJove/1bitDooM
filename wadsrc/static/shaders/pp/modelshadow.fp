@@ -245,8 +245,10 @@ int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map
 			hidden = m > wall + texel * (1.0 + slope) + 4.0;
 			// a low obstacle (step, low platform) does not end the shadow: only things that rise
 			// clearly above the pixel behind them hide it (height of the blocking point above the pixel)
+			// (only when the obstacle is close behind the pixel's line of sight: a wall that is hit low but far in front of the pixel
+			// is a wall, not a step, and hides everything behind it - the shadow must not continue in the next room)
 			float blockerY = L.y + d.y * (wall / m);
-			if (blockerY - P.y < 56.0)
+			if (blockerY - P.y < 56.0 && m - wall < 40.0)
 				hidden = false;
 		}
 	}
