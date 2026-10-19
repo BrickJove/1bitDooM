@@ -2,6 +2,13 @@
 
 Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
+## Sonnen-Schattenkarte: wieder Perspektive von der Sonnenposition
+
+- Die parallele (orthografische) Sonnenkarte passte nicht zur nahen Sonne: Schattenrichtung und Position waren falsch, Modelle ausserhalb des Fensters fehlten.
+- Neu: Perspektiv-Tiefenkarte von der Sonnenposition (wie bei den Szenenschatten), eingeengt auf das Gebiet um den Spieler (`gl_model_shadow_sun_size`).
+- Der flache Schatten nutzt wieder die Punkt-Sonne (parallele Richtung zurueckgenommen).
+- Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
+
 ## Fork / Menü
 - Version "0.1 alpha" statt Git-Beschreibung (Konsole, Fenstertitel); Start-Logo (bootlogo.png) entfernt.
 - Eigenständiger Fork "1bitDooM": Windows-Build-Workflow, eigenes README, Umbenennung (Fenstertitel, Config-/Savordner, exe-Metadaten).

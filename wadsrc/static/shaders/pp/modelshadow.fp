@@ -129,40 +129,44 @@ void FaceBasis(int face, out vec3 f, out vec3 u)
 	else f = vec3(0.0, 0.0, -1.0);
 }
 
-// The sun: a parallel light. One orthographic depth map of a square area (half edge length H) around the player, a 2 x 2 mosaic of
-// the tiles 0, 1, 3, 4 of the atlas (see hw_modelshadow.cpp). L.xyz = the eye of the map, D = direction towards the sun.
+// The sun: a perspective depth map from the position of the sun, narrowed to the area around the player (a 2 x 2 mosaic of the
+// tiles 0, 1, 3, 4 of the atlas, see hw_modelshadow.cpp). L.xyz = the sun, F = viewing direction, T = tangent of the half edge.
 // 0 = no shadow, 1 = a model is nearer to the sun than the pixel
-int InSunOrtho(vec3 P, vec3 n, vec4 L, vec2 nf, float H, vec3 D, sampler2D map, int mi)
+int InSunMap(vec3 P, vec3 n, vec4 L, vec2 nf, float T, vec3 F, sampler2D map, int mi)
 {
+	vec3 d = P - L.xyz;
+	float dist = length(d);
+	if (dist < 12.0)
+		return 0;
 	bool hasN = dot(n, n) > 0.5;
-	float cosT = hasN ? dot(n, D) : 1.0;
+	float cosT = hasN ? dot(n, -d) / dist : 1.0;
 	if (hasN && cosT <= 0.02)
 		return 0;	// the surface faces away from the sun (it is dark anyway)
-	vec3 f = -D;
-	vec3 u = abs(f.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-	vec3 r = cross(f, u);
-	vec3 u2 = cross(r, f);
-	vec3 d = P - L.xyz;
-	float m = dot(d, f);
-	float a = dot(d, r), b = dot(d, u2);
-	if (abs(a) >= H || abs(b) >= H || m <= nf.x)
+	vec3 u = abs(F.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+	vec3 r = cross(F, u);
+	vec3 u2 = cross(r, F);
+	float m = dot(d, F);
+	if (m <= nf.x)
+		return 0;
+	vec2 t = vec2(dot(d, r), dot(d, u2)) / m;	// tangents
+	if (abs(t.x) >= T || abs(t.y) >= T)
 		return 0;	// outside of the area of the map
-	int qx = a > 0.0 ? 1 : 0;
-	int qy = b > 0.0 ? 1 : 0;
-	vec2 c = vec2(-0.5 * H + float(qx) * H, -0.5 * H + float(qy) * H);
-	vec2 ndc = (vec2(a, b) - c) / (0.5 * H);
+	int qx = t.x > 0.0 ? 1 : 0;
+	int qy = t.y > 0.0 ? 1 : 0;
+	vec2 c = vec2(-0.5 * T + float(qx) * T, -0.5 * T + float(qy) * T);
+	vec2 ndc = (t - c) / (0.5 * T);
 	int size = textureSize(map, 0).x / 3;
 	int face = qx + 3 * qy;
 	ivec2 tp = ivec2(face % 3, face / 3) * size + clamp(ivec2((ndc * 0.5 + 0.5) * float(size)), ivec2(0), ivec2(size - 1));
-	float texel = H / float(size);	// world size of one texel
+	float texel = T * m / float(size);	// world size of one texel at this distance
 	float stored = texelFetch(map, tp, 0).x;
 	if (stored >= 1.0)
 		return 0;	// no model here
-	float occluder = nf.x + stored * (nf.y - nf.x);	// orthographic: the depth is linear
+	float occluder = LinearLightDepth(stored, nf.x, nf.y);
 	float bias = 2.0 * texel / max(cosT, 0.2) + 1.0;
 	if (m <= occluder + bias)
 		return 0;	// the model is not nearer to the sun than the pixel
-	gOcc[mi] = P + D * (m - occluder);
+	gOcc[mi] = L.xyz + d * (occluder / m);
 	return 1;
 }
 
@@ -279,19 +283,20 @@ void main()
 		}
 		vec4 Ls = sm == 0 ? Light0 : (sm == 1 ? Light1 : (sm == 2 ? Light2 : Light3));
 		vec2 nfs = sm == 0 ? NearFar.xy : (sm == 1 ? NearFar.zw : (sm == 2 ? NearFar2.xy : NearFar2.zw));
-		vec3 fs = -sr.xyz;
+		vec3 fs = sr.xyz;
 		vec3 us = abs(fs.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
 		vec3 rs = cross(fs, us);
 		vec3 u2s = cross(rs, fs);
 		vec3 ds = P - Ls.xyz;
-		if (abs(dot(ds, rs)) >= sr.w || abs(dot(ds, u2s)) >= sr.w)
+		float ms = dot(ds, fs);
+		if (ms <= 0.0 || abs(dot(ds, rs)) >= sr.w * ms || abs(dot(ds, u2s)) >= sr.w * ms)
 			discard;	// outside of the area of the map
 		bool skyOk = UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
 		int hit = 0;
-		if (sm == 0) hit = InSunOrtho(P, n, Light0, NearFar.xy, sr.w, sr.xyz, ShadowMap0, 0);
-		else if (sm == 1) hit = InSunOrtho(P, n, Light1, NearFar.zw, sr.w, sr.xyz, ShadowMap1, 1);
-		else if (sm == 2) hit = InSunOrtho(P, n, Light2, NearFar2.xy, sr.w, sr.xyz, ShadowMap2, 2);
-		else hit = InSunOrtho(P, n, Light3, NearFar2.zw, sr.w, sr.xyz, ShadowMap3, 3);
+		if (sm == 0) hit = InSunMap(P, n, Light0, NearFar.xy, sr.w, sr.xyz, ShadowMap0, 0);
+		else if (sm == 1) hit = InSunMap(P, n, Light1, NearFar.zw, sr.w, sr.xyz, ShadowMap1, 1);
+		else if (sm == 2) hit = InSunMap(P, n, Light2, NearFar2.xy, sr.w, sr.xyz, ShadowMap2, 2);
+		else hit = InSunMap(P, n, Light3, NearFar2.zw, sr.w, sr.xyz, ShadowMap3, 3);
 		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white)
 		bool paint = false;
 		if (!skyOk)
@@ -327,12 +332,12 @@ void main()
 			vec4 sunRow = DataRow(7);
 			if (sunRow.w > 0.0)
 			{
-				// the sun is a parallel light with an orthographic map
+				// the sun: perspective map from the sun position, narrowed to the area around the player
 				vec3 sd = sunRow.xyz;
-				if (sunMap == 0) sk = InSunOrtho(P, n, Light0, NearFar.xy, sunRow.w, sd, ShadowMap0, 0);
-				else if (sunMap == 1) sk = InSunOrtho(P, n, Light1, NearFar.zw, sunRow.w, sd, ShadowMap1, 1);
-				else if (sunMap == 2) sk = InSunOrtho(P, n, Light2, NearFar2.xy, sunRow.w, sd, ShadowMap2, 2);
-				else sk = InSunOrtho(P, n, Light3, NearFar2.zw, sunRow.w, sd, ShadowMap3, 3);
+				if (sunMap == 0) sk = InSunMap(P, n, Light0, NearFar.xy, sunRow.w, sd, ShadowMap0, 0);
+				else if (sunMap == 1) sk = InSunMap(P, n, Light1, NearFar.zw, sunRow.w, sd, ShadowMap1, 1);
+				else if (sunMap == 2) sk = InSunMap(P, n, Light2, NearFar2.xy, sunRow.w, sd, ShadowMap2, 2);
+				else sk = InSunMap(P, n, Light3, NearFar2.zw, sunRow.w, sd, ShadowMap3, 3);
 			}
 			// Floors get the flat projected shadow of the sun (models.cpp) where the model stands on that floor. A floor that is
 			// higher than the floor under the model (a raised sector) gets the shadow from the map.

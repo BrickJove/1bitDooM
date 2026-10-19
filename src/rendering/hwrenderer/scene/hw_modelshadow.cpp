@@ -256,36 +256,29 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		if (picked.Size() == 0)
 			continue;
 
-		// The sun is a parallel light: one orthographic depth map (a 2 x 2 mosaic of the tiles of the atlas) of the square area
-		// around the player. Nearly 1.3 map units per texel, so the shadows on walls are sharp. Models outside of the area cast
-		// no sun shadow (they keep the flat shadow on the floor).
+		// The sun: a perspective depth map from the position of the sun (a point, as in the scene shadows), narrowed to the area
+		// around the player (a 2 x 2 mosaic of the tiles of the atlas, 1536 x 1536 texels). A sun that is near casts shadows in
+		// different directions on different places; a parallel light would not fit the map geometry. Models outside of the
+		// area cast no sun shadow on walls (they keep the flat shadow on the floor).
 		if (isSun)
 		{
 			const float H = clamp((float)gl_model_shadow_sun_size, 128.f, 4096.f);
-			// centre of the area: a bit in front of the camera, the sun direction towards it
+			// centre of the area: a bit in front of the camera
 			const DVector3 camPos = di->Viewpoint.Pos;
 			const DVector2 fwd = di->Viewpoint.Angles.Yaw.ToVector();
-			float cx = (float)(camPos.X + fwd.X * H * 0.4), cy = (float)camPos.Z, cz = (float)(camPos.Y + fwd.Y * H * 0.4);
-			float Dx = lx - cx, Dy = ly - cy, Dz = lz - cz;
-			float Dl = sqrtf(Dx * Dx + Dy * Dy + Dz * Dz);
-			if (Dl < 1.f)
+			const float cx = (float)(camPos.X + fwd.X * H * 0.4), cy = (float)camPos.Z, cz = (float)(camPos.Y + fwd.Y * H * 0.4);
+			float fx = cx - lx, fy = cy - ly, fz = cz - lz;
+			const float dist = sqrtf(fx * fx + fy * fy + fz * fz);
+			if (dist < 16.f)
 				continue;
-			Dx /= Dl; Dy /= Dl; Dz /= Dl;	// towards the sun
-			const float fx = -Dx, fy = -Dy, fz = -Dz;	// viewing direction of the map
+			fx /= dist; fy /= dist; fz /= dist;	// viewing direction of the map: from the sun to the area
 			float ux = 0.f, uy = 1.f, uz = 0.f;
 			if (fabsf(fy) > 0.99f) { ux = 0.f; uy = 0.f; uz = 1.f; }	// as in modelshadow.fp
 			const float rx = fy * uz - fz * uy, ry = fz * ux - fx * uz, rz = fx * uy - fy * ux;
 			const float u2x = ry * fz - rz * fy, u2y = rz * fx - rx * fz, u2z = rx * fy - ry * fx;
-			// the area moves in steps of one texel (the shadows do not swim when the player moves)
-			{
-				const float texelSize = H / 768.f;
-				float a = cx * rx + cy * ry + cz * rz, b = cx * u2x + cy * u2y + cz * u2z;
-				float sa = floorf(a / texelSize + 0.5f) * texelSize - a, sb = floorf(b / texelSize + 0.5f) * texelSize - b;
-				cx += rx * sa + u2x * sb; cy += ry * sa + u2y * sb; cz += rz * sa + u2z * sb;
-			}
-			const float eyeDist = 2048.f;
-			const float ex = cx + Dx * eyeDist, ey = cy + Dy * eyeDist, ez = cz + Dz * eyeDist;
-			const float sunNear = 1.f, sunFar = eyeDist + 2048.f;
+			// half edge of the whole mosaic as a tangent (covers the corners of the square area)
+			const float T = clamp(H * 1.45f / dist, 0.02f, 1.2f);
+			const float sunNear = max(1.f, dist - 3000.f), sunFar = dist + 3000.f;
 
 			if (!screen->BeginModelShadowMap(usedMaps))
 				break;
@@ -305,14 +298,17 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			for (int q = 0; q < 4; q++)
 			{
 				const int qx = q & 1, qy = q >> 1;
-				const float left = -H + qx * H, right = left + H, bottom = -H + qy * H, top = bottom + H;
+				const float left = -T + qx * T, right = left + T, bottom = -T + qy * T, top = bottom + T;	// tangent ranges of the tile
 				TArray<int> inTile;
 				for (unsigned k = 0; k < picked.Size(); k++)
 				{
 					const Info &in = infos[picked[k]];
-					float rx0 = in.cx - cx, ry0 = in.cy - cy, rz0 = in.cz - cz;
-					float a = rx0 * rx + ry0 * ry + rz0 * rz, b = rx0 * u2x + ry0 * u2y + rz0 * u2z;
-					float rad = in.r * 1.05f;
+					float rx0 = in.cx - lx, ry0 = in.cy - ly, rz0 = in.cz - lz;
+					float m = rx0 * fx + ry0 * fy + rz0 * fz;
+					if (m < sunNear * 0.5f)
+						continue;
+					float a = (rx0 * rx + ry0 * ry + rz0 * rz) / m, b = (rx0 * u2x + ry0 * u2y + rz0 * u2z) / m;
+					float rad = in.r * 1.05f / m;
 					if (a + rad < left || a - rad > right || b + rad < bottom || b - rad > top)
 						continue;
 					inTile.Push(picked[k]);
@@ -322,15 +318,15 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 
 				screen->SelectModelShadowFace(qx + 3 * qy);
 				VSMatrix proj;
-				proj.ortho(left, right, bottom, top, sunNear, sunFar);
+				proj.frustum(left * sunNear, right * sunNear, bottom * sunNear, top * sunNear, sunNear, sunFar);
 				VSMatrix view;
 				view.loadIdentity();
-				view.lookAt(ex, ey, ez, ex + fx, ey + fy, ez + fz, ux, uy, uz);
+				view.lookAt(lx, ly, lz, lx + fx, ly + fy, lz + fz, ux, uy, uz);
 				HWViewpointUniforms vpu = di->VPUniforms;
 				vpu.ProjectionMatrix = proj;
 				vpu.ViewMatrix = view;
 				vpu.CalcDependencies();
-				vpu.mCameraPos = FVector4(ex, ey, ez, 1.f);
+				vpu.mCameraPos = FVector4(lx, ly, lz, 1.f);
 				vpu.mClipLine = FVector4(-10000001.f, 0.f, 0.f, 0.f);
 				vpu.mClipHeight = 0.f;
 				vpu.mClipHeightDirection = 0.f;
@@ -349,10 +345,10 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			screen->EndModelShadowMap();
 
 			f.ModelWorld[usedMaps] = false;
-			f.ModelLight[usedMaps][0] = ex; f.ModelLight[usedMaps][1] = ey; f.ModelLight[usedMaps][2] = ez; f.ModelLight[usedMaps][3] = 1000000.f;
+			f.ModelLight[usedMaps][0] = lx; f.ModelLight[usedMaps][1] = ly; f.ModelLight[usedMaps][2] = lz; f.ModelLight[usedMaps][3] = 1000000.f;
 			f.ModelNearFar[usedMaps][0] = sunNear; f.ModelNearFar[usedMaps][1] = sunFar;
-			f.ModelSunDir[0] = Dx; f.ModelSunDir[1] = Dy; f.ModelSunDir[2] = Dz;
-			f.ModelSunHalf = H;
+			f.ModelSunDir[0] = fx; f.ModelSunDir[1] = fy; f.ModelSunDir[2] = fz;
+			f.ModelSunHalf = T;	// tangent of the half edge of the mosaic
 			f.ModelSunMap = usedMaps;
 			pickedCount[usedMaps] = nCast;
 			usedMaps++;
