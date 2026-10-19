@@ -197,13 +197,6 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			double down = max((double)sceneShadowFrame.SunPos[1] - actor->Center(), 16.0);
 			float kx = (float)clamp((actor->X() - sceneShadowFrame.SunPos[0]) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - sceneShadowFrame.SunPos[2]) / down, -3.0, 3.0);
-			// the shadow maps use the sun as a parallel light (hw_modelshadow.cpp): the flat shadow gets the same direction,
-			// otherwise the shadow of the map and the flat shadow lie next to each other (two shadows)
-			if (sceneShadowFrame.ModelSunHalf > 0.f && sceneShadowFrame.ModelSunDir[1] > 0.05f)
-			{
-				kx = clamp(-sceneShadowFrame.ModelSunDir[0] / sceneShadowFrame.ModelSunDir[1], -3.f, 3.f);
-				ky = clamp(-sceneShadowFrame.ModelSunDir[2] / sceneShadowFrame.ModelSunDir[1], -3.f, 3.f);
-			}
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;
 			sm.loadMatrix(shear);
