@@ -196,7 +196,11 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	c /= float(nU * nV);
 	// crisp edges (threshold 0.5) as long as the lattice can be resolved; the ordered dither only fades in together with the
 	// mean coverage far away (a dither threshold at the edges of the lattice made grainy stripes)
-	float w = clamp((fpT - 4.0) / 4.0, 0.0, 1.0);
+	// the start of the gray does not depend on the render resolution: the pixel size is converted to a reference resolution of 1080
+	// lines (with a low resolution the pixels are big and the fade would start close to the player; the sampling above filters
+	// the lattice in the middle zone instead)
+	float resScale = min(float(gTexSize.y) / 1080.0, 1.0);
+	float w = clamp((fpT * resScale - 4.0) / 4.0, 0.0, 1.0);
 	c = mix(c, FenceParam(id, 14), w);
 	return c > mix(0.5, gBayer, w);
 }
