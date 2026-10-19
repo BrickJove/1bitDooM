@@ -161,7 +161,7 @@ float FenceCover(vec2 slot0, vec2 uv)
 // foot = world size of the footprint of the pixel. Finer than a texel: the exact texture. Larger: the coverage of the
 // footprint (a few samples, for very large footprints the mean coverage of the texture) is shown with the ordered dither
 // of the screen, so far away the lattice becomes a regular gray instead of noise or a black area.
-bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
+bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float footS)
 {
 	bool wrap = FenceParam(id, 10) > 0.5;
 	if (!wrap && (y < FenceParam(id, 11) || y > FenceParam(id, 12)))
@@ -179,14 +179,18 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 	float fpU = foot * FenceParam(id, 7) * 256.0;
 	float fpV = foot * 256.0 / max(FenceParam(id, 5), 1.0);
 	float fpT = max(fpU, fpV);
-	if (fpT <= 1.0)
+	// the footprint for the sampling: the real footprint on the receiving surface (stretched on floors seen at a grazing angle);
+	// it only decides how finely the lattice is sampled, where the fade to the gray starts is decided by fpT (the pixel size)
+	float fpUs = max(footS, foot) * FenceParam(id, 7) * 256.0;
+	float fpVs = max(footS, foot) * 256.0 / max(FenceParam(id, 5), 1.0);
+	if (max(fpUs, fpVs) <= 1.0)
 		return FenceCover(slot0, vec2(fract(uu), v)) > 0.5;
-	int nU = int(clamp(ceil(fpU), 1.0, 4.0)), nV = int(clamp(ceil(fpV), 1.0, 4.0));
+	int nU = int(clamp(ceil(fpUs), 1.0, 8.0)), nV = int(clamp(ceil(fpVs), 1.0, 8.0));
 	float c = 0.0;
 	for (int i = 0; i < nU; i++)
 		for (int j = 0; j < nV; j++)
 		{
-			vec2 o = (vec2((float(i) + 0.5) / float(nU), (float(j) + 0.5) / float(nV)) - 0.5) * vec2(fpU, fpV) / 256.0;
+			vec2 o = (vec2((float(i) + 0.5) / float(nU), (float(j) + 0.5) / float(nV)) - 0.5) * vec2(fpUs, fpVs) / 256.0;
 			c += FenceCover(slot0, vec2(fract(uu + o.x + 4.0), clamp(v + o.y, 0.0, 1.0)));
 		}
 	c /= float(nU * nV);
@@ -269,7 +273,7 @@ bool LinesBlock(ivec2 c, vec3 S0, vec3 S1)
 						up = dot(gSurf.xz + rd * (dot(nf, A - gSurf.xz) / rn) - A, sd) / flen;
 					if (st > 0.0 && up >= 0.0 && up <= 1.0)
 					{
-						if (FencePixel(fence, A, B, up, Hp.y, gPix))
+						if (FencePixel(fence, A, B, up, Hp.y, gPix, gFoot))
 							return true;
 					}
 				}
