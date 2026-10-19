@@ -40,6 +40,7 @@ ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
 float gBayer = 0.5;	// ordered dither threshold of the screen pixel
+float gDist = 1.0;	// distance of the pixel from the camera
 float gPix = 1.0;	// world size of one screen pixel at the depth of the pixel
 float gFoot = 1.0;	// world size of the footprint of the pixel on the receiving surface
 float gRayLen = 1.0;	// length of the ray of the shadow test
@@ -181,7 +182,8 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	float fpT = max(fpU, fpV);
 	// far away the fence casts no shadow (pixel size converted to a reference resolution of 1080 lines, so the distance does not
 	// depend on the render resolution)
-	if (fpT * min(float(gTexSize.y) / 1080.0, 1.0) > 8.0)
+	// the limit is moved 256 units further away: the pixel size grows with the distance, so the size at the distance minus 256 counts
+	if (fpT * min(float(gTexSize.y) / 1080.0, 1.0) * max(gDist - 256.0, 0.0) / gDist > 8.0)
 		return false;
 	// the footprint for the sampling: the real footprint on the receiving surface (stretched on floors seen at a grazing angle);
 	// it only decides how finely the lattice is sampled, where the fade to the gray starts is decided by fpT (the pixel size)
@@ -527,6 +529,7 @@ void main()
 		vec3 camp = vec3(CamX.w, CamY.w, CamZ.w);
 		float pix = z * ProjParams.w * 2.0 / float(gTexSize.y);
 		gPix = pix;
+		gDist = max(distance(P, camp), 1.0);
 		gFoot = pix / (hasNormal ? max(abs(dot(n, normalize(P - camp))), 0.05) : 1.0);
 	}
 	// start point of the rays, a bit off the surface
