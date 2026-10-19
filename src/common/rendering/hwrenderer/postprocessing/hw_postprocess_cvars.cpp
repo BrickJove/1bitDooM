@@ -88,7 +88,7 @@ CVARD(Bool, gl_model_shadow_map_walls, true, 0, "Model shadows stop at walls (ra
 CVARD(Int, gl_model_shadow_map_debug_light, 0, 0, "Model shadows: 5 = paint the left half of the screen black (test that the shader runs), 1..4 = draw a checkerboard on everything the light of that shadow map does not see (wall test and facing), 0 = off")
 CVARD(Bool, gl_model_shadow_map_debug_walls, false, 0, "Model shadows: pixels where the wall test stops a shadow are drawn as a checkerboard")
 CVARD(Bool, gl_model_shadow_map_debug, false, 0, "Print what the model shadow maps do (lights, models, maps) when it changes")
-CVARD(Bool, gl_model_shadow_map_sun, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "The sun (gl_scene_shadow_sun) casts shadows of the models onto walls and other models; uses one of the four model shadow maps")
+CVARD(Bool, gl_model_shadow_map_sun, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "The sun (gl_scene_shadow_sun) casts shadows of the models onto walls and other models; uses one of the four model shadow maps")
 CVARD(Bool, gl_model_shadow_map_sun_anywhere, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Test: the sun model shadows also fall on pixels that are not under an open sky")
 CVARD(Bool, gl_model_shadow_map_unlimited, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model shadows are not limited by the radius of the light (long shadows)")
 CVARD(Int, gl_model_shadow_map_lights, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (1..4) whose light the models block")
