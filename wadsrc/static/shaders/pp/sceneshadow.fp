@@ -128,6 +128,9 @@ int SectorLightMask(vec3 w)
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
 // channel (see hw_shadowheightmap.cpp), so pixels right at a wall base are classified like the open ground next to them.
+const float LampNear0 = 0.25;
+const float LampNear1 = 0.45;
+
 bool UnderSky(vec3 w)
 {
 	ivec2 c = CellOf(w);
@@ -629,6 +632,10 @@ void main()
 		vec3 toL = lightP - Q;
 		float dist = length(toL);
 		if (dist >= L.w)
+			continue;
+		// a lamp only makes shadows near it (up to LampNear0 .. LampNear1 of its radius, dithered edge): the three lamps nearest
+		// to the player change while he walks, and a lamp that switches on must not turn a whole area black
+		if (dist > L.w * mix(LampNear0, LampNear1, jitter) && dist > 64.0)
 			continue;
 		reached++;
 		if (dist <= 64.0)
