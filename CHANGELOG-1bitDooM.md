@@ -15,6 +15,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Fehler behoben: Die Liste der Modell-Schattenwerfer brach nach 128 Actors in der Reihenfolge der Engine ab; bei vielen Dekorationen kamen Monster nie hinein (nur Spieler/neu gespawnte Actors). Jetzt werden bei mehr als 128 die 128 naechsten zur Kamera behalten.
 - Wandschatten flackerte beim Laufen: Die Mitte des Sonnengebiets springt jetzt in Schritten (128 Einheiten, Hoehe 64) statt dem Spieler jedes Bild zu folgen; die Karte behaelt so Richtung und Texelraster.
 - Modelle und Sprites (Pixel ohne Normale) bekommen keinen Sonnenschatten aus der Karte mehr (punktierte Schattierung auf md3-Modellen durch Selbstverschattung).
+- Schatten faellt wieder auf andere Modelle: Modellpixel (ohne Normale) werden nur beschattet, wenn etwas mehr als 64 Einheiten naeher an der Sonne liegt (Dicke eines Modells), dadurch keine Selbstverschattung mehr, aber Schatten anderer Modelle davor.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
