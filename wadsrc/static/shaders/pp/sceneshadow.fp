@@ -192,7 +192,7 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 	c /= float(nU * nV);
 	// crisp edges (threshold 0.5) as long as the lattice can be resolved; the ordered dither only fades in together with the
 	// mean coverage far away (a dither threshold at the edges of the lattice made grainy stripes)
-	float w = clamp((fpT - 1.5) / 2.5, 0.0, 1.0);
+	float w = clamp((fpT - 4.0) / 6.0, 0.0, 1.0);
 	c = mix(c, FenceParam(id, 14), w);
 	return c > mix(0.5, gBayer, w);
 }
