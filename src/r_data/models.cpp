@@ -37,6 +37,8 @@
 #include "v_video.h"
 #include "hw_bonebuffer.h"
 #include "hwrenderer/postprocessing/hw_postprocess.h"
+#include "p_local.h"
+#include "p_linetracedata.h"
 
 
 #ifdef _MSC_VER
@@ -109,6 +111,27 @@ bool WantsModelShadow(AActor* actor)
 	if (gl_model_shadow_skip_nonsolid && !(actor->flags & MF_SOLID)) return false;
 	return true;
 }
+
+// The flat drop shadow is a projection onto the floor plane: it does not stop at walls and would show up in the next room
+// (the floor behind the wall). Its length (kx, ky = offset per unit of height) is shortened so that its tip stays in front of the
+// first wall in the direction of the shadow.
+static void ClampFlatShadowToWalls(AActor *actor, float &kx, float &ky)
+{
+	const double len = actor->Height * sqrt((double)kx * kx + (double)ky * ky);
+	if (len < 4.0)
+		return;
+	FLineTraceData data;
+	const DAngle ang = DAngle::fromRad(atan2((double)ky, (double)kx));
+	// geometry only (no actors), a little above the floor
+	if (!P_LineTrace(actor, ang, len, DAngle::fromDeg(0.), TRF_THRUACTORS | TRF_THRUHITSCAN, 2.0, 0.0, 0.0, &data))
+		return;
+	if (data.HitType != TRACE_HitWall)
+		return;
+	const double s = clamp((data.Distance - 2.0) / len, 0.0, 1.0);
+	kx *= (float)s;
+	ky *= (float)s;
+}
+
 float ModelMapShadowWeight(const AActor* actor);
 // the dynamic light that shines on the actor most (hw_spritelight.cpp)
 bool ModelShadowLight(AActor* actor, DVector3& pos);
@@ -197,6 +220,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			double down = max((double)sceneShadowFrame.SunPos[1] - actor->Center(), 16.0);
 			float kx = (float)clamp((actor->X() - sceneShadowFrame.SunPos[0]) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - sceneShadowFrame.SunPos[2]) / down, -3.0, 3.0);
+			ClampFlatShadowToWalls(actor, kx, ky);
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;
 			sm.loadMatrix(shear);
@@ -210,6 +234,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			double down = max(lightPos.Z - actor->Center(), 16.0);
 			float kx = (float)clamp((actor->X() - lightPos.X) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - lightPos.Y) / down, -3.0, 3.0);
+			ClampFlatShadowToWalls(actor, kx, ky);
 			// render space: x = X, y = Z (up), z = Y. Column major.
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;

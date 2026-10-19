@@ -21,6 +21,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Lampen verdunkeln keine Flaechen mehr, die von ihnen abgewandt sind (`gl_scene_shadow_facing` gilt nur noch fuer die Sonne): die drei naechsten Lampen wechseln beim Laufen, dadurch wurden ganze Waende und Decken schwarz bzw. wieder hell.
 - `gl_scene_shadow_debug` zeigt jetzt reine Schwarz-Muster (1-Bit-tauglich): waagrechte Linien = Sonne blockiert, senkrechte Linien = Lampen blockieren, voll = beides, Punkte = beleuchtet, nichts = keine Quelle erreicht den Pixel.
 - Lampen werfen Szenenschatten nur noch im Nahbereich (25 %..45 % ihrer Reichweite, gedithert ausgeblendet), damit beim Laufen keine grossen Flaechen mehr kippen, wenn eine andere Lampe zu den drei naechsten gehoert. Konstanten `LampNear0/1` in `sceneshadow.fp`.
+- Der flache Bodenschatten eines Modells (Lampe oder Sonne) wird an der ersten Wand in Schattenrichtung gekuerzt (Linientrace in `models.cpp`), damit er nicht durch die Wand im Nachbarraum auf dem Boden erscheint (z. B. Schatten eines Regals hinter der Wand).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
