@@ -654,16 +654,9 @@ void main()
 				lightBlocked++;
 			}
 		}
-		else if (!facingShade)
-		{
-			lit++;
-			lightLit++;
-		}
-		else
-		{
-			blocked++;
-			lightBlocked++;
-		}
+		// else: the surface faces away from this lamp. A lamp makes no shadow there (only the sun darkens the sides that face
+		// away from it): the nearest three lamps change when the player walks, and with them whole walls and ceilings would
+		// switch to black
 	}
 	if (Light.z > 1.5)
 	{

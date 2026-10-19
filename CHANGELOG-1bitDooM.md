@@ -18,6 +18,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Schatten faellt wieder auf andere Modelle: Modellpixel (ohne Normale) werden nur beschattet, wenn etwas mehr als 64 Einheiten naeher an der Sonne liegt (Dicke eines Modells), dadurch keine Selbstverschattung mehr, aber Schatten anderer Modelle davor.
 - Sonne nur im Freien (Sektoren mit Sky-Ceiling): Waende werden nur beschattet/beleuchtet, wenn die Zelle direkt vor der Wand offenen Himmel hat (vorher zaehlte die Markierung der Wandzelle selbst, dadurch bekam auch die Innenseite von Gebaeuden Sonne); in Szenenschatten und Modellschatten. Modelle in Sektoren ohne Sky-Ceiling werfen keinen Sonnenschatten in die Sonnenkarte. Die Testoption `gl_model_shadow_map_sun_anywhere` ist standardmaessig aus.
 - Innenraeume: Szenenschatten der Lichter sind nur noch schwarz, wenn **alle** Lichter, die den Pixel erreichen, blockiert sind (vorher genuegte ein blockiertes Licht, dadurch wurden Raeume mit mehreren Lampen, die sich durch Tueren/Ecken erreichen, dunkel und Schatten "gingen durch Waende"). Die Sonne behaelt ihren eigenen Schatten (ein blockierter Sonnenstrahl genuegt wie beim flachen Modellschatten).
+- Lampen verdunkeln keine Flaechen mehr, die von ihnen abgewandt sind (`gl_scene_shadow_facing` gilt nur noch fuer die Sonne): die drei naechsten Lampen wechseln beim Laufen, dadurch wurden ganze Waende und Decken schwarz bzw. wieder hell.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
