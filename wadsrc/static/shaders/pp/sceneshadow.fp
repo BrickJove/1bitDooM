@@ -209,7 +209,13 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	// no dither and no gray far away: the lattice is drawn crisp (filtered, threshold 0.5) up to a distance and beyond that the
 	// fence casts no shadow. The distance does not depend on the render resolution: the pixel size is converted to a reference
 	// resolution of 1080 lines.
-	return c > 0.5;
+	// Where the footprint covers several texels (the lattice can no longer be resolved) the filtered coverage is about 50 %, a hard
+	// threshold would flip between black and white per pixel (noise, black areas). From there on the hard shadow fades out and the
+	// filtered coverage itself is drawn as the blurred, blue tinted shadow (the 1-bit shader dithers it).
+	float s = clamp((max(fpUs, fpVs) - 1.5) / 3.0, 0.0, 1.0);
+	if (s > 0.0)
+		gSoftA = max(gSoftA, c * s);
+	return c > 0.5 + 0.5 * s;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
