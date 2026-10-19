@@ -8,6 +8,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Neu: Perspektiv-Tiefenkarte von der Sonnenposition (wie bei den Szenenschatten), eingeengt auf das Gebiet um den Spieler (`gl_model_shadow_sun_size`).
 - Der flache Schatten nutzt wieder die Punkt-Sonne (parallele Richtung zurueckgenommen).
 - Fehler behoben: Die Projektionsmatrix der Sonnenkarte war nicht initialisiert (`frustum()` multipliziert auf die Matrix), dadurch war die Karte kaputt und es gab keine Wandschatten.
+- Debug: `gl_model_shadow_map_debug_light 6` zeigt jetzt Schachbrett = Modell in der Sonnenkarte (Silhouette), Vollfläche = Schatten, Punkte = Karte leer; `gl_model_shadow_map_debug 1` meldet Mitte, Abstand und Tangens des Sonnengebiets.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü

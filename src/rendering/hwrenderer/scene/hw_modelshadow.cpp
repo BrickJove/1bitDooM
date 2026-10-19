@@ -183,6 +183,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 
 	int maxMaps = clamp((int)gl_model_shadow_map_lights + (sunLight >= 0 ? 1 : 0), 1, 4);
 	int usedMaps = 0;
+	FString sunDbg;
 	int pickedCount[4] = { 0, 0, 0, 0 };
 
 	// the lights that reach a model, the closest ones first (distance to the nearest model minus the radius of the light)
@@ -352,6 +353,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			f.ModelSunHalf = T;	// tangent of the half edge of the mosaic
 			f.ModelSunMap = usedMaps;
 			pickedCount[usedMaps] = nCast;
+			sunDbg.Format("; sun area: centre %.0f %.0f %.0f, distance %.0f, tangent %.3f, models per tile cast %d", cx, cy, cz, dist, T, nCast);
 			usedMaps++;
 			continue;
 		}
@@ -511,6 +513,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			u.Format("; map %d: light at %.0f %.0f %.0f radius %.0f, %d models", m, f.ModelLight[m][0], f.ModelLight[m][1], f.ModelLight[m][2], f.ModelLight[m][3], pickedCount[m]);
 			t += u;
 		}
+		t += sunDbg;
 		{ FString u; u.Format("; sun map: %d (sun light %s)", f.ModelSunMap, sunLight >= 0 ? "on" : "off: needs gl_model_shadow_map_sun, gl_scene_shadow_sun"); t += u; }
 		ModelShadowReport(t);
 	}

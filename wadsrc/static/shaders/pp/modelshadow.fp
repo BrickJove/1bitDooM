@@ -132,6 +132,7 @@ void FaceBasis(int face, out vec3 f, out vec3 u)
 // The sun: a perspective depth map from the position of the sun, narrowed to the area around the player (a 2 x 2 mosaic of the
 // tiles 0, 1, 3, 4 of the atlas, see hw_modelshadow.cpp). L.xyz = the sun, F = viewing direction, T = tangent of the half edge.
 // 0 = no shadow, 1 = a model is nearer to the sun than the pixel
+int gSunDbg = 0;	// test mode 6: 0 = outside of the area, 1 = the map is empty here, 2 = a model is in the map here
 int InSunMap(vec3 P, vec3 n, vec4 L, vec2 nf, float T, vec3 F, sampler2D map, int mi)
 {
 	vec3 d = P - L.xyz;
@@ -160,8 +161,10 @@ int InSunMap(vec3 P, vec3 n, vec4 L, vec2 nf, float T, vec3 F, sampler2D map, in
 	ivec2 tp = ivec2(face % 3, face / 3) * size + clamp(ivec2((ndc * 0.5 + 0.5) * float(size)), ivec2(0), ivec2(size - 1));
 	float texel = T * m / float(size);	// world size of one texel at this distance
 	float stored = texelFetch(map, tp, 0).x;
+	gSunDbg = 1;
 	if (stored >= 1.0)
 		return 0;	// no model here
+	gSunDbg = 2;
 	float occluder = LinearLightDepth(stored, nf.x, nf.y);
 	float bias = 2.0 * texel / max(cosT, 0.2) + 1.0;
 	if (m <= occluder + bias)
@@ -303,8 +306,10 @@ void main()
 			paint = (ipos.x & 3) == 0;	// vertical lines: no open sky above
 		else if (hit == 1)
 			paint = true;	// solid: a model shadows the pixel
+		else if (gSunDbg == 2)
+			paint = (((ipos.x >> 1) + (ipos.y >> 1)) & 1) == 0;	// coarse checkerboard: the map holds a model at this place (a silhouette)
 		else
-			paint = ((ipos.x & 3) == 0 && (ipos.y & 3) == 0);	// dots: the sun map sees no model in front of the pixel
+			paint = ((ipos.x & 7) < 2 && (ipos.y & 7) < 2);	// dots: inside of the area, the map is empty here
 		if (paint)
 			FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 		else
