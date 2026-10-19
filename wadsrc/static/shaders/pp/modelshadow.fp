@@ -144,7 +144,7 @@ int InSunMap(vec3 P, vec3 n, vec4 L, vec2 nf, float T, vec3 F, sampler2D map, in
 	if (hasN && cosT <= 0.02)
 		return 0;	// the surface faces away from the sun (it is dark anyway)
 	vec3 u = abs(F.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-	vec3 r = cross(F, u);
+	vec3 r = normalize(cross(F, u));
 	vec3 u2 = cross(r, F);
 	float m = dot(d, F);
 	if (m <= nf.x)
@@ -288,7 +288,7 @@ void main()
 		vec2 nfs = sm == 0 ? NearFar.xy : (sm == 1 ? NearFar.zw : (sm == 2 ? NearFar2.xy : NearFar2.zw));
 		vec3 fs = sr.xyz;
 		vec3 us = abs(fs.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-		vec3 rs = cross(fs, us);
+		vec3 rs = normalize(cross(fs, us));
 		vec3 u2s = cross(rs, fs);
 		vec3 ds = P - Ls.xyz;
 		float ms = dot(ds, fs);

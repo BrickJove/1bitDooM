@@ -275,7 +275,8 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			fx /= dist; fy /= dist; fz /= dist;	// viewing direction of the map: from the sun to the area
 			float ux = 0.f, uy = 1.f, uz = 0.f;
 			if (fabsf(fy) > 0.99f) { ux = 0.f; uy = 0.f; uz = 1.f; }	// as in modelshadow.fp
-			const float rx = fy * uz - fz * uy, ry = fz * ux - fx * uz, rz = fx * uy - fy * ux;
+			float rx = fy * uz - fz * uy, ry = fz * ux - fx * uz, rz = fx * uy - fy * ux;
+			{ const float rl = sqrtf(rx * rx + ry * ry + rz * rz); rx /= rl; ry /= rl; rz /= rl; }	// unit length, as lookAt() and the shader
 			const float u2x = ry * fz - rz * fy, u2y = rz * fx - rx * fz, u2z = rx * fy - ry * fx;
 			// half edge of the whole mosaic as a tangent (covers the corners of the square area)
 			const float T = clamp(H * 1.45f / dist, 0.02f, 1.2f);

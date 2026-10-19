@@ -9,6 +9,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Der flache Schatten nutzt wieder die Punkt-Sonne (parallele Richtung zurueckgenommen).
 - Fehler behoben: Die Projektionsmatrix der Sonnenkarte war nicht initialisiert (`frustum()` multipliziert auf die Matrix), dadurch war die Karte kaputt und es gab keine Wandschatten.
 - Debug: `gl_model_shadow_map_debug_light 6` zeigt jetzt Schachbrett = Modell in der Sonnenkarte (Silhouette), Vollfläche = Schatten, Punkte = Karte leer; `gl_model_shadow_map_debug 1` meldet Mitte, Abstand und Tangens des Sonnengebiets.
+- Fehler behoben: Die Querachse der Sonnenkarte (`cross(F, up)`) war nicht auf Laenge 1 normalisiert (Shader und Modellauswahl). Das verschob und verkuerzte die Schatten abhaengig von der Blickrichtung (Schatten "wandert" beim Drehen).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
