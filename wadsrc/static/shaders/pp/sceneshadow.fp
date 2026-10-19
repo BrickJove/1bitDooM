@@ -181,7 +181,7 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 	float fpT = max(fpU, fpV);
 	if (fpT <= 1.0)
 		return FenceCover(slot0, vec2(fract(uu), v)) > 0.5;
-	int nU = int(clamp(ceil(fpU), 1.0, 6.0)), nV = int(clamp(ceil(fpV), 1.0, 6.0));
+	int nU = int(clamp(ceil(fpU * 0.5), 1.0, 8.0)), nV = int(clamp(ceil(fpV * 0.5), 1.0, 8.0));
 	float c = 0.0;
 	for (int i = 0; i < nU; i++)
 		for (int j = 0; j < nV; j++)
@@ -192,7 +192,7 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot)
 	c /= float(nU * nV);
 	// crisp edges (threshold 0.5) as long as the lattice can be resolved; the ordered dither only fades in together with the
 	// mean coverage far away (a dither threshold at the edges of the lattice made grainy stripes)
-	float w = clamp((fpT - 4.0) / 6.0, 0.0, 1.0);
+	float w = clamp((fpT - 7.0) / 11.0, 0.0, 1.0);
 	c = mix(c, FenceParam(id, 14), w);
 	return c > mix(0.5, gBayer, w);
 }
