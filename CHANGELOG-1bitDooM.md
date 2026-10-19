@@ -13,6 +13,8 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Tiefentoleranz der Sonnenkarte fuer Wand-/Bodenpixel stark verkleinert (hoechstens ca. 3 Einheiten), damit der Wandschatten direkt am Wandfuss beginnt statt erst weiter oben.
 - Debug: `gl_model_shadow_map_debug 1` listet jetzt die Actors in der Sonnenkarte (Klasse, Kachel, Abstand von der Gebietsmitte).
 - Fehler behoben: Die Liste der Modell-Schattenwerfer brach nach 128 Actors in der Reihenfolge der Engine ab; bei vielen Dekorationen kamen Monster nie hinein (nur Spieler/neu gespawnte Actors). Jetzt werden bei mehr als 128 die 128 naechsten zur Kamera behalten.
+- Wandschatten flackerte beim Laufen: Die Mitte des Sonnengebiets springt jetzt in Schritten (128 Einheiten, Hoehe 64) statt dem Spieler jedes Bild zu folgen; die Karte behaelt so Richtung und Texelraster.
+- Modelle und Sprites (Pixel ohne Normale) bekommen keinen Sonnenschatten aus der Karte mehr (punktierte Schattierung auf md3-Modellen durch Selbstverschattung).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü

@@ -280,7 +280,12 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			// centre of the area: a bit in front of the camera
 			const DVector3 camPos = di->Viewpoint.Pos;
 			const DVector2 fwd = di->Viewpoint.Angles.Yaw.ToVector();
-			const float cx = (float)(camPos.X + fwd.X * H * 0.4), cy = (float)camPos.Z, cz = (float)(camPos.Y + fwd.Y * H * 0.4);
+			// The centre jumps in steps (a lattice): the map then keeps its direction while the player walks, and the texels of the
+			// map stay on the same places on the walls (a centre that follows the player every frame makes the shadow edges flicker).
+			const float snap = 128.f;
+			const float cx = floorf((float)(camPos.X + fwd.X * H * 0.4) / snap + 0.5f) * snap;
+			const float cy = floorf((float)camPos.Z / 64.f + 0.5f) * 64.f;
+			const float cz = floorf((float)(camPos.Y + fwd.Y * H * 0.4) / snap + 0.5f) * snap;
 			float fx = cx - lx, fy = cy - ly, fz = cz - lz;
 			const float dist = sqrtf(fx * fx + fy * fy + fz * fz);
 			if (dist < 16.f)
