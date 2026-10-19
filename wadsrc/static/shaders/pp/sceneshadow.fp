@@ -185,12 +185,11 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	// depend on the render resolution)
 	// the limit is moved 256 units further away: the pixel size grows with the distance, so the size at the distance minus 256 counts
 	float farSize = fpT * min(float(gTexSize.y) / 1080.0, 1.0) * max(gDist - 256.0, 0.0) / gDist;
-	// the blurred shadow (mean coverage of the texture, blue tint for the 1-bit shader) already fades in over the middle zone
-	// (from 2 texels), below the lattice that is still drawn crisp, and takes over completely where the lattice ends (8 texels)
-	if (farSize > 2.0)
-		gSoftA = max(gSoftA, FenceParam(id, 14) * clamp((farSize - 2.0) / 6.0, 0.0, 1.0));
-	if (farSize > 8.0)
+	// far away: no fence shadow at all
+	if (farSize > 10.0)
 		return false;
+	// the middle zone becomes blurred and transparent and fades out completely towards the far limit
+	float midFade = 1.0 - clamp((farSize - 5.0) / 5.0, 0.0, 1.0);
 	// the footprint for the sampling: the real footprint on the receiving surface (stretched on floors seen at a grazing angle);
 	// it only decides how finely the lattice is sampled, where the fade to the gray starts is decided by fpT (the pixel size)
 	float fpUs = max(footS, foot) * FenceParam(id, 7) * 256.0;
@@ -214,8 +213,8 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	// filtered coverage itself is drawn as the blurred, blue tinted shadow (the 1-bit shader dithers it).
 	float s = clamp((max(fpUs, fpVs) - 1.5) / 3.0, 0.0, 1.0);
 	if (s > 0.0)
-		gSoftA = max(gSoftA, c * s);
-	return c > 0.5 + 0.5 * s;
+		gSoftA = max(gSoftA, c * s * midFade);
+	return c > 0.5 + 0.5 * s && midFade > 0.5;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
