@@ -566,6 +566,8 @@ void main()
 	int dbg = 0;	// debug colours: 1 lit, 2 blocked by the map, 3 faces away
 	int blocked = 0;	// sources that reach the pixel but are blocked (like the flat shadow of a model: one blocked source is enough)
 	bool nearLit = false;
+	bool sunBlocked = false;	// the sun reaches the pixel and the map blocks it
+	int lightLit = 0, lightBlocked = 0;	// the dynamic lights that reach the pixel: lit / blocked
 
 	// sun: a point light above the centre of the level
 	// The shadows of the map are projected like the flat shadows of the models (models.cpp): from the light lowered by the
@@ -596,6 +598,7 @@ void main()
 				else
 				{
 					blocked++;
+					sunBlocked = true;
 					dbg = 2;
 				}
 			}
@@ -604,6 +607,7 @@ void main()
 			else
 			{
 				blocked++;
+				sunBlocked = true;
 				dbg = 3;
 			}
 		}
@@ -630,6 +634,7 @@ void main()
 		if (dist <= 64.0)
 		{
 			lit++;
+			lightLit++;
 			nearLit = true;
 			continue;
 		}
@@ -639,21 +644,36 @@ void main()
 		{
 			gLightWorld = lightP;
 			if (Trace(Q, D, dist - 24.0, jitter, topLimit) < 0.5)
+			{
 				lit++;
+				lightLit++;
+			}
 			else
+			{
 				blocked++;
+				lightBlocked++;
+			}
 		}
 		else if (!facingShade)
+		{
 			lit++;
+			lightLit++;
+		}
 		else
+		{
 			blocked++;
+			lightBlocked++;
+		}
 	}
 	if (Light.z > 1.5)
 	{
 		FragColor = reached == 0 ? vec4(0.0, 0.0, 1.0, 0.6) : (dbg == 1 ? vec4(0.0, 1.0, 0.0, 0.35) : (dbg == 2 ? vec4(1.0, 0.0, 0.0, 0.8) : (dbg == 3 ? vec4(1.0, 1.0, 0.0, 0.8) : vec4(0.0))));
 		return;
 	}
-	float shadow = (reached > 0 && blocked > 0 && !nearLit) ? 1.0 : 0.0;
+	// The sun: its shadow is black even when a light also reaches the pixel (like the flat shadow of a model). The dynamic
+	// lights: black only when every light that reaches the pixel is blocked - one light that lights it is enough (several
+	// lamps of a room that reach each other through doors and corners must not black out the room).
+	float shadow = (reached > 0 && !nearLit && (sunBlocked || (lightBlocked > 0 && lightLit == 0))) ? 1.0 : 0.0;
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 3) & 127) / 100.0;
