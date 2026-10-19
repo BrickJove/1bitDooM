@@ -660,7 +660,23 @@ void main()
 	}
 	if (Light.z > 1.5)
 	{
-		FragColor = reached == 0 ? vec4(0.0, 0.0, 1.0, 0.6) : (dbg == 1 ? vec4(0.0, 1.0, 0.0, 0.35) : (dbg == 2 ? vec4(1.0, 0.0, 0.0, 0.8) : (dbg == 3 ? vec4(1.0, 1.0, 0.0, 0.8) : vec4(0.0))));
+		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white):
+		// horizontal lines = the sun blocks the pixel, vertical lines = the lamps block it (and none lights it),
+		// solid = both, dots = a source reaches the pixel and it is lit, nothing = no source reaches it
+		bool lampShadow = lightBlocked > 0 && lightLit == 0;
+		bool paint = false;
+		if (sunBlocked && lampShadow)
+			paint = true;
+		else if (sunBlocked)
+			paint = (ipos.y & 1) == 0;
+		else if (lampShadow)
+			paint = (ipos.x & 1) == 0;
+		else if (reached > 0)
+			paint = (ipos.x & 7) < 2 && (ipos.y & 7) < 2;
+		if (paint)
+			FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		else
+			discard;
 		return;
 	}
 	// The sun: its shadow is black even when a light also reaches the pixel (like the flat shadow of a model). The dynamic
