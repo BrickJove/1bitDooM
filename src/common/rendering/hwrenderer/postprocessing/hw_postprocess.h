@@ -845,6 +845,8 @@ struct SceneShadowFrame
 	float ModelNearFar[4][2] = {};
 	bool ModelWorld[4] = {};		// the level geometry is in the world map of this light
 	int ModelSunMap = -1;			// index of the map that belongs to the sun, -1 = none
+	float ModelSunDir[3] = { 0.f, 1.f, 0.f };	// parallel sun: direction towards the sun
+	float ModelSunHalf = 0.f;		// parallel sun: half edge length of the area of the map (0 = the sun map is a perspective point light)
 };
 extern SceneShadowFrame sceneShadowFrame;
 

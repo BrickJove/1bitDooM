@@ -129,6 +129,43 @@ void FaceBasis(int face, out vec3 f, out vec3 u)
 	else f = vec3(0.0, 0.0, -1.0);
 }
 
+// The sun: a parallel light. One orthographic depth map of a square area (half edge length H) around the player, a 2 x 2 mosaic of
+// the tiles 0, 1, 3, 4 of the atlas (see hw_modelshadow.cpp). L.xyz = the eye of the map, D = direction towards the sun.
+// 0 = no shadow, 1 = a model is nearer to the sun than the pixel
+int InSunOrtho(vec3 P, vec3 n, vec4 L, vec2 nf, float H, vec3 D, sampler2D map, int mi)
+{
+	bool hasN = dot(n, n) > 0.5;
+	float cosT = hasN ? dot(n, D) : 1.0;
+	if (hasN && cosT <= 0.02)
+		return 0;	// the surface faces away from the sun (it is dark anyway)
+	vec3 f = -D;
+	vec3 u = abs(f.y) > 0.99 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
+	vec3 r = cross(f, u);
+	vec3 u2 = cross(r, f);
+	vec3 d = P - L.xyz;
+	float m = dot(d, f);
+	float a = dot(d, r), b = dot(d, u2);
+	if (abs(a) >= H || abs(b) >= H || m <= nf.x)
+		return 0;	// outside of the area of the map
+	int qx = a > 0.0 ? 1 : 0;
+	int qy = b > 0.0 ? 1 : 0;
+	vec2 c = vec2(-0.5 * H + float(qx) * H, -0.5 * H + float(qy) * H);
+	vec2 ndc = (vec2(a, b) - c) / (0.5 * H);
+	int size = textureSize(map, 0).x / 3;
+	int face = qx + 3 * qy;
+	ivec2 tp = ivec2(face % 3, face / 3) * size + clamp(ivec2((ndc * 0.5 + 0.5) * float(size)), ivec2(0), ivec2(size - 1));
+	float texel = H / float(size);	// world size of one texel
+	float stored = texelFetch(map, tp, 0).x;
+	if (stored >= 1.0)
+		return 0;	// no model here
+	float occluder = nf.x + stored * (nf.y - nf.x);	// orthographic: the depth is linear
+	float bias = 2.0 * texel / max(cosT, 0.2) + 1.0;
+	if (m <= occluder + bias)
+		return 0;	// the model is not nearer to the sun than the pixel
+	gOcc[mi] = P + D * (m - occluder);
+	return 1;
+}
+
 // 0 = no shadow of this light, 1 = shadow, 2 = a model is in the way but the light does not see the pixel
 int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map, sampler2D world, int mi)
 {
@@ -243,6 +280,16 @@ void main()
 			bool sky = DataRow(6).y > 0.5 || UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
 			bool floorPixel = hasNormal && abs(n.y) > 0.7;
 			int sk = sunMap == 0 ? s0 : (sunMap == 1 ? s1 : (sunMap == 2 ? s2 : s3));
+			vec4 sunRow = DataRow(7);
+			if (sunRow.w > 0.0)
+			{
+				// the sun is a parallel light with an orthographic map
+				vec3 sd = sunRow.xyz;
+				if (sunMap == 0) sk = InSunOrtho(P, n, Light0, NearFar.xy, sunRow.w, sd, ShadowMap0, 0);
+				else if (sunMap == 1) sk = InSunOrtho(P, n, Light1, NearFar.zw, sunRow.w, sd, ShadowMap1, 1);
+				else if (sunMap == 2) sk = InSunOrtho(P, n, Light2, NearFar2.xy, sunRow.w, sd, ShadowMap2, 2);
+				else sk = InSunOrtho(P, n, Light3, NearFar2.zw, sunRow.w, sd, ShadowMap3, 3);
+			}
 			// Floors get the flat projected shadow of the sun (models.cpp) where the model stands on that floor. A floor that is
 			// higher than the floor under the model (a raised sector) gets the shadow from the map.
 			if (!sky || (floorPixel && !(sk == 1 && P.y > FloorAt(gOcc[sunMap]) + 8.0)))
