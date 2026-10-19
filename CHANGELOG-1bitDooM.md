@@ -11,6 +11,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Debug: `gl_model_shadow_map_debug_light 6` zeigt jetzt Schachbrett = Modell in der Sonnenkarte (Silhouette), Vollfläche = Schatten, Punkte = Karte leer; `gl_model_shadow_map_debug 1` meldet Mitte, Abstand und Tangens des Sonnengebiets.
 - Fehler behoben: Die Querachse der Sonnenkarte (`cross(F, up)`) war nicht auf Laenge 1 normalisiert (Shader und Modellauswahl). Das verschob und verkuerzte die Schatten abhaengig von der Blickrichtung (Schatten "wandert" beim Drehen).
 - Tiefentoleranz der Sonnenkarte fuer Wand-/Bodenpixel stark verkleinert (hoechstens ca. 3 Einheiten), damit der Wandschatten direkt am Wandfuss beginnt statt erst weiter oben.
+- Debug: `gl_model_shadow_map_debug 1` listet jetzt die Actors in der Sonnenkarte (Klasse, Kachel, Abstand von der Gebietsmitte).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü

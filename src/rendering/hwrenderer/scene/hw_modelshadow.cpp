@@ -183,7 +183,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 
 	int maxMaps = clamp((int)gl_model_shadow_map_lights + (sunLight >= 0 ? 1 : 0), 1, 4);
 	int usedMaps = 0;
-	FString sunDbg;
+	FString sunDbg, sunList;
 	int pickedCount[4] = { 0, 0, 0, 0 };
 
 	// the lights that reach a model, the closest ones first (distance to the nearest model minus the radius of the light)
@@ -339,6 +339,11 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 					const Info &in = infos[inTile[k]];
 					RenderModelShadowCaster(&renderer, in.x, in.y, in.z, in.smf, in.actor, in.ticFrac, 1.f, in.z);
 					nCast++;
+					if (nCast <= 16)
+					{
+						FString c; c.Format(" [%s q%d d%.0f]", in.actor->GetClass()->TypeName.GetChars(), q, sqrtf((in.cx - cx) * (in.cx - cx) + (in.cz - cz) * (in.cz - cz)));
+						sunList += c;
+					}
 				}
 			}
 			state.SetVertexBuffer(screen->mVertexData);
@@ -514,7 +519,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			u.Format("; map %d: light at %.0f %.0f %.0f radius %.0f, %d models", m, f.ModelLight[m][0], f.ModelLight[m][1], f.ModelLight[m][2], f.ModelLight[m][3], pickedCount[m]);
 			t += u;
 		}
-		t += sunDbg;
+		t += sunDbg; t += "; sun models (class, tile, distance from the area centre):"; t += sunList;
 		{ FString u; u.Format("; sun map: %d (sun light %s)", f.ModelSunMap, sunLight >= 0 ? "on" : "off: needs gl_model_shadow_map_sun, gl_scene_shadow_sun"); t += u; }
 		ModelShadowReport(t);
 	}
