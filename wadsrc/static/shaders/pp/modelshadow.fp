@@ -270,7 +270,11 @@ void main()
 		int sm = int(floor(DataRow(6).x + 0.5));
 		if (sm < 0 || sr.w <= 0.0)
 		{
-			FragColor = vec4(1.0, 0.0, 1.0, 0.5);	// magenta: no parallel sun map in this frame
+			// no parallel sun map in this frame: horizontal lines (pure black: the 1-bit shader would turn colours into white)
+			if ((ipos.y & 3) == 0)
+				FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+			else
+				discard;
 			return;
 		}
 		vec4 Ls = sm == 0 ? Light0 : (sm == 1 ? Light1 : (sm == 2 ? Light2 : Light3));
@@ -288,7 +292,18 @@ void main()
 		else if (sm == 1) hit = InSunOrtho(P, n, Light1, NearFar.zw, sr.w, sr.xyz, ShadowMap1, 1);
 		else if (sm == 2) hit = InSunOrtho(P, n, Light2, NearFar2.xy, sr.w, sr.xyz, ShadowMap2, 2);
 		else hit = InSunOrtho(P, n, Light3, NearFar2.zw, sr.w, sr.xyz, ShadowMap3, 3);
-		FragColor = !skyOk ? vec4(0.0, 0.0, 1.0, 0.5) : (hit == 1 ? vec4(1.0, 0.0, 0.0, 0.8) : vec4(0.0, 1.0, 0.0, 0.25));
+		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white)
+		bool paint = false;
+		if (!skyOk)
+			paint = (ipos.x & 3) == 0;	// vertical lines: no open sky above
+		else if (hit == 1)
+			paint = true;	// solid: a model shadows the pixel
+		else
+			paint = ((ipos.x & 3) == 0 && (ipos.y & 3) == 0);	// dots: the sun map sees no model in front of the pixel
+		if (paint)
+			FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+		else
+			discard;
 		return;
 	}
 
