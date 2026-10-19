@@ -179,6 +179,10 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	float fpU = foot * FenceParam(id, 7) * 256.0;
 	float fpV = foot * 256.0 / max(FenceParam(id, 5), 1.0);
 	float fpT = max(fpU, fpV);
+	// far away the fence casts no shadow (pixel size converted to a reference resolution of 1080 lines, so the distance does not
+	// depend on the render resolution)
+	if (fpT * min(float(gTexSize.y) / 1080.0, 1.0) > 8.0)
+		return false;
 	// the footprint for the sampling: the real footprint on the receiving surface (stretched on floors seen at a grazing angle);
 	// it only decides how finely the lattice is sampled, where the fade to the gray starts is decided by fpT (the pixel size)
 	float fpUs = max(footS, foot) * FenceParam(id, 7) * 256.0;
@@ -194,15 +198,10 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 			c += FenceCover(slot0, vec2(fract(uu + o.x + 4.0), clamp(v + o.y, 0.0, 1.0)));
 		}
 	c /= float(nU * nV);
-	// crisp edges (threshold 0.5) as long as the lattice can be resolved; the ordered dither only fades in together with the
-	// mean coverage far away (a dither threshold at the edges of the lattice made grainy stripes)
-	// the start of the gray does not depend on the render resolution: the pixel size is converted to a reference resolution of 1080
-	// lines (with a low resolution the pixels are big and the fade would start close to the player; the sampling above filters
-	// the lattice in the middle zone instead)
-	float resScale = min(float(gTexSize.y) / 1080.0, 1.0);
-	float w = clamp((fpT * resScale - 4.0) / 4.0, 0.0, 1.0);
-	c = mix(c, FenceParam(id, 14), w);
-	return c > mix(0.5, gBayer, w);
+	// no dither and no gray far away: the lattice is drawn crisp (filtered, threshold 0.5) up to a distance and beyond that the
+	// fence casts no shadow. The distance does not depend on the render resolution: the pixel size is converted to a reference
+	// resolution of 1080 lines.
+	return c > 0.5;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?
