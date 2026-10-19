@@ -265,6 +265,9 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			// a model behind a wall (seen from the light) casts nothing
 			if (L.source != nullptr && L.source != infos[i].actor && !P_CheckSight(L.source, infos[i].actor, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY | SF_SEEPASTSHOOTABLELINES))
 				continue;
+			// the sun does not shine through a ceiling: only models in a sector with a sky ceiling cast its shadow
+			if (isSun && (infos[i].actor->Sector == nullptr || infos[i].actor->Sector->GetTexture(sector_t::ceiling) != skyflatnum))
+				continue;
 			picked.Push(i);
 		}
 		if (picked.Size() == 0)

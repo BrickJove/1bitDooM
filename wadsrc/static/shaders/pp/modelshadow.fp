@@ -101,6 +101,26 @@ bool UnderSky(vec3 w)
 	return abs(ce - NearSkyMark) < 1.0;
 }
 
+// an open cell (not solid) with a sky ceiling: walls are lit by the sun only from the side of an open sky
+bool UnderOpenSky(vec3 w)
+{
+	ivec2 size = textureSize(CellTexture, 0);
+	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
+	if (Grid.z <= 0.0 || c.x < 0 || c.y < 0 || c.x >= size.x / 4 || c.y >= size.y)
+		return false;
+	float f = texelFetch(CellTexture, ivec2(c.x * 4, c.y), 0).x;
+	float ce = texelFetch(CellTexture, ivec2(c.x * 4 + 1, c.y), 0).x;
+	return f < SolidOff * 0.75 && ce > Big * 0.5;
+}
+
+// sun: is the pixel lit by the open sky? (walls: the cell in front of the wall, floors and models: the cell below)
+bool SunSky(vec3 P, vec3 n, bool hasNormal)
+{
+	if (hasNormal && abs(n.y) < 0.7)
+		return UnderOpenSky(P + n * (1.1 / Grid.z));
+	return UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
+}
+
 // floor height of the sector at a position (a huge value when unknown or solid)
 float FloorAt(vec3 w)
 {
@@ -299,7 +319,7 @@ void main()
 		float ms = dot(ds, fs);
 		if (ms <= 0.0 || abs(dot(ds, rs)) >= sr.w * ms || abs(dot(ds, u2s)) >= sr.w * ms)
 			discard;	// outside of the area of the map
-		bool skyOk = UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
+		bool skyOk = SunSky(P, n, hasNormal);
 		int hit = 0;
 		if (sm == 0) hit = InSunMap(P, n, Light0, NearFar.xy, sr.w, sr.xyz, ShadowMap0, 0);
 		else if (sm == 1) hit = InSunMap(P, n, Light1, NearFar.zw, sr.w, sr.xyz, ShadowMap1, 1);
@@ -336,7 +356,7 @@ void main()
 		int sunMap = int(floor(DataRow(6).x + 0.5));
 		if (sunMap >= 0)
 		{
-			bool sky = DataRow(6).y > 0.5 || UnderSky(P) || (hasNormal && UnderSky(P + n * (3.5 / Grid.z)));
+			bool sky = DataRow(6).y > 0.5 || SunSky(P, n, hasNormal);
 			bool floorPixel = hasNormal && abs(n.y) > 0.7;
 			int sk = sunMap == 0 ? s0 : (sunMap == 1 ? s1 : (sunMap == 2 ? s2 : s3));
 			vec4 sunRow = DataRow(7);

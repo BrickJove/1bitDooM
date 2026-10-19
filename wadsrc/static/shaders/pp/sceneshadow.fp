@@ -140,6 +140,17 @@ bool UnderSky(vec3 w)
 	return abs(ce - NearSkyMark) < 1.0;
 }
 
+// an open cell (not solid) with a sky ceiling: used for walls, which are lit by the sun only from the side of an open sky
+bool UnderOpenSky(vec3 w)
+{
+	ivec2 c = CellOf(w);
+	if (c.x < 0)
+		return false;
+	float f = CellValue(c, 0);
+	float ce = CellValue(c, 1);
+	return f < SolidOff * 0.75 && ce > Big * 0.5;
+}
+
 float FenceParam(int id, int k)
 {
 	return texelFetch(FenceParamTexture, ivec2(k, id), 0).x;
@@ -560,7 +571,11 @@ void main()
 	// The shadows of the map are projected like the flat shadows of the models (models.cpp): from the light lowered by the
 	// reference height of the casters, so a model and a wall of the same height cast shadows of the same length.
 	float casterH = (Sun.w > 0.5 ? Sun.w - 1.0 : Sun.w) * 1000.0;
-	if (Sun.w > 0.5 && (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5)))))
+	// a wall: only if the cell in front of it is under an open sky (a wall of a building is not lit from the inside, and not
+	// through a thick wall from the other side); floors and models: the cell below the pixel
+	bool sunWall = hasNormal && abs(n.y) < 0.7;
+	bool sunSky = sunWall ? UnderOpenSky(P + n * (cell * 1.1)) : (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5))));
+	if (Sun.w > 0.5 && sunSky)
 	{
 		vec3 sunP = vec3(Sun.x, max(Sun.y - casterH, min(Sun.y, Q.y + 4.0)), Sun.z);
 		vec3 toS = sunP - Q;
