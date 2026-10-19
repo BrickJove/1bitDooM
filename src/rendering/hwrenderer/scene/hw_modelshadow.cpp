@@ -318,6 +318,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 
 				screen->SelectModelShadowFace(qx + 3 * qy);
 				VSMatrix proj;
+				proj.loadIdentity();	// frustum() multiplies onto the matrix
 				proj.frustum(left * sunNear, right * sunNear, bottom * sunNear, top * sunNear, sunNear, sunFar);
 				VSMatrix view;
 				view.loadIdentity();
