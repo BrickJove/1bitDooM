@@ -23,6 +23,7 @@
 #include "printf.h"
 #include "g_levellocals.h"
 #include "doom_levelmesh.h"
+#include <algorithm>
 #include "a_dynlight.h"
 #include "d_net.h"
 #include "d_player.h"
@@ -123,6 +124,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		float cx, cy, cz;	// centre in render space (x = X, y = Z up, z = Y)
 		float r;		// radius of a sphere around the model
 		double ticFrac;
+		float camD;		// squared distance to the camera (if there are more than the limit, the nearest ones are kept)
 	};
 	TArray<Info> infos;
 	int nWanted = 0, nFarPlayer = 0, nNoLight = 0, nNoModel = 0;
@@ -165,9 +167,20 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			in.x = (float)pos.X; in.y = (float)pos.Y; in.z = (float)pos.Z;
 			in.cx = cx; in.cy = cy; in.cz = cz; in.r = r;
 			in.ticFrac = Net_ModifyObjectFrac(a, di->Viewpoint.TicFrac);
+			{
+				const float ddx = cx - (float)di->Viewpoint.Pos.X, ddy = cy - (float)di->Viewpoint.Pos.Z, ddz = cz - (float)di->Viewpoint.Pos.Y;
+				in.camD = ddx * ddx + ddy * ddy + ddz * ddz;
+			}
 			infos.Push(in);
-			if (infos.Size() >= 128)
+			if (infos.Size() >= 4096)
 				break;
+		}
+		// the limit: the nearest ones to the camera (not the first ones in the list of the engine: with many decorations the
+		// monsters would never be among them)
+		if (infos.Size() > 128)
+		{
+			std::sort(infos.begin(), infos.end(), [](const Info &a, const Info &b) { return a.camD < b.camD; });
+			infos.Resize(128);
 		}
 	}
 	if (infos.Size() == 0)

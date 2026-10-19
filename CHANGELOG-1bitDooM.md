@@ -12,6 +12,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Fehler behoben: Die Querachse der Sonnenkarte (`cross(F, up)`) war nicht auf Laenge 1 normalisiert (Shader und Modellauswahl). Das verschob und verkuerzte die Schatten abhaengig von der Blickrichtung (Schatten "wandert" beim Drehen).
 - Tiefentoleranz der Sonnenkarte fuer Wand-/Bodenpixel stark verkleinert (hoechstens ca. 3 Einheiten), damit der Wandschatten direkt am Wandfuss beginnt statt erst weiter oben.
 - Debug: `gl_model_shadow_map_debug 1` listet jetzt die Actors in der Sonnenkarte (Klasse, Kachel, Abstand von der Gebietsmitte).
+- Fehler behoben: Die Liste der Modell-Schattenwerfer brach nach 128 Actors in der Reihenfolge der Engine ab; bei vielen Dekorationen kamen Monster nie hinein (nur Spieler/neu gespawnte Actors). Jetzt werden bei mehr als 128 die 128 naechsten zur Kamera behalten.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
