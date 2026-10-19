@@ -166,7 +166,9 @@ int InSunMap(vec3 P, vec3 n, vec4 L, vec2 nf, float T, vec3 F, sampler2D map, in
 		return 0;	// no model here
 	gSunDbg = 2;
 	float occluder = LinearLightDepth(stored, nf.x, nf.y);
-	float bias = 2.0 * texel / max(cosT, 0.2) + 1.0;
+	// the tolerance hides the start of a shadow: a wall or floor (it has a normal) only needs a small one (no model casts onto itself
+	// there), models and sprites (no normal) need more against self-shadowing
+	float bias = hasN ? min(texel / max(cosT, 0.2), 3.0) + 0.3 : 2.0 * texel + 1.0;
 	if (m <= occluder + bias)
 		return 0;	// the model is not nearer to the sun than the pixel
 	gOcc[mi] = L.xyz + d * (occluder / m);
