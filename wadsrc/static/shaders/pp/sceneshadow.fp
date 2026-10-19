@@ -185,12 +185,12 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	// depend on the render resolution)
 	// the limit is moved 256 units further away: the pixel size grows with the distance, so the size at the distance minus 256 counts
 	float farSize = fpT * min(float(gTexSize.y) / 1080.0, 1.0) * max(gDist - 256.0, 0.0) / gDist;
+	// the blurred shadow (mean coverage of the texture, blue tint for the 1-bit shader) already fades in over the middle zone
+	// (from 2 texels), below the lattice that is still drawn crisp, and takes over completely where the lattice ends (8 texels)
+	if (farSize > 2.0)
+		gSoftA = max(gSoftA, FenceParam(id, 14) * clamp((farSize - 2.0) / 6.0, 0.0, 1.0));
 	if (farSize > 8.0)
-	{
-		// instead of the lattice: the blurred shadow, the mean coverage of the texture, fading in over the next 8 texels
-		gSoftA = max(gSoftA, FenceParam(id, 14) * clamp((farSize - 8.0) / 8.0, 0.0, 1.0));
 		return false;
-	}
 	// the footprint for the sampling: the real footprint on the receiving surface (stretched on floors seen at a grazing angle);
 	// it only decides how finely the lattice is sampled, where the fade to the gray starts is decided by fpT (the pixel size)
 	float fpUs = max(footS, foot) * FenceParam(id, 7) * 256.0;
