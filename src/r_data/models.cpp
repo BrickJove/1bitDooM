@@ -187,11 +187,12 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		// with the height above the floor (gone at gl_model_shadow_fade_height).
 		DVector3 lightPos;
 		// under an open sky with the scene shadows on, the shadow follows the sun of the scene shadows
+		// (under an open sky the sun shadow is always wanted, also in a bright sector)
 		// a fully lit sector (same rule as the scene shadows, gl_scene_shadow_ambient): nothing a light or the sun could still
 		// brighten, so the model only gets the simple flat shadow straight below it
 		bool litSector = gl_scene_shadow_ambient > 0.f && actor->Sector != nullptr
 			&& 1.f - gl_scene_shadow_ambient * clamp(actor->Sector->GetLightLevel(), 0, 255) / 255.f <= 0.5f;
-		bool sunLit = !litSector && gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
+		bool sunLit = gl_scene_shadow && gl_scene_shadow_sun && sceneShadowFrame.SunPosValid && gl_model_shadow_style >= 1
 			&& actor->Sector != nullptr && actor->Sector->GetTexture(sector_t::ceiling) == skyflatnum;
 		// with the shadow maps the dynamic lights cast their model shadows onto everything, the projection onto the floor is not needed
 		float mapWeight = (!litSector && gl_model_shadow_map && gl_scene_shadow && sceneShadowFrame.ModelShadowActive) ? ModelMapShadowWeight(actor) : 0.f;

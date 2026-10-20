@@ -25,6 +25,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten der Lichtkarten gingen durch Waende: Die Ausnahme "niedriges Hindernis (Stufe) beendet den Schatten nicht" galt auch fuer hohe Waende, die nur tief getroffen werden (Pixel weit hinter der Wand). Jetzt gilt sie nur, wenn das Hindernis dicht (< 40 Einheiten) vor dem Pixel liegt.
 - Fehler behoben: Der Wand-Trace fuer den flachen Schatten lief 2 Einheiten ueber dem Boden und hielt jede Stufe/Kante fuer eine Wand; Sonnenschatten wurden dadurch zu kurz. Jetzt 28 Einheiten ueber dem Boden (hoeher als eine Stufe).
 - Die Wand-Kuerzung des flachen Schattens gilt nur noch fuer Lampen, nicht fuer die Sonne (Sonnenschatten bleiben lang und simpel-flach wirkend war eine Folge der Kuerzung).
+- Flacher Bodenschatten der Modelle unter freiem Himmel (Sky-Ceiling): die lange Sonnenprojektion gilt jetzt auch in hellen Sektoren (`gl_scene_shadow_ambient` > 0 schaltete sie vorher ab und es blieb nur der einfache Fleck).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
