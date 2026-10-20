@@ -220,7 +220,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			double down = max((double)sceneShadowFrame.SunPos[1] - actor->Center(), 16.0);
 			float kx = (float)clamp((actor->X() - sceneShadowFrame.SunPos[0]) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - sceneShadowFrame.SunPos[2]) / down, -3.0, 3.0);
-			ClampFlatShadowToWalls(actor, kx, ky);
+			// (no wall clamp for the sun: its shadows stay long, the sun map continues them on the wall)
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;
 			sm.loadMatrix(shear);
