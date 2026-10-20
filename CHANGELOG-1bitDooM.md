@@ -23,6 +23,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Lampen werfen Szenenschatten nur noch im Nahbereich (25 %..45 % ihrer Reichweite, gedithert ausgeblendet), damit beim Laufen keine grossen Flaechen mehr kippen, wenn eine andere Lampe zu den drei naechsten gehoert. Konstanten `LampNear0/1` in `sceneshadow.fp`.
 - Der flache Bodenschatten eines Modells (Lampe oder Sonne) wird an der ersten Wand in Schattenrichtung gekuerzt (Linientrace in `models.cpp`), damit er nicht durch die Wand im Nachbarraum auf dem Boden erscheint (z. B. Schatten eines Regals hinter der Wand).
 - Modellschatten der Lichtkarten gingen durch Waende: Die Ausnahme "niedriges Hindernis (Stufe) beendet den Schatten nicht" galt auch fuer hohe Waende, die nur tief getroffen werden (Pixel weit hinter der Wand). Jetzt gilt sie nur, wenn das Hindernis dicht (< 40 Einheiten) vor dem Pixel liegt.
+- Fehler behoben: Der Wand-Trace fuer den flachen Schatten lief 2 Einheiten ueber dem Boden und hielt jede Stufe/Kante fuer eine Wand; Sonnenschatten wurden dadurch zu kurz. Jetzt 28 Einheiten ueber dem Boden (hoeher als eine Stufe).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü

@@ -122,8 +122,8 @@ static void ClampFlatShadowToWalls(AActor *actor, float &kx, float &ky)
 		return;
 	FLineTraceData data;
 	const DAngle ang = DAngle::fromRad(atan2((double)ky, (double)kx));
-	// geometry only (no actors), a little above the floor
-	if (!P_LineTrace(actor, ang, len, DAngle::fromDeg(0.), TRF_THRUACTORS | TRF_THRUHITSCAN, 2.0, 0.0, 0.0, &data))
+	// geometry only (no actors), above the height of a step (a lower tier of a two sided line, 2 units above the floor, would already count as a wall)
+	if (!P_LineTrace(actor, ang, len, DAngle::fromDeg(0.), TRF_THRUACTORS | TRF_THRUHITSCAN, 28.0, 0.0, 0.0, &data))
 		return;
 	if (data.HitType != TRACE_HitWall)
 		return;
