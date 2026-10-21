@@ -40,17 +40,25 @@ const float NearSkyMark = 90000.0;
 ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
-vec3 gAltN0 = vec3(0.0), gAltN1 = vec3(0.0), gAltN2 = vec3(0.0);	// other normals of a model pixel (derived from the neighbouring depth values on the other sides)
-bool gAltN = false;
+vec3 gVoteN[9];	// normals of the 3x3 neighbourhood of a model pixel (derived from the depth values)
+int gVoteCount = 0;
 
-// facing of a surface to a light: for models the smallest of the candidate normals, so that no white pixels are left between
-// the shadowed facets (at the edge of a facet the normal from the depth values mixes two facets)
+// facing of a surface to a light. Models: majority vote of the normals of the 3x3 neighbourhood (the normal of a single pixel
+// is noisy at the edges of the facets: isolated white / black pixels between the shadowed facets)
 float Facing(vec3 n, vec3 D)
 {
-	float f = dot(n, D);
-	if (gAltN)
-		f = min(f, min(dot(gAltN0, D), min(dot(gAltN1, D), dot(gAltN2, D))));
-	return f;
+	if (gVoteCount >= 3)
+	{
+		int away = 0;
+		for (int i = 0; i < 9; i++)
+			if (i < gVoteCount && dot(gVoteN[i], D) <= 0.0)
+				away++;
+		if (away * 2 > gVoteCount)
+			return -0.01;
+		if (away * 2 < gVoteCount)
+			return 0.01;
+	}
+	return dot(n, D);
 }
 float gBayer = 0.5;	// ordered dither threshold of the screen pixel
 float gSoftA = 0.0;	// soft (blurred) fence shadow far away: coverage, drawn with a blue tint so that the 1-bit shader dithers it
@@ -532,19 +540,31 @@ void main()
 				dn = -dn;
 			n = dn;
 			hasNormal = true;
-			// the other combinations of the four differences (they cover the other side of a facet edge)
-			vec3 c0 = cross(dxa, dya), c1 = cross(dxb, dya), c2 = cross(dxa, dyb);
-			// not at a silhouette (a depth jump to what is behind the model gives nonsense normals)
-			float dmax = max(max(length(dxa), length(dxb)), max(length(dya), length(dyb)));
-			float dmin = max(length(dx), length(dy));
-			if (dmax < 2.5 * dmin + 0.002 * z && dot(c0, c0) > 1.0e-10 && dot(c1, c1) > 1.0e-10 && dot(c2, c2) > 1.0e-10)
-			{
-				c0 = normalize(c0); c1 = normalize(c1); c2 = normalize(c2);
-				gAltN0 = dot(c0, toCam) < 0.0 ? -c0 : c0;
-				gAltN1 = dot(c1, toCam) < 0.0 ? -c1 : c1;
-				gAltN2 = dot(c2, toCam) < 0.0 ? -c2 : c2;
-				gAltN = true;
-			}
+			// the normals of the 3x3 neighbourhood (for the majority vote in Facing)
+			vec3 pp[25];
+			for (int j = -2; j <= 2; j++)
+				for (int i = -2; i <= 2; i++)
+					pp[(j + 2) * 5 + (i + 2)] = (i == 0 && j == 0) ? P : PosAt(ipos + ivec2(i, j));
+			for (int j = -1; j <= 1; j++)
+				for (int i = -1; i <= 1; i++)
+				{
+					int k = (j + 2) * 5 + (i + 2);
+					vec3 c = pp[k];
+					vec3 ra = pp[k + 1] - c, rb = c - pp[k - 1], ua = pp[k + 5] - c, ub = c - pp[k - 5];
+					vec3 qx = length(ra) < length(rb) ? ra : rb;
+					vec3 qy = length(ua) < length(ub) ? ua : ub;
+					float dmx = max(max(length(ra), length(rb)), max(length(ua), length(ub)));
+					float dmn = max(length(qx), length(qy));
+					vec3 qn = cross(qx, qy);
+					// not at a silhouette (a depth jump to what is behind the model gives nonsense normals)
+					if (dot(qn, qn) > 1.0e-10 && dmx < 2.5 * dmn + 0.002 * z)
+					{
+						qn = normalize(qn);
+						if (dot(qn, toCam) < 0.0)
+							qn = -qn;
+						gVoteN[gVoteCount++] = qn;
+					}
+				}
 		}
 	}
 
