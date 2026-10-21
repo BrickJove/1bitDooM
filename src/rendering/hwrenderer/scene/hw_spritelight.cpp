@@ -319,3 +319,57 @@ void hw_GetDynModelLight(AActor *self, FDynLightData &modellightdata)
 		}
 	}
 }
+
+// Console: why does the nearest model not get light from the lamps? (1bitDooM)
+EXTERN_CVAR(Bool, gl_light_sprites)
+#include "d_player.h"
+#include "d_main.h"
+CCMD(gl_model_light_info)
+{
+	if (gamestate != GS_LEVEL || players[consoleplayer].mo == nullptr)
+	{
+		Printf("not in a level\n");
+		return;
+	}
+	AActor *me = players[consoleplayer].mo;
+	FLevelLocals *level = me->Level;
+	AActor *best = nullptr;
+	double bestD = 1e30;
+	auto it = level->GetThinkerIterator<AActor>();
+	while (AActor *a = it.Next())
+	{
+		if (a == me || a->player != nullptr || a->section == nullptr)
+			continue;
+		if (a->flags & MF_MISSILE)
+			continue;
+		double d = (a->Pos() - me->Pos()).Length();
+		if (d < bestD)
+		{
+			bestD = d;
+			best = a;
+		}
+	}
+	if (best == nullptr)
+	{
+		Printf("no actor found\n");
+		return;
+	}
+	Printf("nearest actor: %s, %.0f units away\n", best->GetClass()->TypeName.GetChars(), bestD);
+	Printf("gl_light_sprites=%d level has dynamic lights=%d bright(flags5)=%d fullbright(renderflag)=%d nodynamiclighting=%d lightlevel=%d\n",
+		(int)gl_light_sprites, (int)level->HasDynamicLights, (int)!!(best->flags5 & MF5_BRIGHT), (int)!!(best->renderflags & RF_FULLBRIGHT),
+		(int)!!(best->renderflags2 & RF2_NODYNAMICLIGHTING), best->GetLightLevel(best->Sector));
+	int n = 0;
+	for (FDynamicLight *light : best->section->dlist)
+	{
+		DVector3 lp = light->Pos;
+		double d = (lp - best->Pos()).Length();
+		Printf("  light %d: radius %.0f, distance %.0f, lights this actor: %s, shadowmapped: %s\n", n, light->GetRadius(), d,
+			light->ShouldLightActor(best) ? "yes" : "NO", light->IsShadowMapped() ? "yes" : "no");
+		n++;
+	}
+	Printf("lights linked to the section of the actor: %d\n", n);
+	FDynLightData data;
+	hw_GetDynModelLight(best, data);
+	Printf("lights that the model shader gets: %d (floats %d / %d / %d)\n", (int)((data.arrays[0].Size() + data.arrays[1].Size() + data.arrays[2].Size()) / 8),
+		(int)data.arrays[0].Size(), (int)data.arrays[1].Size(), (int)data.arrays[2].Size());
+}
