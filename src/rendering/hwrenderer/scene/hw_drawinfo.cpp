@@ -1049,7 +1049,7 @@ void HWDrawInfo::PrepareSceneShadow()
 
 	// the nearest dynamic lights (distance to the light's reach)
 	struct Cand { double score; DVector3 pos; float radius; };
-	Cand best[3];
+	Cand best[8];
 	int count = 0;
 	int group = (Viewpoint.camera && Viewpoint.camera->Sector) ? Viewpoint.camera->Sector->PortalGroup : 0;
 	for (auto light = Level->lights; light; light = light->next)
@@ -1061,19 +1061,19 @@ void HWDrawInfo::PrepareSceneShadow()
 			continue;
 		DVector3 lp = light->PosRelative(group);
 		double score = (lp - Viewpoint.Pos).Length() - radius;
-		if (score > 1024.0)
+		if (score > 1536.0)
 			continue;
 		Cand c = { score, lp, radius };
-		int pos = count < 3 ? count : 3;
+		int pos = count < 8 ? count : 8;
 		while (pos > 0 && best[pos - 1].score > c.score)
 		{
-			if (pos < 3) best[pos] = best[pos - 1];
+			if (pos < 8) best[pos] = best[pos - 1];
 			pos--;
 		}
-		if (pos < 3) best[pos] = c;
-		if (count < 3) count++;
+		if (pos < 8) best[pos] = c;
+		if (count < 8) count++;
 	}
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 8; i++)
 	{
 		if (i < count)
 		{

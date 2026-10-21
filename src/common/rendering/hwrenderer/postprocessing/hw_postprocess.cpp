@@ -867,7 +867,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || !f.LightTex || !f.SectorLightTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 	bool sun = gl_scene_shadow_sun && f.SunPosValid;
-	int lights = clamp((int)gl_scene_shadow_lights, 0, 3);
+	int lights = clamp((int)gl_scene_shadow_lamps, 0, 8);
 	if (!sun && lights == 0)
 		return;
 

@@ -114,16 +114,16 @@ float SectorAmbient(vec3 w)
 	return float(int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) & 255) / 255.0;
 }
 
-// which lights reach the sector at a position (bit 0..2: the scene lights, 3..6: the model lights), all when unknown
+// which lights reach the sector at a position (bit 0..7: the scene lights, 8..11: the model lights), all when unknown
 int SectorLightMask(vec3 w)
 {
 	ivec2 c = CellOf(w);
 	if (c.x < 0)
-		return 127;
+		return 4095;
 	int sec = (int(CellValue(c, 3) + 0.5) >> 7) - 1;
 	if (sec < 0)
-		return 127;
-	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 127;
+		return 4095;
+	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 4095;
 }
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
@@ -618,9 +618,12 @@ void main()
 		}
 	}
 
-	// the nearest dynamic lights (surfaces close to a light are always lit by it: the light and its fixture)
-	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 127;
-	for (int i = 0; i < 3; i++)
+	// the dynamic lights (up to 8, the ones nearest to the camera): per pixel the nearest lamp that reaches the pixel and faces it
+	// decides (like the sun); surfaces close to a lamp are always lit by it (the lamp and its fixture)
+	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 4095;
+	vec3 domP = vec3(0.0);
+	bool domFound = false;
+	for (int i = 0; i < 8; i++)
 	{
 		if (float(i) >= Light.x)
 			break;
@@ -636,43 +639,26 @@ void main()
 		float dist = length(toL);
 		if (dist >= L.w)
 			continue;
-		// a lamp only makes shadows near it (up to LampNear0 .. LampNear1 of its radius, dithered edge): the three lamps nearest
-		// to the player change while he walks, and a lamp that switches on must not turn a whole area black
 		if (dist > L.w * mix(LampNear0, LampNear1, jitter) && dist > 64.0)
 			continue;
 		reached++;
 		if (dist <= 64.0)
 		{
-			lit++;
-			lightLit++;
 			nearLit = true;
 			continue;
 		}
-		vec3 D = toL / dist;
-		float facing = hasNormal ? dot(n, D) : 1.0;
-		if (facing > 0.0)
+		float facing = hasNormal ? dot(n, toL / dist) : 1.0;
+		if (facing > 0.0 && dist < domDist)
 		{
-			gLightWorld = lightP;
-			bool lampBlocked = Trace(Q, D, dist - 24.0, jitter, topLimit) > 0.5;
-			if (!lampBlocked)
-			{
-				lit++;
-				lightLit++;
-			}
-			else
-			{
-				blocked++;
-				lightBlocked++;
-			}
-			if (dist < domDist)
-			{
-				domDist = dist;
-				domBlocked = lampBlocked;
-			}
+			domDist = dist;
+			domP = lightP;
+			domFound = true;
 		}
-		// else: the surface faces away from this lamp. A lamp makes no shadow there (only the sun darkens the sides that face
-		// away from it): the nearest three lamps change when the player walks, and with them whole walls and ceilings would
-		// switch to black
+	}
+	if (domFound && !nearLit)
+	{
+		gLightWorld = domP;
+		domBlocked = Trace(Q, (domP - Q) / domDist, domDist - 24.0, jitter, topLimit) > 0.5;
 	}
 	if (Light.z > 1.5)
 	{

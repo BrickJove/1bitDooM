@@ -617,13 +617,13 @@ struct ShadowHeightMap
 
 		// the nearest dynamic lights: one row each (x, y, z, radius), new every frame (the old one may still be in use)
 		{
-			std::vector<float> ld(16, 0.f);
-			for (int i = 0; i < 3; i++)
+			std::vector<float> ld(32, 0.f);
+			for (int i = 0; i < 8; i++)
 				for (int k = 0; k < 4; k++)
 					ld[i * 4 + k] = out.Light[i][k];
 			if (texLight)
 				retired.emplace_back(frame, std::move(texLight));
-			texLight = MakeTexture(4, 4, ld);
+			texLight = MakeTexture(4, 8, ld);
 			out.LightTex = texLight.get();
 		}
 		// light level of every sector (flickering lights, light specials): a small texture, only new when something changed
@@ -635,14 +635,14 @@ struct ShadowHeightMap
 				now[i] = (float)level->sectors[i].GetLightLevel();
 			// Which sectors does a light reach? The sectors that are connected to the sector of the light through open
 			// lines (not through walls, closed doors). A light only makes shadows there: a wall of the neighbouring room
-			// is not "in the shadow" of a lamp on the other side of the wall. Bits 0..2: the scene lights, 3..6: the model lights.
+			// is not "in the shadow" of a lamp on the other side of the wall. Bits 0..7: the scene lights, 8..11: the model lights.
 			if (n > 0)
 			{
-				std::vector<unsigned char> mask(n, 0);
+				std::vector<unsigned short> mask(n, 0);
 				std::vector<sector_t *> stack;
-				for (int l = 0; l < 7; l++)
+				for (int l = 0; l < 12; l++)
 				{
-					const float *lp = l < 3 ? out.Light[l] : out.ModelLight[l - 3];
+					const float *lp = l < 8 ? out.Light[l] : out.ModelLight[l - 8];
 					if (lp[3] <= 0.f)
 						continue;	// unused light
 					DVector2 lpos(lp[0], lp[2]);	// render space: x = X, z = Y
@@ -650,10 +650,10 @@ struct ShadowHeightMap
 					if (start == nullptr)
 					{
 						for (size_t i = 0; i < n; i++)
-							mask[i] |= (unsigned char)(1 << l);	// unknown: no restriction
+							mask[i] |= (unsigned short)(1 << l);	// unknown: no restriction
 						continue;
 					}
-					unsigned char bit = (unsigned char)(1 << l);
+					unsigned short bit = (unsigned short)(1 << l);
 					stack.clear();
 					stack.push_back(start);
 					mask[start->Index()] |= bit;
@@ -674,7 +674,7 @@ struct ShadowHeightMap
 							double bottom = std::max(line->frontsector->floorplane.ZatPoint(mid), line->backsector->floorplane.ZatPoint(mid));
 							if (top - bottom < 1.0)
 								continue;	// closed (door, lift): the light does not pass
-							if (l < 3)
+							if (l < 8)
 							{
 								// a scene lamp only makes shadows up to 0.45 of its radius (sceneshadow.fp, LampNear1): a way around
 								// a corner, through other rooms, that leaves this range does not count as reached
