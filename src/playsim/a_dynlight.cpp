@@ -33,6 +33,8 @@
 #include "actorinlines.h"
 #include "memarena.h"
 #include "r_sections.h"
+#include "p_local.h"
+#include "p_linetracedata.h"
 
 CVAR(Bool, gl_light_sector_limit, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVARD(Int, gl_light_sector_min, 255, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Sector lights: the radius is computed from at least this light level of the sector (0..255; 255 = a lamp in a dark room has the radius of a bright room, 0 = radius follows the sector brightness as in the original)")
@@ -568,6 +570,24 @@ void FDynamicLight::CollectWithinRadius(const DVector3 &opos, FSection *section,
 						double top = min(fs->ceilingplane.ZatPoint(mid), bs->ceilingplane.ZatPoint(mid));
 						double bottom = max(fs->floorplane.ZatPoint(mid), bs->floorplane.ZatPoint(mid));
 						closed = top <= bottom + 1.0;
+					}
+					// line of sight from the lamp to the middle of this opening: a wall in between (a room behind a wall that the
+					// radius reaches around a corner or through another room) keeps the light out of the section
+					if (!closed && target != nullptr)
+					{
+						DVector2 lp2(Pos.X, Pos.Y);
+						if ((pos.XY() - lp2).LengthSquared() < 1.0)	// not in a displaced portal group
+						{
+							double dist = (mid - lp2).Length();
+							if (dist > 8.0)
+							{
+								FLineTraceData data;
+								const DAngle ang = (mid - lp2).Angle();
+								if (P_LineTrace(target, ang, dist - 2.0, DAngle::fromDeg(0.), TRF_THRUACTORS | TRF_THRUHITSCAN, Pos.Z - target->Z(), 0.0, 0.0, &data)
+									&& data.HitType == TRACE_HitWall)
+									closed = true;
+							}
+						}
 					}
 				}
 				if (partner && !closed)
