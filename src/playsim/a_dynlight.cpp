@@ -32,6 +32,9 @@
 #include "a_dynlight.h"
 #include "actorinlines.h"
 #include "memarena.h"
+#include "r_sections.h"
+
+CVAR(Bool, gl_light_sector_limit, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 
 static FMemArena DynLightArena(sizeof(FDynamicLight) * 200);
 static TArray<FDynamicLight*> FreeList;
@@ -549,7 +552,22 @@ void FDynamicLight::CollectWithinRadius(const DVector3 &opos, FSection *section,
 				}
 
 				auto partner = segment.partner;
-				if (partner)
+				// a closed opening (door shut, floor and ceiling meet or cross) does not let the light into the next sector:
+				// without this a light shines through every two-sided line, also through walls that only look solid
+				bool closed = false;
+				if (gl_light_sector_limit && partner && segment.sidedef)
+				{
+					DVector2 mid((segment.start->fX() + segment.end->fX()) * 0.5, (segment.start->fY() + segment.end->fY()) * 0.5);
+					sector_t *fs = segment.sidedef->sector;
+					sector_t *bs = (partner && partner->section) ? partner->section->sector : nullptr;
+					if (fs != nullptr && bs != nullptr)
+					{
+						double top = min(fs->ceilingplane.ZatPoint(mid), bs->ceilingplane.ZatPoint(mid));
+						double bottom = max(fs->floorplane.ZatPoint(mid), bs->floorplane.ZatPoint(mid));
+						closed = top <= bottom + 1.0;
+					}
+				}
+				if (partner && !closed)
 				{
 					FSection *sect = partner->section;
 					if (sect != nullptr && sect->validcount != dl_validcount)

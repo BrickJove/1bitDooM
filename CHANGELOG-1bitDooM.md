@@ -26,6 +26,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Fehler behoben: Der Wand-Trace fuer den flachen Schatten lief 2 Einheiten ueber dem Boden und hielt jede Stufe/Kante fuer eine Wand; Sonnenschatten wurden dadurch zu kurz. Jetzt 28 Einheiten ueber dem Boden (hoeher als eine Stufe).
 - Die Wand-Kuerzung des flachen Schattens gilt nur noch fuer Lampen, nicht fuer die Sonne (Sonnenschatten bleiben lang und simpel-flach wirkend war eine Folge der Kuerzung).
 - Flacher Bodenschatten der Modelle unter freiem Himmel (Sky-Ceiling): die lange Sonnenprojektion gilt jetzt auch in hellen Sektoren (`gl_scene_shadow_ambient` > 0 schaltete sie vorher ab und es blieb nur der einfache Fleck).
+- Sector Lights (und alle Dynamiclights) leuchten nicht mehr durch geschlossene zweiseitige Linien in den Nachbarsektor: in `FDynamicLight::CollectWithinRadius` (`a_dynlight.cpp`) wird der Nachbarsektor nicht mehr gesammelt, wenn dort Boden und Decke sich beruehren (Oeffnung <= 1 Einheit, z. B. geschlossene Tuer). Cvar `gl_light_sector_limit` (Standard an).
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
