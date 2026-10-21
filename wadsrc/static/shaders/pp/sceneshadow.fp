@@ -128,8 +128,8 @@ int SectorLightMask(vec3 w)
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
 // channel (see hw_shadowheightmap.cpp), so pixels right at a wall base are classified like the open ground next to them.
-const float LampNear0 = 0.25;
-const float LampNear1 = 0.45;
+const float LampNear0 = 0.85;
+const float LampNear1 = 1.0;
 
 bool UnderSky(vec3 w)
 {
@@ -571,6 +571,8 @@ void main()
 	bool nearLit = false;
 	bool sunBlocked = false;	// the sun reaches the pixel and the map blocks it
 	int lightLit = 0, lightBlocked = 0;	// the dynamic lights that reach the pixel: lit / blocked
+	float domDist = 1.0e30;	// the nearest lamp that reaches the pixel and faces it: it is the one that lights the pixel (like the sun)
+	bool domBlocked = false;
 
 	// sun: a point light above the centre of the level
 	// The shadows of the map are projected like the flat shadows of the models (models.cpp): from the light lowered by the
@@ -651,7 +653,8 @@ void main()
 		if (facing > 0.0)
 		{
 			gLightWorld = lightP;
-			if (Trace(Q, D, dist - 24.0, jitter, topLimit) < 0.5)
+			bool lampBlocked = Trace(Q, D, dist - 24.0, jitter, topLimit) > 0.5;
+			if (!lampBlocked)
 			{
 				lit++;
 				lightLit++;
@@ -660,6 +663,11 @@ void main()
 			{
 				blocked++;
 				lightBlocked++;
+			}
+			if (dist < domDist)
+			{
+				domDist = dist;
+				domBlocked = lampBlocked;
 			}
 		}
 		// else: the surface faces away from this lamp. A lamp makes no shadow there (only the sun darkens the sides that face
@@ -671,7 +679,7 @@ void main()
 		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white):
 		// horizontal lines = the sun blocks the pixel, vertical lines = the lamps block it (and none lights it),
 		// solid = both, dots = a source reaches the pixel and it is lit, nothing = no source reaches it
-		bool lampShadow = lightBlocked > 0 && lightLit == 0;
+		bool lampShadow = domBlocked;
 		bool paint = false;
 		if (sunBlocked && lampShadow)
 			paint = true;
@@ -690,7 +698,7 @@ void main()
 	// The sun: its shadow is black even when a light also reaches the pixel (like the flat shadow of a model). The dynamic
 	// lights: black only when every light that reaches the pixel is blocked - one light that lights it is enough (several
 	// lamps of a room that reach each other through doors and corners must not black out the room).
-	float shadow = (reached > 0 && !nearLit && (sunBlocked || (lightBlocked > 0 && lightLit == 0))) ? 1.0 : 0.0;
+	float shadow = (reached > 0 && !nearLit && (sunBlocked || domBlocked)) ? 1.0 : 0.0;
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 3) & 127) / 100.0;
