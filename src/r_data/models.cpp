@@ -47,7 +47,7 @@
 
 CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 // Global model outline (video menu). Only affects models that do not use back face culling and have no MODELDEF Outline of their own.
-CVARD(Bool, gl_model_shadow_projective, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "The flat shadow of a model under a lamp is projected from the lamp as a point (exact), 0 = parallel projection along the ray lamp - centre of the model")
+CVARD(Bool, gl_model_shadow_projective, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "The flat shadow of a model under a lamp is projected from the lamp as a point (exact), 0 = parallel projection along the ray lamp - centre of the model")
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
@@ -245,7 +245,8 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			float kx = (float)clamp((actor->X() - lightPos.X) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - lightPos.Y) / down, -3.0, 3.0);
 			const float kx0 = kx, ky0 = ky;
-			ClampFlatShadowToWalls(actor, kx, ky);
+			// like the sun: only one sided walls shorten the shadow, ledges of two sided lines do not
+			ClampFlatShadowToWalls(actor, kx, ky, true);
 			if (gl_model_shadow_projective && lampH - topH > 8.0)
 			{
 				const float lx = (float)lightPos.X, ly = (float)lampH, lz = (float)lightPos.Y;
