@@ -370,7 +370,7 @@ CCMD(gl_model_light_info)
 			(!light->ShouldLightActor(best) && light->IsActive() && !fself && !foth && !fact) ? " (not visible to the player?)" : "");
 		n++;
 	}
-	Printf("lights linked to the section of the actor: %d\n", n);
+	Printf("lights linked to the section of the actor: %d (hw_spritelight.cpp built %s %s)\n", n, __DATE__, __TIME__);
 	FDynLightData data;
 	hw_GetDynModelLight(best, data);
 	Printf("lights that the model shader gets: %d (floats %d / %d / %d)\n", (int)((data.arrays[0].Size() + data.arrays[1].Size() + data.arrays[2].Size()) / 8),
