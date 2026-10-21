@@ -363,11 +363,11 @@ CCMD(gl_model_light_info)
 	{
 		DVector3 lp = light->Pos;
 		double d = (lp - best->Pos()).Length();
-		Printf("  light %d: radius %.0f, distance %.0f, lights this actor: %s, shadowmapped: %s\n", n, light->GetRadius(), d,
-			light->ShouldLightActor(best) ? "yes" : "NO", light->IsShadowMapped() ? "yes" : "no");
-		Printf("     owner: %s, active: %d, dontlightself: %d, dontlightothers: %d, dontlightactors: %d\n",
-			light->target ? light->target->GetClass()->TypeName.GetChars() : "-", (int)!!light->IsActive(),
-			(int)!!((*light->pLightFlags) & LF_DONTLIGHTSELF), (int)!!((*light->pLightFlags) & LF_DONTLIGHTOTHERS), (int)!!((*light->pLightFlags) & LF_DONTLIGHTACTORS));
+		bool fself = !!((*light->pLightFlags) & LF_DONTLIGHTSELF), foth = !!((*light->pLightFlags) & LF_DONTLIGHTOTHERS), fact = !!((*light->pLightFlags) & LF_DONTLIGHTACTORS);
+		Printf("L%d r%.0f d%.0f %s own=%s active=%d noself=%d noothers=%d noactors=%d%s\n", n, light->GetRadius(), d,
+			light->ShouldLightActor(best) ? "YES" : "NO", light->target ? light->target->GetClass()->TypeName.GetChars() : "-", (int)!!light->IsActive(),
+			(int)fself, (int)foth, (int)fact,
+			(!light->ShouldLightActor(best) && light->IsActive() && !fself && !foth && !fact) ? " (not visible to the player?)" : "");
 		n++;
 	}
 	Printf("lights linked to the section of the actor: %d\n", n);
