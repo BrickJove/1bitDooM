@@ -93,7 +93,7 @@ CVARD(Bool, gl_model_shadow_map_sun, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Th
 CVARD(Bool, gl_model_shadow_map_sun_anywhere, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Test: the sun model shadows also fall on pixels that are not under an open sky")
 CVARD(Bool, gl_model_shadow_map_unlimited, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Model shadows are not limited by the radius of the light (long shadows)")
 CVARD(Int, gl_model_shadow_map_lights, 4, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (1..4) whose light the models block")
-CVARD(Int, gl_scene_shadow_lamps, 8, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..8) that cast screen space shadows")
+CVARD(Int, gl_scene_shadow_lamps, 12, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Number of dynamic lights (0..12) that cast screen space shadows")
 CVARD(Float, gl_scene_shadow_strength, 0.6f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "How dark the shadows are (0..1)")
 CVARD(Int, gl_scene_shadow_style, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "0 = hard black shadow, 1 = binary dither pattern with gl_scene_shadow_strength as coverage, 2 = black/transparent checkerboard (every second pixel)")
 CVARD(Bool, gl_scene_shadow_fences, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Fences (transparent middle textures) cast the silhouette of their texture")

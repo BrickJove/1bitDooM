@@ -76,11 +76,11 @@ int SectorLightMask(vec3 w)
 	ivec2 size = textureSize(CellTexture, 0);
 	ivec2 c = ivec2(floor((w.xz - Grid.xy) * Grid.z));
 	if (Grid.z <= 0.0 || c.x < 0 || c.y < 0 || c.x >= size.x / 4 || c.y >= size.y)
-		return 4095;
+		return 65535;
 	int sec = (int(texelFetch(CellTexture, ivec2(c.x * 4 + 3, c.y), 0).x + 0.5) >> 7) - 1;
 	if (sec < 0)
-		return 4095;
-	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 4095;
+		return 65535;
+	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 65535;
 }
 
 // Is there an open sky above the position? (same rule as sceneshadow.fp: solid cells next to an open sky carry a marker)
@@ -379,12 +379,12 @@ void main()
 			else if (sunMap == 1) s1 = sk;
 			else if (sunMap == 2) s2 = sk;
 			else s3 = sk;
-			reach |= 256 << sunMap;
+			reach |= 4096 << sunMap;
 		}
-		if ((reach & 256) == 0) s0 = 0;
-		if ((reach & 512) == 0) s1 = 0;
-		if ((reach & 1024) == 0) s2 = 0;
-		if ((reach & 2048) == 0) s3 = 0;
+		if ((reach & 4096) == 0) s0 = 0;
+		if ((reach & 8192) == 0) s1 = 0;
+		if ((reach & 16384) == 0) s2 = 0;
+		if ((reach & 32768) == 0) s3 = 0;
 	}
 
 	// debug: what does the light of map k see? Everything it does not see gets a checkerboard.

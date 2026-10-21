@@ -114,16 +114,16 @@ float SectorAmbient(vec3 w)
 	return float(int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) & 255) / 255.0;
 }
 
-// which lights reach the sector at a position (bit 0..7: the scene lights, 8..11: the model lights), all when unknown
+// which lights reach the sector at a position (bit 0..11: the scene lights, 12..15: the model lights), all when unknown
 int SectorLightMask(vec3 w)
 {
 	ivec2 c = CellOf(w);
 	if (c.x < 0)
-		return 4095;
+		return 65535;
 	int sec = (int(CellValue(c, 3) + 0.5) >> 7) - 1;
 	if (sec < 0)
-		return 4095;
-	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 4095;
+		return 65535;
+	return (int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) >> 8) & 65535;
 }
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
@@ -621,11 +621,11 @@ void main()
 	// The dynamic lights (up to 8, the ones nearest to the camera). A pixel is in the shadow of the lamps when EVERY lamp that
 	// reaches it is blocked (ray hits the map) or faces away from it: one lamp that lights it is enough (no stripes where the
 	// nearest lamp changes). Surfaces close to a lamp are always lit by it (the lamp and its fixture).
-	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 4095;
+	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 65535;
 	int lampReached = 0;	// lamps that reach the pixel (within the radius, in a sector they reach)
 	bool lampLit = false;	// a lamp that faces the pixel has a free ray
 	bool lampFaces = false;	// at least one reaching lamp faces the pixel
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < 12; i++)
 	{
 		if (float(i) >= Light.x)
 			break;
@@ -655,7 +655,7 @@ void main()
 			if (!lampLit)
 			{
 				gLightWorld = lightP;
-				if (Trace(Q, toL / dist, dist - 24.0, jitter, topLimit) < 0.5)
+				if (Trace(Q, toL / dist, dist - min(24.0, dist * 0.15), jitter, topLimit) < 0.5)
 					lampLit = true;
 			}
 		}
