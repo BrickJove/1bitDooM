@@ -235,8 +235,18 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			{
 				float dx = infos[i].cx - lights[li].x, dy = infos[i].cy - lights[li].y, dz = infos[i].cz - lights[li].z;
 				if (sqrtf(dx * dx + dy * dy + dz * dz) < lights[li].radius + infos[i].r)
-					score += 1.f / (1.f + sqrtf(max(infos[i].camD, 0.f)) / 400.f);
+				{
+					// a model behind a wall (seen from the lamp) does not count: such a lamp would take a map from the lamp of the room
+					const Lt &lt = lights[li];
+					if (li != (unsigned)sunLight && lt.source != nullptr && lt.source != infos[i].actor
+						&& !P_CheckSight(lt.source, infos[i].actor, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY | SF_SEEPASTSHOOTABLELINES))
+						continue;
+					const float cd = 1.f + sqrtf(max(infos[i].camD, 0.f)) / 250.f;
+					score += 1.f / (cd * cd);
+				}
 			}
+			if (score <= 0.f)
+				continue;
 			best = -score;
 			unsigned pos = order.Size();
 			order.Push((int)li);

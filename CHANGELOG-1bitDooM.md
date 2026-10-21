@@ -276,3 +276,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Lampe hinter einer Wand schwärzt keinen Außenbereich mehr: ein Pixel, den die Sonne beleuchtet, wird nicht mehr von einer Lampe verdunkelt, die ihn nicht sehen kann (z. B. Lampe im Gang, Pixel im Außenraum, der über die Türöffnung erreicht wird).
 
 - Lampen-Schatten: Der Rand der Lampenreichweite ist nicht mehr gerastert (vorher 85–100 % des Radius mit Bayer-Dither), sondern ein sauberer Schnitt bei 100 % des Radius, dort ist das Licht ohnehin 0.
+
+- Modellschatten-Karten: Die Auswahl der drei Lampen (neben der Sonne gibt es nur vier Karten) zählt nur noch Modelle mit Sichtlinie zur Lampe und gewichtet die Nähe zur Kamera stärker (1/(1+d/250)²). Vorher konnten weit entfernte Lampen, die Modelle hinter Wänden "erreichen", die Lampe des eigenen Raums verdrängen.
