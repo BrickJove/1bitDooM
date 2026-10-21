@@ -365,6 +365,9 @@ CCMD(gl_model_light_info)
 		double d = (lp - best->Pos()).Length();
 		Printf("  light %d: radius %.0f, distance %.0f, lights this actor: %s, shadowmapped: %s\n", n, light->GetRadius(), d,
 			light->ShouldLightActor(best) ? "yes" : "NO", light->IsShadowMapped() ? "yes" : "no");
+		Printf("     owner: %s, active: %d, dontlightself: %d, dontlightothers: %d, dontlightactors: %d\n",
+			light->target ? light->target->GetClass()->TypeName.GetChars() : "-", (int)!!light->IsActive(),
+			(int)!!((*light->pLightFlags) & LF_DONTLIGHTSELF), (int)!!((*light->pLightFlags) & LF_DONTLIGHTOTHERS), (int)!!((*light->pLightFlags) & LF_DONTLIGHTACTORS));
 		n++;
 	}
 	Printf("lights linked to the section of the actor: %d\n", n);
