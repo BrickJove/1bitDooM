@@ -655,7 +655,8 @@ void main()
 			domFound = true;
 		}
 	}
-	if (domFound && !nearLit)
+	// a pixel that the sun lights (outdoors) is not darkened by a lamp that cannot see it (lamp in another room behind a wall)
+	if (domFound && !nearLit && dbg != 1)
 	{
 		gLightWorld = domP;
 		domBlocked = Trace(Q, (domP - Q) / domDist, domDist - 24.0, jitter, topLimit) > 0.5;
