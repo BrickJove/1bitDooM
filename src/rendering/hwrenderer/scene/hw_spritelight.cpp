@@ -212,6 +212,8 @@ void HWDrawInfo::GetDynSpriteLight(AActor *thing, particle_t *particle, float *o
 // For multithread processing each worker thread needs its own copy, though.
 static thread_local TArray<FDynamicLight*> addedLightsArray;
 
+EXTERN_CVAR(Bool, gl_light_sector_limit)
+
 // Jupiter3D model shadows: position of the dynamic light that shines on the actor most (near the light, relative to its
 // radius). Lights that are attached to the actor itself and lights below the floor are ignored.
 bool ModelShadowLight(AActor *self, DVector3 &pos)
@@ -236,6 +238,13 @@ bool ModelShadowLight(AActor *self, DVector3 &pos)
 		if (lp.Z <= self->floorz + 4.0)
 			continue;
 		double strength = 1.0 - (lp - center).Length() / radius;
+		if (strength <= best)
+			continue;
+		// no line of sight (the light is behind a wall: the engine links a light to every section its radius reaches around
+		// corners and through other rooms): it casts no shadow of this actor
+		if (gl_light_sector_limit && light->target != nullptr && light->target != self
+			&& !P_CheckSight(light->target, self, SF_IGNOREVISIBILITY | SF_IGNOREWATERBOUNDARY | SF_SEEPASTSHOOTABLELINES))
+			continue;
 		if (strength > best)
 		{
 			best = strength;

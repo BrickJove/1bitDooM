@@ -28,6 +28,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Flacher Bodenschatten der Modelle unter freiem Himmel (Sky-Ceiling): die lange Sonnenprojektion gilt jetzt auch in hellen Sektoren (`gl_scene_shadow_ambient` > 0 schaltete sie vorher ab und es blieb nur der einfache Fleck).
 - Sector Lights (und alle Dynamiclights) leuchten nicht mehr durch geschlossene zweiseitige Linien in den Nachbarsektor: in `FDynamicLight::CollectWithinRadius` (`a_dynlight.cpp`) wird der Nachbarsektor nicht mehr gesammelt, wenn dort Boden und Decke sich beruehren (Oeffnung <= 1 Einheit, z. B. geschlossene Tuer). Cvar `gl_light_sector_limit` (Standard an).
 - Flacher Sonnenbodenschatten der Modelle endet an einseitigen Waenden (wie die Lampenschatten), Stufen/Kanten zweiseitiger Linien kuerzen ihn nicht (`models.cpp`, `ClampFlatShadowToWalls(..., solidOnly)`).
+- Flacher Lampenschatten der Modelle (`ModelShadowLight`, `hw_spritelight.cpp`): eine Lampe ohne Sichtverbindung zum Modell (hinter einer Wand) zaehlt nicht mehr. Die Engine verknuepft ein Licht mit jeder Section, die sein Radius ueber Ecken und andere Raeume erreicht, daher kamen die Lampenschatten sonst durch die Wand. Gleiche Cvar `gl_light_sector_limit`.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
