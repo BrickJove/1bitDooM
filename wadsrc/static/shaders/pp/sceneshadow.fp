@@ -623,6 +623,7 @@ void main()
 	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 4095;
 	vec3 domP = vec3(0.0);
 	bool domFound = false;
+	int lampReached = 0;	// lamps that reach the pixel (within the radius, in a sector they reach)
 	for (int i = 0; i < 8; i++)
 	{
 		if (float(i) >= Light.x)
@@ -647,6 +648,7 @@ void main()
 			nearLit = true;
 			continue;
 		}
+		lampReached++;
 		float facing = hasNormal ? dot(n, toL / dist) : 1.0;
 		if (facing > 0.0 && dist < domDist)
 		{
@@ -661,6 +663,9 @@ void main()
 		gLightWorld = domP;
 		domBlocked = Trace(Q, (domP - Q) / domDist, domDist - 24.0, jitter, topLimit) > 0.5;
 	}
+	// like the sun: a surface that faces away from every lamp that reaches it is black (back of a wall, side of a box)
+	else if (!domFound && !nearLit && lampReached > 0 && hasNormal && facingShade && dbg != 1)
+		domBlocked = true;
 	if (Light.z > 1.5)
 	{
 		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white):
