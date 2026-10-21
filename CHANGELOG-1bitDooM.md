@@ -280,3 +280,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Modellschatten-Karten: Die Auswahl der drei Lampen (neben der Sonne gibt es nur vier Karten) zählt nur noch Modelle mit Sichtlinie zur Lampe und gewichtet die Nähe zur Kamera stärker (1/(1+d/250)²). Vorher konnten weit entfernte Lampen, die Modelle hinter Wänden "erreichen", die Lampe des eigenen Raums verdrängen.
 
 - Lampen wie die Sonne: eine Fläche, die von allen Lampen abgewandt ist, die sie erreichen (Rückseite einer Wand, Seite einer Kiste), wird schwarz (`gl_scene_shadow_facing`). Gilt nicht, wenn die Sonne den Pixel beleuchtet oder die Fläche direkt an einer Lampe liegt (<= 64 Einheiten). Mit `gl_scene_shadow_ambient 0` erscheinen die Schatten auch in Sektoren mit 100 % Helligkeit.
+
+- Schattenwurf der Mapgeometrie durch Lampen überarbeitet: ein Pixel ist nur dann schwarz, wenn ALLE Lampen, die ihn erreichen, blockiert sind oder von ihm abgewandt (vorher entschied die nächste Lampe allein: breite Streifen an den Grenzen und Flackern, wenn sich die nächste Lampe ändert). Der Strahl wird nur bis zur ersten freien Lampe verfolgt.
+- Einfacher Schatten der Modelle: wird immer abgeschaltet, sobald das Modell einen Schatten aus einer Schattenkarte bekommt, auch bei `gl_scene_shadow_ambient` > 0 (vorher blieb er dann stehen).

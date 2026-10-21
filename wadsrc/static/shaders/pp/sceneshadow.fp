@@ -618,12 +618,13 @@ void main()
 		}
 	}
 
-	// the dynamic lights (up to 8, the ones nearest to the camera): per pixel the nearest lamp that reaches the pixel and faces it
-	// decides (like the sun); surfaces close to a lamp are always lit by it (the lamp and its fixture)
+	// The dynamic lights (up to 8, the ones nearest to the camera). A pixel is in the shadow of the lamps when EVERY lamp that
+	// reaches it is blocked (ray hits the map) or faces away from it: one lamp that lights it is enough (no stripes where the
+	// nearest lamp changes). Surfaces close to a lamp are always lit by it (the lamp and its fixture).
 	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 4095;
-	vec3 domP = vec3(0.0);
-	bool domFound = false;
 	int lampReached = 0;	// lamps that reach the pixel (within the radius, in a sector they reach)
+	bool lampLit = false;	// a lamp that faces the pixel has a free ray
+	bool lampFaces = false;	// at least one reaching lamp faces the pixel
 	for (int i = 0; i < 8; i++)
 	{
 		if (float(i) >= Light.x)
@@ -640,8 +641,6 @@ void main()
 		float dist = length(toL);
 		if (dist >= L.w)
 			continue;
-		if (dist > L.w * mix(LampNear0, LampNear1, jitter) && dist > 64.0)
-			continue;
 		reached++;
 		if (dist <= 64.0)
 		{
@@ -650,22 +649,25 @@ void main()
 		}
 		lampReached++;
 		float facing = hasNormal ? dot(n, toL / dist) : 1.0;
-		if (facing > 0.0 && dist < domDist)
+		if (facing > 0.0)
 		{
-			domDist = dist;
-			domP = lightP;
-			domFound = true;
+			lampFaces = true;
+			if (!lampLit)
+			{
+				gLightWorld = lightP;
+				if (Trace(Q, toL / dist, dist - 24.0, jitter, topLimit) < 0.5)
+					lampLit = true;
+			}
 		}
 	}
-	// a pixel that the sun lights (outdoors) is not darkened by a lamp that cannot see it (lamp in another room behind a wall)
-	if (domFound && !nearLit && dbg != 1)
+	// a pixel that the sun lights (outdoors) is not darkened by lamps that cannot see it (lamp in another room behind a wall)
+	if (lampReached > 0 && !nearLit && !lampLit && dbg != 1)
 	{
-		gLightWorld = domP;
-		domBlocked = Trace(Q, (domP - Q) / domDist, domDist - 24.0, jitter, topLimit) > 0.5;
+		if (lampFaces)
+			domBlocked = true;	// every lamp that faces the pixel is blocked
+		else if (hasNormal && facingShade)
+			domBlocked = true;	// faces away from every lamp that reaches it (back of a wall, side of a box): like the sun
 	}
-	// like the sun: a surface that faces away from every lamp that reaches it is black (back of a wall, side of a box)
-	else if (!domFound && !nearLit && lampReached > 0 && hasNormal && facingShade && dbg != 1)
-		domBlocked = true;
 	if (Light.z > 1.5)
 	{
 		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white):
