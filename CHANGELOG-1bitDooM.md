@@ -291,3 +291,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Weiße Streifen an Schattenwänden: Der Sektor eines Wand-Pixels (und damit seine Lampenliste) wird jetzt eine Zelle vor der Wand bestimmt, nicht in der Zelle direkt an der Wandlinie. Dort gehörte jede zweite Zelle zum Nachbarsektor ohne Lampen, und die Wand blieb als Streifen weiß.
 
 - Streifen an schrägen Wänden: Eine Zelle, die eine nicht rechtwinklige Wand anschneidet, hat oft ihren Mittelpunkt außerhalb des Raums und damit keinen Sektor (keine Lampenliste). Der Sektor eines Pixels wird jetzt so gesucht: Wand-Pixel schrittweise entlang der Wandnormalen (1,1 / 2,0 / 2,9 … Zellen vor der Wand), Boden und Decke zuerst in der eigenen Zelle, dann im nächsten Nachbarn mit Sektor.
+
+- Weiße Pixel zwischen den Schattenflächen auf Modellen: Die Normale eines Modell-Pixels wird aus den Tiefenwerten der Nachbarpixel berechnet und mischt an Kanten zwei Flächen. Jetzt gilt für Modelle die kleinste "Zugewandtheit" aus vier Kombinationen der Nachbar-Differenzen (an Silhouetten mit Tiefensprung nicht), so bleiben an den Kanten zwischen zwei abgewandten Flächen keine hellen Pixel mehr übrig.

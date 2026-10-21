@@ -40,6 +40,18 @@ const float NearSkyMark = 90000.0;
 ivec2 gTexSize;
 ivec2 gGridSize;
 bool gFences = true;
+vec3 gAltN0 = vec3(0.0), gAltN1 = vec3(0.0), gAltN2 = vec3(0.0);	// other normals of a model pixel (derived from the neighbouring depth values on the other sides)
+bool gAltN = false;
+
+// facing of a surface to a light: for models the smallest of the candidate normals, so that no white pixels are left between
+// the shadowed facets (at the edge of a facet the normal from the depth values mixes two facets)
+float Facing(vec3 n, vec3 D)
+{
+	float f = dot(n, D);
+	if (gAltN)
+		f = min(f, min(dot(gAltN0, D), min(dot(gAltN1, D), dot(gAltN2, D))));
+	return f;
+}
 float gBayer = 0.5;	// ordered dither threshold of the screen pixel
 float gSoftA = 0.0;	// soft (blurred) fence shadow far away: coverage, drawn with a blue tint so that the 1-bit shader dithers it
 float gDist = 1.0;	// distance of the pixel from the camera
@@ -508,17 +520,31 @@ void main()
 	{
 		vec3 Pr = PosAt(ipos + ivec2(1, 0)), Pl = PosAt(ipos - ivec2(1, 0));
 		vec3 Pu = PosAt(ipos + ivec2(0, 1)), Pd = PosAt(ipos - ivec2(0, 1));
-		vec3 dx = length(Pr - P) < length(P - Pl) ? Pr - P : P - Pl;
-		vec3 dy = length(Pu - P) < length(P - Pd) ? Pu - P : P - Pd;
+		vec3 dxa = Pr - P, dxb = P - Pl, dya = Pu - P, dyb = P - Pd;
+		vec3 dx = length(dxa) < length(dxb) ? dxa : dxb;
+		vec3 dy = length(dya) < length(dyb) ? dya : dyb;
 		vec3 dn = cross(dx, dy);
 		if (dot(dn, dn) > 1.0e-10)
 		{
-			dn = normalize(dn);
 			vec3 toCam = vec3(CamX.w, CamY.w, CamZ.w) - P;
+			dn = normalize(dn);
 			if (dot(dn, toCam) < 0.0)
 				dn = -dn;
 			n = dn;
 			hasNormal = true;
+			// the other combinations of the four differences (they cover the other side of a facet edge)
+			vec3 c0 = cross(dxa, dya), c1 = cross(dxb, dya), c2 = cross(dxa, dyb);
+			// not at a silhouette (a depth jump to what is behind the model gives nonsense normals)
+			float dmax = max(max(length(dxa), length(dxb)), max(length(dya), length(dyb)));
+			float dmin = max(length(dx), length(dy));
+			if (dmax < 2.5 * dmin + 0.002 * z && dot(c0, c0) > 1.0e-10 && dot(c1, c1) > 1.0e-10 && dot(c2, c2) > 1.0e-10)
+			{
+				c0 = normalize(c0); c1 = normalize(c1); c2 = normalize(c2);
+				gAltN0 = dot(c0, toCam) < 0.0 ? -c0 : c0;
+				gAltN1 = dot(c1, toCam) < 0.0 ? -c1 : c1;
+				gAltN2 = dot(c2, toCam) < 0.0 ? -c2 : c2;
+				gAltN = true;
+			}
 		}
 	}
 
@@ -600,7 +626,7 @@ void main()
 		{
 			reached++;
 			vec3 D = toS / dS;
-			float facing = hasNormal ? dot(n, D) : 1.0;
+			float facing = hasNormal ? Facing(n, D) : 1.0;
 			if (facing > 0.0)
 			{
 				gLightWorld = sunP;
@@ -693,7 +719,7 @@ void main()
 			continue;
 		}
 		lampReached++;
-		float facing = hasNormal ? dot(n, toL / dist) : 1.0;
+		float facing = hasNormal ? Facing(n, toL / dist) : 1.0;
 		if (facing > 0.0)
 		{
 			lampFaces = true;
