@@ -115,7 +115,7 @@ bool WantsModelShadow(AActor* actor)
 // The flat drop shadow is a projection onto the floor plane: it does not stop at walls and would show up in the next room
 // (the floor behind the wall). Its length (kx, ky = offset per unit of height) is shortened so that its tip stays in front of the
 // first wall in the direction of the shadow.
-static void ClampFlatShadowToWalls(AActor *actor, float &kx, float &ky)
+static void ClampFlatShadowToWalls(AActor *actor, float &kx, float &ky, bool solidOnly = false)
 {
 	const double len = actor->Height * sqrt((double)kx * kx + (double)ky * ky);
 	if (len < 4.0)
@@ -126,6 +126,9 @@ static void ClampFlatShadowToWalls(AActor *actor, float &kx, float &ky)
 	if (!P_LineTrace(actor, ang, len, DAngle::fromDeg(0.), TRF_THRUACTORS | TRF_THRUHITSCAN, 28.0, 0.0, 0.0, &data))
 		return;
 	if (data.HitType != TRACE_HitWall)
+		return;
+	// solidOnly (sun): only a one sided line ends the shadow, ledges of two sided lines do not (the long sun shadow continues over them)
+	if (solidOnly && data.HitLine != nullptr && data.HitLine->backsector != nullptr)
 		return;
 	const double s = clamp((data.Distance - 2.0) / len, 0.0, 1.0);
 	kx *= (float)s;
@@ -221,7 +224,8 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 			double down = max((double)sceneShadowFrame.SunPos[1] - actor->Center(), 16.0);
 			float kx = (float)clamp((actor->X() - sceneShadowFrame.SunPos[0]) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - sceneShadowFrame.SunPos[2]) / down, -3.0, 3.0);
-			// (no wall clamp for the sun: its shadows stay long, the sun map continues them on the wall)
+			// shorten at one sided walls only (a shadow must not continue on the floor of the next room); ledges do not count
+			ClampFlatShadowToWalls(actor, kx, ky, true);
 			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
 			VSMatrix sm;
 			sm.loadMatrix(shear);
