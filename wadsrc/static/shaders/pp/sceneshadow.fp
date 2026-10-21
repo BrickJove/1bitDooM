@@ -628,7 +628,8 @@ void main()
 		              texelFetch(LightTexture, ivec2(2, i), 0).x, texelFetch(LightTexture, ivec2(3, i), 0).x);
 		if (L.w <= 0.0)
 			continue;
-		vec3 lightP = vec3(L.x, max(L.y - casterH, min(L.y, Q.y + 4.0)), L.z);
+		// a lamp is a point: the rays start exactly at its position (not lowered like the sun)
+		vec3 lightP = vec3(L.x, L.y, L.z);
 		vec3 toL = lightP - Q;
 		float dist = length(toL);
 		if (dist >= L.w)

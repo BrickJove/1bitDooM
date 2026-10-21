@@ -47,6 +47,7 @@
 
 CVAR(Bool, gl_interpolate_model_frames, true, CVAR_ARCHIVE)
 // Global model outline (video menu). Only affects models that do not use back face culling and have no MODELDEF Outline of their own.
+CVARD(Bool, gl_model_shadow_projective, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "The flat shadow of a model under a lamp is projected from the lamp as a point (exact), 0 = parallel projection along the ray lamp - centre of the model")
 CVAR(Bool, gl_model_outline, false, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
 CVAR(Float, gl_model_outline_width, 0.5f, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)	// map units
 
@@ -234,18 +235,48 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		}
 		else if (lit)
 		{
-			// parallel projection along the ray light -> actor centre: a point at height h above the floor moves
-			// (kx * h, ky * h) away from the light. Height 0 = flattened as before.
+			// the lamp is a point: every point of the model is projected from the lamp position onto the floor plane along the
+			// ray lamp -> point (perspective shadow matrix), so a point at height h casts exactly where the ray hits the floor.
+			// Only when the whole model is below the lamp (otherwise the projection explodes): then the old parallel projection
+			// along the ray light -> centre of the actor.
+			const double lampH = lightPos.Z - actor->floorz;			// lamp above the floor
+			const double topH = (actor->Z() - actor->floorz) + actor->Height;	// top of the actor above the floor
 			double down = max(lightPos.Z - actor->Center(), 16.0);
 			float kx = (float)clamp((actor->X() - lightPos.X) / down, -3.0, 3.0);
 			float ky = (float)clamp((actor->Y() - lightPos.Y) / down, -3.0, 3.0);
+			const float kx0 = kx, ky0 = ky;
 			ClampFlatShadowToWalls(actor, kx, ky);
-			// render space: x = X, y = Z (up), z = Y. Column major.
-			const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
-			VSMatrix sm;
-			sm.loadMatrix(shear);
-			flat.multMatrix(sm);
-			flat.translate(0.f, -(float)actor->floorz, 0.f);
+			if (gl_model_shadow_projective && lampH - topH > 8.0)
+			{
+				const float lx = (float)lightPos.X, ly = (float)lampH, lz = (float)lightPos.Y;
+				// columns = coefficients of x, y, z of the model point (floor at 0): x' = ly*x - lx*y, y' = 0.001*y, z' = ly*z - lz*y, w = ly - y
+				const float proj[16] = { ly, 0.f, 0.f, 0.f,   -lx, 0.001f, -lz, -1.f,   0.f, 0.f, ly, 0.f,   0.f, 0.f, 0.f, ly };
+				// a wall in the way shortens the shadow towards the actor (after the projection)
+				const float len0 = sqrtf(kx0 * kx0 + ky0 * ky0), len1 = sqrtf(kx * kx + ky * ky);
+				const float cut = len0 > 1.e-4f ? clamp(len1 / len0, 0.f, 1.f) : 1.f;
+				if (cut < 0.999f)
+				{
+					// the post-projection scale is done first (this matrix is applied last in the chain)
+					flat.loadIdentity();
+					flat.translate(x, 0.f, y);
+					flat.scale(cut, 1.f, cut);
+					flat.translate(-x, 0.f, -y);
+					flat.translate(0.f, (float)actor->floorz + 0.05f, 0.f);
+				}
+				VSMatrix pm;
+				pm.loadMatrix(proj);
+				flat.multMatrix(pm);
+				flat.translate(0.f, -(float)actor->floorz, 0.f);
+			}
+			else
+			{
+				// render space: x = X, y = Z (up), z = Y. Column major.
+				const float shear[16] = { 1.f, 0.f, 0.f, 0.f,   kx, 0.001f, ky, 0.f,   0.f, 0.f, 1.f, 0.f,   0.f, 0.f, 0.f, 1.f };
+				VSMatrix sm;
+				sm.loadMatrix(shear);
+				flat.multMatrix(sm);
+				flat.translate(0.f, -(float)actor->floorz, 0.f);
+			}
 		}
 		else
 			flat.scale(1.f, 0.001f, 1.f);
