@@ -128,7 +128,7 @@ int SectorLightMask(vec3 w)
 
 // Is there an open sky above the position? Solid cells close to an open sky cell carry the marker 12345 in the ceiling
 // channel (see hw_shadowheightmap.cpp), so pixels right at a wall base are classified like the open ground next to them.
-const float LampNear0 = 0.85;
+const float LampNear0 = 1.0;
 const float LampNear1 = 1.0;
 
 bool UnderSky(vec3 w)

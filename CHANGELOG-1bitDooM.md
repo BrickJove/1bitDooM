@@ -274,3 +274,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Lampen-Schatten in Innenräumen: der Szenenschatten nutzt jetzt bis zu 8 Lichter (vorher nur die 2–3 nächsten zur Kamera, deshalb "nichts" im Flur) und wählt pro Pixel die nächstgelegene Lampe, die den Pixel erreicht und ihm zugewandt ist – wie bei der Sonne. Nur ein Strahl pro Pixel (schneller als vorher pro Lampe). Wände, Boden und Decke werfen dadurch Schatten von der Lampe aus. Neuer CVar `gl_scene_shadow_lamps` (0..8, Standard 8) ersetzt `gl_scene_shadow_lights`. Reichweiten-Maske auf 12 Bits erweitert (8 Szenen- + 4 Modelllichter), Lampenauswahl bis 1536 Einheiten Abstand.
 
 - Lampe hinter einer Wand schwärzt keinen Außenbereich mehr: ein Pixel, den die Sonne beleuchtet, wird nicht mehr von einer Lampe verdunkelt, die ihn nicht sehen kann (z. B. Lampe im Gang, Pixel im Außenraum, der über die Türöffnung erreicht wird).
+
+- Lampen-Schatten: Der Rand der Lampenreichweite ist nicht mehr gerastert (vorher 85–100 % des Radius mit Bayer-Dither), sondern ein sauberer Schnitt bei 100 % des Radius, dort ist das Licht ohnehin 0.
