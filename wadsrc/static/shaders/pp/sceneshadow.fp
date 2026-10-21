@@ -624,9 +624,18 @@ void main()
 	// nearest lamp changes). Surfaces close to a lamp are always lit by it (the lamp and its fixture).
 	int lampSec = -1;
 	{
-		ivec2 lc = CellOf(Q);
+		// the sector of the pixel: for a wall one cell in front of it (the cells at the wall carry the sector on either side of the
+		// line: stripes along the wall where the cell belongs to the neighbouring sector)
+		vec3 secP = (hasNormal && abs(n.y) < 0.7) ? P + n * (cell * 1.1) : Q;
+		ivec2 lc = CellOf(secP);
 		if (lc.x >= 0)
 			lampSec = (int(CellValue(lc, 3) + 0.5) >> 7) - 1;
+		if (lampSec < 0)
+		{
+			lc = CellOf(Q);
+			if (lc.x >= 0)
+				lampSec = (int(CellValue(lc, 3) + 0.5) >> 7) - 1;
+		}
 	}
 	int lampReached = 0;	// lamps that reach the pixel (within the radius, in a sector they reach)
 	bool lampLit = false;	// a lamp that faces the pixel has a free ray
