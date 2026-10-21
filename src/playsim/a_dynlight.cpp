@@ -35,6 +35,7 @@
 #include "r_sections.h"
 
 CVAR(Bool, gl_light_sector_limit, true, CVAR_ARCHIVE | CVAR_GLOBALCONFIG)
+CVARD(Int, gl_light_sector_min, 255, CVAR_ARCHIVE | CVAR_GLOBALCONFIG, "Sector lights: the radius is computed from at least this light level of the sector (0..255; 255 = a lamp in a dark room has the radius of a bright room, 0 = radius follows the sector brightness as in the original)")
 
 static FMemArena DynLightArena(sizeof(FDynamicLight) * 200);
 static TArray<FDynamicLight*> FreeList;
@@ -328,7 +329,9 @@ void FDynamicLight::Tick()
 
 		if (scale == 0.f) scale = 1.f;
 
-		intensity = Sector? Sector->lightlevel * scale : 0;
+		// 1bitDooM: the radius follows the light level of the sector (flicker, pulsing), but never falls below the radius of a sector
+		// with the light level gl_light_sector_min: a lamp in a dark room lights the room (0 = original behaviour)
+		intensity = Sector? max((int)Sector->lightlevel, (int)gl_light_sector_min) * scale : 0;
 		intensity = clamp<float>(intensity, 0.f, 255.f);
 
 		m_currentRadius = intensity;
