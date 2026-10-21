@@ -115,6 +115,14 @@ float SectorAmbient(vec3 w)
 	return float(int(texelFetch(SectorLightTexture, ivec2(sec & 4095, sec >> 12), 0).x + 0.5) & 255) / 255.0;
 }
 
+// sector index of a cell (-1: outside of the map or solid)
+int SectorOfCell(ivec2 c)
+{
+	if (c.x < 0 || c.y < 0 || c.x >= gGridSize.x || c.y >= gGridSize.y)
+		return -1;
+	return (int(CellValue(c, 3) + 0.5) >> 7) - 1;
+}
+
 // which lights reach the sector at a position (bit 0..11: the scene lights, 12..15: the model lights), all when unknown
 int SectorLightMask(vec3 w)
 {
@@ -624,17 +632,37 @@ void main()
 	// nearest lamp changes). Surfaces close to a lamp are always lit by it (the lamp and its fixture).
 	int lampSec = -1;
 	{
-		// the sector of the pixel: for a wall one cell in front of it (the cells at the wall carry the sector on either side of the
-		// line: stripes along the wall where the cell belongs to the neighbouring sector)
-		vec3 secP = (hasNormal && abs(n.y) < 0.7) ? P + n * (cell * 1.1) : Q;
-		ivec2 lc = CellOf(secP);
-		if (lc.x >= 0)
-			lampSec = (int(CellValue(lc, 3) + 0.5) >> 7) - 1;
+		// The sector of the pixel (its lamp list). The cells carry the sector of their centre: a cell that a slanted wall cuts can
+		// have its centre outside of the room (no sector), which left stripes along walls that are not at a right angle.
+		// Walls: look one cell in front of the wall, then further along the normal until a cell with a sector is found.
+		// Floors / ceilings: the cell of the pixel, then the nearest neighbour with a sector.
+		bool wallPix = hasNormal && abs(n.y) < 0.7;
+		if (wallPix)
+		{
+			for (int j = 0; j < 5 && lampSec < 0; j++)
+				lampSec = SectorOfCell(CellOf(P + n * (cell * (1.1 + 0.9 * float(j)))));
+		}
+		if (lampSec < 0)
+			lampSec = SectorOfCell(CellOf(Q));
 		if (lampSec < 0)
 		{
-			lc = CellOf(Q);
-			if (lc.x >= 0)
-				lampSec = (int(CellValue(lc, 3) + 0.5) >> 7) - 1;
+			ivec2 c0 = CellOf(Q);
+			float bestD = 1.0e30;
+			for (int dy = -1; dy <= 1; dy++)
+				for (int dx = -1; dx <= 1; dx++)
+				{
+					ivec2 cc = c0 + ivec2(dx, dy);
+					int sc = SectorOfCell(cc);
+					if (sc < 0)
+						continue;
+					vec2 ctr = Grid.xy + (vec2(cc) + 0.5) / Grid.z;
+					float dd = dot(ctr - Q.xz, ctr - Q.xz);
+					if (dd < bestD)
+					{
+						bestD = dd;
+						lampSec = sc;
+					}
+				}
 		}
 	}
 	int lampReached = 0;	// lamps that reach the pixel (within the radius, in a sector they reach)
