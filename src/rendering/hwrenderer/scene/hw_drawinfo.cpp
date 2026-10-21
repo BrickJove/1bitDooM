@@ -1049,7 +1049,7 @@ void HWDrawInfo::PrepareSceneShadow()
 
 	// the nearest dynamic lights (distance to the light's reach)
 	struct Cand { double score; DVector3 pos; float radius; };
-	Cand best[12];
+	static Cand best[SceneShadowMaxLamps];
 	int count = 0;
 	int group = (Viewpoint.camera && Viewpoint.camera->Sector) ? Viewpoint.camera->Sector->PortalGroup : 0;
 	for (auto light = Level->lights; light; light = light->next)
@@ -1061,35 +1061,20 @@ void HWDrawInfo::PrepareSceneShadow()
 			continue;
 		DVector3 lp = light->PosRelative(group);
 		double score = (lp - Viewpoint.Pos).Length() - radius;
-		if (score > 3072.0)
+		if (score > 8192.0)
 			continue;
-		// only lamps whose reach touches the view frustum: lamps behind the player or beside the view must not take a slot
-		// from the lamps of the rooms that are on the screen
-		{
-			const float *vm = VPUniforms.ViewMatrix.get();
-			const float wx = (float)lp.X, wy = (float)lp.Z, wz = (float)lp.Y;
-			const float ex = vm[0] * wx + vm[4] * wy + vm[8] * wz + vm[12];
-			const float ey = vm[1] * wx + vm[5] * wy + vm[9] * wz + vm[13];
-			const float ez = vm[2] * wx + vm[6] * wy + vm[10] * wz + vm[14];
-			const float d = -ez;
-			if (d + radius < 0.f)
-				continue;	// completely behind the camera
-			if (fabsf(ex) > f.FocalX * d + radius * sqrtf(1.f + f.FocalX * f.FocalX))
-				continue;
-			if (fabsf(ey) > f.FocalY * d + radius * sqrtf(1.f + f.FocalY * f.FocalY))
-				continue;
-		}
 		Cand c = { score, lp, radius };
-		int pos = count < 12 ? count : 12;
+		int pos = count < SceneShadowMaxLamps ? count : SceneShadowMaxLamps;
 		while (pos > 0 && best[pos - 1].score > c.score)
 		{
-			if (pos < 12) best[pos] = best[pos - 1];
+			if (pos < SceneShadowMaxLamps) best[pos] = best[pos - 1];
 			pos--;
 		}
-		if (pos < 12) best[pos] = c;
-		if (count < 12) count++;
+		if (pos < SceneShadowMaxLamps) best[pos] = c;
+		if (count < SceneShadowMaxLamps) count++;
 	}
-	for (int i = 0; i < 12; i++)
+	f.LightCount = count;
+	for (int i = 0; i < SceneShadowMaxLamps; i++)
 	{
 		if (i < count)
 		{

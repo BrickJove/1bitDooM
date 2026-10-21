@@ -55,6 +55,8 @@ struct ShadowHeightMap
 	float cell = 8.f, ox = 0, oy = 0, midX = 0, midY = 0, topLimit = 0;
 	std::vector<int> cellSector;		// sector index + 1 per cell (0 = solid), packed into the count channel
 	std::vector<float> sectorLight;	// light level (0..255) per sector, 4096 per row
+	std::vector<float> sectorLamps;	// 16 slots per sector: lamp index + 1 (0 = empty)
+	std::unique_ptr<PPTexture> texSectorLamp;
 	std::vector<float> cellData;		// 4 floats per cell
 	std::vector<float> topNum;		// numeric ceiling height of the open cells (-Big = none), for the height of the solids
 	std::unique_ptr<PPTexture> texLight;
@@ -232,7 +234,7 @@ struct ShadowHeightMap
 		sectorCount = level->sectors.Size();
 		lineCount = level->lines.Size();
 		vertexCount = level->vertexes.Size();
-		texSector.reset(); texCell.reset(); texList.reset(); texLight.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
+		texSector.reset(); texSectorLamp.reset(); texCell.reset(); texList.reset(); texLight.reset(); texLine.reset(); texFenceParam.reset(); texFenceAtlas.reset();
 		retired.clear();
 
 		double minx = 1e30, maxx = -1e30, miny = 1e30, maxy = -1e30;
@@ -261,6 +263,7 @@ struct ShadowHeightMap
 		cellData.assign((size_t)W * H * 4, 0.f);
 		cellSector.assign((size_t)W * H, 0);
 		sectorLight.clear();
+		sectorLamps.clear();
 		for (size_t i = 0; i < (size_t)W * H; i++)
 		{
 			cellData[i * 4] = Big;
@@ -617,13 +620,13 @@ struct ShadowHeightMap
 
 		// the nearest dynamic lights: one row each (x, y, z, radius), new every frame (the old one may still be in use)
 		{
-			std::vector<float> ld(48, 0.f);
-			for (int i = 0; i < 12; i++)
+			std::vector<float> ld(SceneShadowMaxLamps * 4, 0.f);
+			for (int i = 0; i < SceneShadowMaxLamps; i++)
 				for (int k = 0; k < 4; k++)
 					ld[i * 4 + k] = out.Light[i][k];
 			if (texLight)
 				retired.emplace_back(frame, std::move(texLight));
-			texLight = MakeTexture(4, 12, ld);
+			texLight = MakeTexture(4, SceneShadowMaxLamps, ld);
 			out.LightTex = texLight.get();
 		}
 		// light level of every sector (flickering lights, light specials): a small texture, only new when something changed
@@ -635,48 +638,65 @@ struct ShadowHeightMap
 				now[i] = (float)level->sectors[i].GetLightLevel();
 			// Which sectors does a light reach? The sectors that are connected to the sector of the light through open
 			// lines (not through walls, closed doors). A light only makes shadows there: a wall of the neighbouring room
-			// is not "in the shadow" of a lamp on the other side of the wall. Bits 0..11: the scene lights, 12..15: the model lights.
+			// is not "in the shadow" of a lamp on the other side of the wall.
+			// Scene lamps: every sector gets the list of the lamps that reach it (16 slots, the lamps nearest to the camera
+			// first), the shadow pass reads the list of the sector of the pixel (independent of the camera).
+			// Model lights: bits 12..15 of the sector value (modelshadow.fp).
+			std::vector<float> lamps(n * 16, 0.f);
+			std::vector<unsigned char> slots(n, 0);
 			if (n > 0)
 			{
 				std::vector<unsigned short> mask(n, 0);
 				std::vector<sector_t *> stack;
-				for (int l = 0; l < 16; l++)
+				std::vector<unsigned char> seen(n, 0);
+				const int total = out.LightCount + 4;
+				for (int l = 0; l < total; l++)
 				{
-					const float *lp = l < 12 ? out.Light[l] : out.ModelLight[l - 12];
+					const bool scene = l < out.LightCount;
+					const float *lp = scene ? out.Light[l] : out.ModelLight[l - out.LightCount];
 					if (lp[3] <= 0.f)
 						continue;	// unused light
 					DVector2 lpos(lp[0], lp[2]);	// render space: x = X, z = Y
 					sector_t *start = level->PointInSector(lpos);
 					if (start == nullptr)
 					{
-						for (size_t i = 0; i < n; i++)
-							mask[i] |= (unsigned short)(1 << l);	// unknown: no restriction
+						if (!scene)
+							for (size_t i = 0; i < n; i++)
+								mask[i] |= (unsigned short)(1 << (12 + l - out.LightCount));	// unknown: no restriction
 						continue;
 					}
-					unsigned short bit = (unsigned short)(1 << l);
+					std::fill(seen.begin(), seen.end(), 0);
 					stack.clear();
 					stack.push_back(start);
-					mask[start->Index()] |= bit;
+					seen[start->Index()] = 1;
 					while (!stack.empty())
 					{
 						sector_t *sec = stack.back();
 						stack.pop_back();
+						const size_t si = sec->Index();
+						if (scene)
+						{
+							if (slots[si] < 16)
+								lamps[si * 16 + slots[si]++] = (float)(l + 1);
+						}
+						else
+							mask[si] |= (unsigned short)(1 << (12 + l - out.LightCount));
 						for (unsigned k = 0; k < sec->Lines.Size(); k++)
 						{
 							line_t *line = sec->Lines[k];
 							if (line->frontsector == nullptr || line->backsector == nullptr)
 								continue;
 							sector_t *other = line->frontsector == sec ? line->backsector : line->frontsector;
-							if (other == sec || (mask[other->Index()] & bit))
+							if (other == sec || seen[other->Index()])
 								continue;
 							DVector2 mid = (line->v1->p + line->v2->p) * 0.5;
 							double top = std::min(line->frontsector->ceilingplane.ZatPoint(mid), line->backsector->ceilingplane.ZatPoint(mid));
 							double bottom = std::max(line->frontsector->floorplane.ZatPoint(mid), line->backsector->floorplane.ZatPoint(mid));
 							if (top - bottom < 1.0)
 								continue;	// closed (door, lift): the light does not pass
-							if (l < 12)
+							if (scene)
 							{
-								// a scene lamp only makes shadows up to 0.45 of its radius (sceneshadow.fp, LampNear1): a way around
+								// a scene lamp only makes shadows up to 0.45 of its radius through an opening: a way around
 								// a corner, through other rooms, that leaves this range does not count as reached
 								DVector2 a = line->v1->p, b = line->v2->p, ab = b - a;
 								double len2 = ab.LengthSquared();
@@ -685,7 +705,7 @@ struct ShadowHeightMap
 								if ((a + ab * t - lpos).LengthSquared() > reachR * reachR)
 									continue;
 							}
-							mask[other->Index()] |= bit;
+							seen[other->Index()] = 1;
 							stack.push_back(other);
 						}
 					}
@@ -693,6 +713,14 @@ struct ShadowHeightMap
 				for (size_t i = 0; i < n; i++)
 					now[i] += 256.f * (float)mask[i];
 			}
+			if (!texSectorLamp || lamps != sectorLamps)
+			{
+				if (texSectorLamp)
+					retired.emplace_back(frame, std::move(texSectorLamp));
+				sectorLamps = lamps;
+				texSectorLamp = MakeTexture(16, (int)std::max<size_t>(1, n), n > 0 ? lamps : std::vector<float>(16, 0.f));
+			}
+			out.SectorLampTex = texSectorLamp.get();
 			if (!texSector || now != sectorLight)
 			{
 				if (texSector)

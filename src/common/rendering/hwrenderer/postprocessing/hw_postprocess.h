@@ -819,13 +819,16 @@ private:
 
 // Jupiter3D: view independent shadows (sun + dynamic lights), see sceneshadow.fp
 // Per frame data, filled by HWDrawInfo::PrepareSceneShadow (hw_drawinfo.cpp) before the post pass runs.
+constexpr int SceneShadowMaxLamps = 256;
+
 struct SceneShadowFrame
 {
 	bool Valid = false;
 	float InvView[3][4] = {};	// rows of the eye -> world (render space) transform, translation in column 3
 	float SunPos[3] = { 0, 0, 0 };	// position of the sun (render space: x = X, y = Z up, z = Y): centre of the level, height from the cvar
 	bool SunPosValid = false;		// kept between frames (model shadows use it)
-	float Light[12][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
+	int LightCount = 0;			// number of used entries of Light
+	float Light[SceneShadowMaxLamps][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused
 	float FocalX = 1.f, FocalY = 1.f;	// 1 / projection matrix [0] and [5]
 	// height map of the level (hw_shadowheightmap.cpp)
 	PPTexture *CellTex = nullptr;		// 4 floats per cell: floor, ceiling, list start, list count (see hw_shadowheightmap.cpp)
@@ -834,6 +837,7 @@ struct SceneShadowFrame
 	PPTexture *FenceParamTex = nullptr;	// 16 floats per fence
 	PPTexture *FenceAtlasTex = nullptr;	// alpha masks of the fence textures
 	PPTexture *LightTex = nullptr;		// 12 rows: position + radius of the nearest dynamic lights
+	PPTexture *SectorLampTex = nullptr;	// 16 slots per sector: lamp index + 1 into LightTex (0 = empty)
 	PPTexture *SectorLightTex = nullptr;	// light level (0..255) per sector, 4096 per row; the cells carry the sector index
 	float GridOriginX = 0, GridOriginY = 0, GridInvCell = 1;
 	float MidX = 0, MidY = 0;		// centre of the bounding box of the level

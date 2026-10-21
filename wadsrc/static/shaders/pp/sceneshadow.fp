@@ -29,6 +29,7 @@ layout(binding=3) uniform sampler2D ListTexture;	// line indices
 layout(binding=4) uniform sampler2D LineTexture;	// 8 floats per line: x1, y1, x2, y2, blocked below, blocked above, fence, 0
 layout(binding=5) uniform sampler2D FenceParamTexture;	// 16 floats per fence (one row each)
 layout(binding=8) uniform sampler2D SectorLightTexture;	// light level (0..255) per sector, 4096 per row
+layout(binding=9) uniform sampler2D SectorLampTexture;	// 16 slots per sector: lamp index + 1 into LightTexture (0 = empty)
 layout(binding=7) uniform sampler2D LightTexture;	// 3 rows: x, y, z, radius of the nearest dynamic lights
 layout(binding=6) uniform sampler2D FenceAtlasTexture;	// alpha masks, 256 x 256 per fence texture (8 x 8 slots)
 
@@ -621,18 +622,25 @@ void main()
 	// The dynamic lights (up to 8, the ones nearest to the camera). A pixel is in the shadow of the lamps when EVERY lamp that
 	// reaches it is blocked (ray hits the map) or faces away from it: one lamp that lights it is enough (no stripes where the
 	// nearest lamp changes). Surfaces close to a lamp are always lit by it (the lamp and its fixture).
-	int reachMask = Light.x > 0.5 ? SectorLightMask(Q) : 65535;
+	int lampSec = -1;
+	{
+		ivec2 lc = CellOf(Q);
+		if (lc.x >= 0)
+			lampSec = (int(CellValue(lc, 3) + 0.5) >> 7) - 1;
+	}
 	int lampReached = 0;	// lamps that reach the pixel (within the radius, in a sector they reach)
 	bool lampLit = false;	// a lamp that faces the pixel has a free ray
 	bool lampFaces = false;	// at least one reaching lamp faces the pixel
-	for (int i = 0; i < 12; i++)
+	for (int i = 0; i < 16; i++)
 	{
-		if (float(i) >= Light.x)
+		if (lampSec < 0 || float(i) >= Light.x)
 			break;
-		if ((reachMask & (1 << i)) == 0)
-			continue;	// behind a wall (another room): this light makes no shadow there
-		vec4 L = vec4(texelFetch(LightTexture, ivec2(0, i), 0).x, texelFetch(LightTexture, ivec2(1, i), 0).x,
-		              texelFetch(LightTexture, ivec2(2, i), 0).x, texelFetch(LightTexture, ivec2(3, i), 0).x);
+		// the lamps of the sector of the pixel (list built in hw_shadowheightmap.cpp: lamps that reach the sector through open lines)
+		int lamp = int(texelFetch(SectorLampTexture, ivec2(i, lampSec), 0).x + 0.5) - 1;
+		if (lamp < 0)
+			break;
+		vec4 L = vec4(texelFetch(LightTexture, ivec2(0, lamp), 0).x, texelFetch(LightTexture, ivec2(1, lamp), 0).x,
+		              texelFetch(LightTexture, ivec2(2, lamp), 0).x, texelFetch(LightTexture, ivec2(3, lamp), 0).x);
 		if (L.w <= 0.0)
 			continue;
 		// a lamp is a point: the rays start exactly at its position (not lowered like the sun)

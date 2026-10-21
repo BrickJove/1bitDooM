@@ -864,10 +864,10 @@ SceneShadowFrame sceneShadowFrame;
 void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int sceneHeight)
 {
 	const SceneShadowFrame &f = sceneShadowFrame;
-	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || !f.LightTex || !f.SectorLightTex || sceneWidth <= 0 || sceneHeight <= 0)
+	if (!gl_scene_shadow || !f.Valid || !f.CellTex || !f.ListTex || !f.LineTex || !f.FenceParamTex || !f.FenceAtlasTex || !f.LightTex || !f.SectorLightTex || !f.SectorLampTex || sceneWidth <= 0 || sceneHeight <= 0)
 		return;
 	bool sun = gl_scene_shadow_sun && f.SunPosValid;
-	int lights = clamp((int)gl_scene_shadow_lamps, 0, 12);
+	int lights = clamp((int)gl_scene_shadow_lamps, 0, 16);
 	if (!sun && lights == 0)
 		return;
 
@@ -900,6 +900,7 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	renderstate->SetInputTexture(6, f.FenceAtlasTex);
 	renderstate->SetInputTexture(7, f.LightTex);
 	renderstate->SetInputTexture(8, f.SectorLightTex);
+	renderstate->SetInputTexture(9, f.SectorLampTex);
 	renderstate->SetOutputSceneColor();
 	renderstate->SetAlphaBlend();
 	renderstate->Draw();
