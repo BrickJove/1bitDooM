@@ -47,12 +47,18 @@ static void ModelShadowReport(const FString &text)
 
 // the models that got a shadow from a light map in the last frame: they need no flat drop shadow
 // (with how strong it is: 1 = full, smaller at the edge of the radius of the light, where it fades into the flat one)
-static std::unordered_map<const AActor *, float> g_coveredModels, g_buildModels;
+static std::unordered_map<const AActor *, float> g_buildModels;
+// a model stays "covered" for a few frames after its last map shadow: the flat shadow must not flash up in between
+// (the maps hold the nearest lights and models, which can change from one frame to the next)
+static std::unordered_map<const AActor *, std::pair<float, int>> g_coveredModels;
+static int g_coverFrame = 0;
 
 float ModelMapShadowWeight(const AActor *actor)
 {
 	auto it = g_coveredModels.find(actor);
-	return it == g_coveredModels.end() ? 0.f : it->second;
+	if (it == g_coveredModels.end() || g_coverFrame - it->second.second > 4)
+		return 0.f;
+	return it->second.first;
 }
 
 static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state);
@@ -61,7 +67,16 @@ void hw_RenderModelShadowMaps(HWDrawInfo *di, FRenderState &state)
 {
 	g_buildModels.clear();
 	RenderModelShadowMapsImpl(di, state);
-	g_coveredModels.swap(g_buildModels);
+	g_coverFrame++;
+	for (auto &e : g_buildModels)
+		g_coveredModels[e.first] = { e.second, g_coverFrame };
+	for (auto it = g_coveredModels.begin(); it != g_coveredModels.end();)
+	{
+		if (g_coverFrame - it->second.second > 4)
+			it = g_coveredModels.erase(it);
+		else
+			++it;
+	}
 }
 
 static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)

@@ -30,6 +30,7 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Flacher Sonnenbodenschatten der Modelle endet an einseitigen Waenden (wie die Lampenschatten), Stufen/Kanten zweiseitiger Linien kuerzen ihn nicht (`models.cpp`, `ClampFlatShadowToWalls(..., solidOnly)`).
 - Flacher Lampenschatten der Modelle (`ModelShadowLight`, `hw_spritelight.cpp`): eine Lampe ohne Sichtverbindung zum Modell (hinter einer Wand) zaehlt nicht mehr. Die Engine verknuepft ein Licht mit jeder Section, die sein Radius ueber Ecken und andere Raeume erreicht, daher kamen die Lampenschatten sonst durch die Wand. Gleiche Cvar `gl_light_sector_limit`.
 - Szenen-Lampenschatten hinter Waenden: die Sektor-Erreichbarkeit einer Szenenlampe (`hw_shadowheightmap.cpp`) geht nur noch durch Linien, die innerhalb von 0.45 des Lampenradius liegen (so weit macht eine Lampe ohnehin Schatten). Ein Umweg ueber andere Raeume machte sonst einen Raum hinter der Wand zum "erreichten" Raum, und die Wand wurde dort als Lampenschatten schwarz.
+- Einfacher (flacher) Modellschatten bei Lampen: ein Modell gilt nach seinem letzten Map-Schatten noch 4 Frames als "abgedeckt" (`g_coveredModels` mit Frame-Zaehler). Vorher reichte ein Frame ohne Map-Schatten, damit der flache Schatten neben dem projizierten auftauchte.
 - Ungetestet. Geaendert: `hw_modelshadow.cpp`, `modelshadow.fp`, `models.cpp`.
 
 ## Fork / Menü
