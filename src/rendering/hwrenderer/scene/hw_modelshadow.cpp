@@ -227,15 +227,17 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 		}
 		if (best < 0.f)
 		{
-			// among the lights that reach a model: the ones that reach the most models first (does not depend on the player)
-			int count = 0;
+			// among the lights that reach a model: the ones that matter most for what the player sees first. Every model a light
+			// reaches counts, the more the closer it is to the camera (a lamp next to the player beats a lamp that reaches many
+			// models far away: only four maps exist)
+			float score = 0.f;
 			for (unsigned i = 0; i < infos.Size(); i++)
 			{
 				float dx = infos[i].cx - lights[li].x, dy = infos[i].cy - lights[li].y, dz = infos[i].cz - lights[li].z;
 				if (sqrtf(dx * dx + dy * dy + dz * dz) < lights[li].radius + infos[i].r)
-					count++;
+					score += 1.f / (1.f + sqrtf(max(infos[i].camD, 0.f)) / 400.f);
 			}
-			best = -(float)count;
+			best = -score;
 			unsigned pos = order.Size();
 			order.Push((int)li);
 			scores.Push(best);
