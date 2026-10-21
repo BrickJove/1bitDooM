@@ -674,6 +674,17 @@ struct ShadowHeightMap
 							double bottom = std::max(line->frontsector->floorplane.ZatPoint(mid), line->backsector->floorplane.ZatPoint(mid));
 							if (top - bottom < 1.0)
 								continue;	// closed (door, lift): the light does not pass
+							if (l < 3)
+							{
+								// a scene lamp only makes shadows up to 0.45 of its radius (sceneshadow.fp, LampNear1): a way around
+								// a corner, through other rooms, that leaves this range does not count as reached
+								DVector2 a = line->v1->p, b = line->v2->p, ab = b - a;
+								double len2 = ab.LengthSquared();
+								double t = len2 > 0 ? clamp(((lpos - a) | ab) / len2, 0.0, 1.0) : 0.0;
+								double reachR = lp[3] * 0.45 + 16.0;
+								if ((a + ab * t - lpos).LengthSquared() > reachR * reachR)
+									continue;
+							}
 							mask[other->Index()] |= bit;
 							stack.push_back(other);
 						}
