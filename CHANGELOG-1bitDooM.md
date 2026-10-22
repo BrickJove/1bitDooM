@@ -314,3 +314,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Zaunschatten ohne Muster
 - `sceneshadow.fp`: der unscharfe Zaunschatten (blau getoentes Teil-Alpha, vom 1-Bit-Dither in ein Muster verwandelt) ist abgeschaltet; die gefilterte Zaunabdeckung wird bei 50 % hart auf Schwarz/nichts geschnitten. Das Muster auf Waenden/Modellen bei bestimmten Lichtwinkeln war der Schatten des Zauns (Ungetestet).
+
+## Modelle: Raster statt Schwellwert
+- `main.fp`: der harte Weiss/Schwarz-Schwellwert fuer Modelle ist wieder entfernt; die Uebergaenge zwischen hell und dunkel auf Modellen zeichnet wieder die Rasterung des 1-Bit-Shaders (`present.fp`). Das Muster war der Zaunschatten (siehe oben). Ungetestet.
