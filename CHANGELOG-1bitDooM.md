@@ -295,3 +295,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Weiße Pixel zwischen den Schattenflächen auf Modellen: Die Normale eines Modell-Pixels wird aus den Tiefenwerten der Nachbarpixel berechnet und mischt an Kanten zwei Flächen. Jetzt gilt für Modelle die kleinste "Zugewandtheit" aus vier Kombinationen der Nachbar-Differenzen (an Silhouetten mit Tiefensprung nicht), so bleiben an den Kanten zwischen zwei abgewandten Flächen keine hellen Pixel mehr übrig.
 
 - Vereinzelte Pixel auf Modellen: Die Zugewandtheit zur Lichtquelle wird bei Modellen jetzt per Mehrheitsentscheid über die Normalen der 3x3-Nachbarschaft bestimmt (statt der "kleinsten" Variante). Einzelne Ausreißer an den Facettenkanten fallen so in beide Richtungen weg (weiße und schwarze Pixel). Silhouetten mit Tiefensprung zählen nicht mit.
+
+- Lampen wirken auch im Außenbereich: Der Lampenschatten schwärzt jetzt auch Boden und Wände, die von der Sonne beleuchtet werden (die Ausnahme "Sonne beleuchtet den Pixel" ist entfernt). Durch Wände dringt das Licht weiterhin nicht (Lampenlisten pro Sektor).

@@ -751,8 +751,8 @@ void main()
 			}
 		}
 	}
-	// a pixel that the sun lights (outdoors) is not darkened by lamps that cannot see it (lamp in another room behind a wall)
-	if (lampReached > 0 && !nearLit && !lampLit && dbg != 1)
+	// lamps cast their shadows outdoors as well, also on ground that the sun lights
+	if (lampReached > 0 && !nearLit && !lampLit)
 	{
 		if (lampFaces)
 			domBlocked = true;	// every lamp that faces the pixel is blocked
