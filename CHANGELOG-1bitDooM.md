@@ -323,3 +323,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Schaerfere Modellschatten
 - Tiefenkarten der Modellschatten von 768 auf 1024 Texel je Seite (`gl_modelshadow.h`, `vk_modelshadow.h`): kleinere Texel, die Ecken der Schatten sind weniger abgerundet. Mehr Grafikspeicher (ca. 200 MB statt 115 MB fuer alle Karten). Ungetestet.
+
+## Boden: exakter flacher Schatten, Waende/Modelle: Tiefenkarte
+- Auf Boeden zeichnet jetzt der projizierte flache Schatten des Modells (`models.cpp`, exakte Silhouette, scharf wie der Sonnenschatten) den Schatten der Sonne und der naechsten Lampe; die Tiefenkarten (`modelshadow.fp`) schatten Boeden nur noch, wenn sie hoeher liegen als der Boden unter dem Modell (Stufe, erhoehter Sektor). Waende, Decken und Modelle bekommen weiter den Schatten aus den Karten. Der einfache Fleck direkt unter dem Modell bleibt aus, wenn eine Karte das Modell beschattet und kein Sonnen-/Lampenschatten projiziert wird. Ungetestet.
