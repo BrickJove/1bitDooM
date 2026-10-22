@@ -632,20 +632,23 @@ void main()
 	// sun: a point light above the centre of the level
 	// The shadows of the map are projected like the flat shadows of the models (models.cpp): from the light lowered by the
 	// reference height of the casters, so a model and a wall of the same height cast shadows of the same length.
-	float casterH = (Sun.w > 0.5 ? Sun.w - 1.0 : Sun.w) * 1000.0;
+	// Sun.w: 0 = off, 1 + caster height / 1000 = on; + 2 = directional sun (Sun.xyz = unit vector towards the sun)
+	bool sunIsDir = Sun.w >= 1.5;
+	float sunW = sunIsDir ? Sun.w - 2.0 : Sun.w;
+	float casterH = (sunW > 0.5 ? sunW - 1.0 : sunW) * 1000.0;
 	// a wall: only if the cell in front of it is under an open sky (a wall of a building is not lit from the inside, and not
 	// through a thick wall from the other side); floors and models: the cell below the pixel
 	bool sunWall = hasNormal && abs(n.y) < 0.7;
 	bool sunSky = sunWall ? UnderOpenSky(P + n * (cell * 1.1)) : (UnderSky(Q) || (hasNormal && UnderSky(P + n * (cell * 3.5))));
-	if (Sun.w > 0.5 && sunSky)
+	if (sunW > 0.5 && sunSky)
 	{
-		vec3 sunP = vec3(Sun.x, max(Sun.y - casterH, min(Sun.y, Q.y + 4.0)), Sun.z);
+		vec3 sunP = sunIsDir ? Q + Sun.xyz * 60000.0 : vec3(Sun.x, max(Sun.y - casterH, min(Sun.y, Q.y + 4.0)), Sun.z);
 		vec3 toS = sunP - Q;
-		float dS = length(toS);
+		float dS = sunIsDir ? 60000.0 : length(toS);
 		if (dS > 8.0)
 		{
 			reached++;
-			vec3 D = toS / dS;
+			vec3 D = sunIsDir ? Sun.xyz : toS / dS;
 			float facing = hasNormal ? Facing(n, D) : 1.0;
 			if (facing > 0.0)
 			{

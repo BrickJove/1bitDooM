@@ -883,7 +883,18 @@ void PPSceneShadow::Render(PPRenderState *renderstate, int sceneWidth, int scene
 	u.ProjParams = FVector4(1.0f / screen->GetZFar() - 1.0f / screen->GetZNear(), max(1.0f / screen->GetZNear(), 1.e-8f), f.FocalX, f.FocalY);
 	u.Scale = screen->SceneScale();
 	u.Offset = screen->SceneOffset();
-	u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], (sun ? 1.f : 0.f) + clamp((float)gl_scene_shadow_caster_height, 0.f, 128.f) * 0.001f);	// w: sun on + the reference height of the casters / 1000
+	{
+		float sw = (sun ? 1.f : 0.f) + clamp((float)gl_scene_shadow_caster_height, 0.f, 128.f) * 0.001f;
+		if (f.SunDist > 0.f)
+		{
+			// directional sun: the shader gets the unit vector towards the sun (the far sun point of the frame is only for the model maps)
+			FVector3 sd(f.SunPos[0] - f.MidX, f.SunPos[1], f.SunPos[2] - f.MidY);
+			sd.MakeUnit();
+			u.Sun = FVector4(sd.X, sd.Y, sd.Z, sw + 2.f);
+		}
+		else
+			u.Sun = FVector4(f.SunPos[0], f.SunPos[1], f.SunPos[2], sw);
+	}	// w: sun on + the reference height of the casters / 1000
 	u.Light = FVector4((float)lights, (float)gl_scene_shadow_fence_range, gl_scene_shadow_debug ? 2.f : (gl_scene_shadow_style == 2 ? 1.f : 0.f), clamp((float)gl_scene_shadow_ambient, 0.f, 1.f));	// x = number of lights (they are in the light texture), y = fence range, z = checkerboard, w = strength of the sector light
 
 	renderstate->PushGroup("sceneshadow");
