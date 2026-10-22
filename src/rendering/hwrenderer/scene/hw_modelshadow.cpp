@@ -280,7 +280,8 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 	{
 		const bool isSun = order[oi] == sunLight;
 		const Lt &L = lights[order[oi]];
-		const float lx = L.x, ly = L.y, lz = L.z, radius = L.radius, reach = L.reach;
+		float lx = L.x, ly = L.y, lz = L.z;
+		const float radius = L.radius, reach = L.reach;
 
 		// the models this light reaches
 		TArray<int> picked;
@@ -317,6 +318,18 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			const float cx = floorf((float)(camPos.X + fwd.X * H * 0.4) / snap + 0.5f) * snap;
 			const float cy = floorf((float)camPos.Z / 64.f + 0.5f) * 64.f;
 			const float cz = floorf((float)(camPos.Y + fwd.Y * H * 0.4) / snap + 0.5f) * snap;
+			if (f.SunDist > 0.f)
+			{
+				// directional sun: the sun point is very far away (matrices and depth values of a camera 250000 units away are
+				// too imprecise): the camera of the map is moved to the same direction, but near the area
+				float ddx = lx - cx, ddy = ly - cy, ddz = lz - cz;
+				const float dl = sqrtf(ddx * ddx + ddy * ddy + ddz * ddz);
+				if (dl > 1.f)
+				{
+					const float S = max(6000.f, H * 6.f);
+					lx = cx + ddx / dl * S; ly = cy + ddy / dl * S; lz = cz + ddz / dl * S;
+				}
+			}
 			float fx = cx - lx, fy = cy - ly, fz = cz - lz;
 			const float dist = sqrtf(fx * fx + fy * fy + fz * fz);
 			if (dist < 16.f)
