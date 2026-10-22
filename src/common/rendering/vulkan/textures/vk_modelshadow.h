@@ -14,7 +14,7 @@ class VkModelShadow
 {
 public:
 	static constexpr int MaxMaps = 4;
-	static constexpr int TileSize = 768;
+	static constexpr int TileSize = 1024;
 
 	VkModelShadow(VulkanRenderDevice* fb);
 	~VkModelShadow();

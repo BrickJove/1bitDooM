@@ -320,3 +320,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Glatte Kanten der Modellschatten
 - `modelshadow.fp` (Lampenkarten und Sonnenkarte): die Karte wurde pro Pixel nur mit dem naechsten Texel abgefragt, dadurch hatte jeder projizierte Modellschatten eine Treppenkante (ein Schritt je Texel der Tiefenkarte). Jetzt wird die Belegung der 4 naechsten Texel bilinear gemischt und bei 50 % abgeschnitten: gleiche Schattenform, glatte Kanten. Ungetestet.
+
+## Schaerfere Modellschatten
+- Tiefenkarten der Modellschatten von 768 auf 1024 Texel je Seite (`gl_modelshadow.h`, `vk_modelshadow.h`): kleinere Texel, die Ecken der Schatten sind weniger abgerundet. Mehr Grafikspeicher (ca. 200 MB statt 115 MB fuer alle Karten). Ungetestet.
