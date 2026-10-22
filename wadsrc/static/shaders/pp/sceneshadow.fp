@@ -751,7 +751,7 @@ void main()
 			}
 		}
 	}
-	// lamps cast their shadows outdoors as well, also on ground that the sun lights
+	// lamps also work outdoors (union with the sun in the final decision below)
 	if (lampReached > 0 && !nearLit && !lampLit)
 	{
 		if (lampFaces)
@@ -764,7 +764,9 @@ void main()
 		// pure black patterns (the 1-bit shader turns coloured pixels with partial alpha into white):
 		// horizontal lines = the sun blocks the pixel, vertical lines = the lamps block it (and none lights it),
 		// solid = both, dots = a source reaches the pixel and it is lit, nothing = no source reaches it
-		bool lampShadow = domBlocked;
+		bool lampShadow = domBlocked && dbg != 1;
+		if (lampLit || nearLit)
+			sunBlocked = false;
 		bool paint = false;
 		if (sunBlocked && lampShadow)
 			paint = true;
@@ -783,7 +785,9 @@ void main()
 	// The sun: its shadow is black even when a light also reaches the pixel (like the flat shadow of a model). The dynamic
 	// lights: black only when every light that reaches the pixel is blocked - one light that lights it is enough (several
 	// lamps of a room that reach each other through doors and corners must not black out the room).
-	float shadow = (reached > 0 && !nearLit && (sunBlocked || domBlocked)) ? 1.0 : 0.0;
+	// a source that lights the pixel is enough: the sun shadow of a sector is lit up by a lamp in it, a lamp shadow is not seen on sunlit ground
+	bool litBySun = dbg == 1;
+	float shadow = (reached > 0 && !nearLit && !litBySun && !lampLit && (sunBlocked || domBlocked)) ? 1.0 : 0.0;
 
 	// hard shadow: pure black. Dither mode: coverage = density, ordered dither.
 	float density = float((packedBits >> 3) & 127) / 100.0;

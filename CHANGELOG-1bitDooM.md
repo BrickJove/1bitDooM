@@ -297,3 +297,5 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Vereinzelte Pixel auf Modellen: Die Zugewandtheit zur Lichtquelle wird bei Modellen jetzt per Mehrheitsentscheid über die Normalen der 3x3-Nachbarschaft bestimmt (statt der "kleinsten" Variante). Einzelne Ausreißer an den Facettenkanten fallen so in beide Richtungen weg (weiße und schwarze Pixel). Silhouetten mit Tiefensprung zählen nicht mit.
 
 - Lampen wirken auch im Außenbereich: Der Lampenschatten schwärzt jetzt auch Boden und Wände, die von der Sonne beleuchtet werden (die Ausnahme "Sonne beleuchtet den Pixel" ist entfernt). Durch Wände dringt das Licht weiterhin nicht (Lampenlisten pro Sektor).
+
+- Lampen leuchten Außensektoren aus, die komplett im Sonnenschatten liegen: Ein Pixel ist nur noch schwarz, wenn KEINE Quelle es beleuchtet. Eine Lampe mit freier Sicht hebt den Sonnenschatten auf (vorher blieb er schwarz, auch wenn eine Lampe den Pixel erreichte). Auf sonnenbeschienenem Boden ist ein Lampenschatten dafür nicht mehr zu sehen (die Sonne beleuchtet ihn). Im Debug-Modus entsprechend: Punkte = beleuchtet.
