@@ -255,9 +255,9 @@ bool FencePixel(int id, vec2 A, vec2 B, float u, float y, float foot, float foot
 	// threshold would flip between black and white per pixel (noise, black areas). From there on the hard shadow fades out and the
 	// filtered coverage itself is drawn as the blurred, blue tinted shadow (the 1-bit shader dithers it).
 	float s = clamp((max(fpUs, fpVs) - 1.5) / 3.0, 0.0, 1.0);
-	if (s > 0.0)
-		gSoftA = max(gSoftA, c * s * midFade);
-	return c > 0.5 + 0.5 * s && midFade > 0.5;
+	// Jupiter3D: no blurred / dithered fence shadow any more (it gave a pattern on walls and models at some light angles): the
+	// filtered coverage is cut at 50 %, the shadow is pure black or not there
+	return c > 0.5 && midFade > 0.5;
 }
 
 // Do the lines in the cell block the ray piece S0 -> S1 (exact segment tests)?

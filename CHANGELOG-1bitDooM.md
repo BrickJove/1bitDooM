@@ -311,3 +311,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Modelle rein 1-Bit
 - `main.fp`: 3D-Modelle (TEXF_Model) werden nach der Beleuchtung hart auf Weiss/Schwarz geschwellt (Helligkeit >= 0.5 = weiss). Vorher ergab ein mittleres Grau bei bestimmten Lichtwinkeln das Dither-Muster auf Modellen. Ungetestet.
+
+## Zaunschatten ohne Muster
+- `sceneshadow.fp`: der unscharfe Zaunschatten (blau getoentes Teil-Alpha, vom 1-Bit-Dither in ein Muster verwandelt) ist abgeschaltet; die gefilterte Zaunabdeckung wird bei 50 % hart auf Schwarz/nichts geschnitten. Das Muster auf Waenden/Modellen bei bestimmten Lichtwinkeln war der Schatten des Zauns (Ungetestet).
