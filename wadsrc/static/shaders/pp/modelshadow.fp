@@ -376,15 +376,6 @@ void main()
 	int s1 = InModelShadow(P, n, Light1, NearFar.zw, (worldMask & 2) != 0, ShadowMap1, WorldMap1, 1);
 	int s2 = InModelShadow(P, n, Light2, NearFar2.xy, (worldMask & 4) != 0, ShadowMap2, WorldMap2, 2);
 	int s3 = InModelShadow(P, n, Light3, NearFar2.zw, (worldMask & 8) != 0, ShadowMap3, WorldMap3, 3);
-	// Floors get the flat projected shadow of the model (models.cpp: exact and sharp, no texel edges), the maps only shadow floors
-	// that lie higher than the floor under the model (a raised sector, a step) and everything that is not a floor
-	if (hasNormal && n.y > 0.7)
-	{
-		if (s0 == 1 && !(P.y > FloorAt(gOcc[0]) + 8.0)) s0 = 0;
-		if (s1 == 1 && !(P.y > FloorAt(gOcc[1]) + 8.0)) s1 = 0;
-		if (s2 == 1 && !(P.y > FloorAt(gOcc[2]) + 8.0)) s2 = 0;
-		if (s3 == 1 && !(P.y > FloorAt(gOcc[3]) + 8.0)) s3 = 0;
-	}
 
 	// the light of a map only makes shadows in the sectors that it reaches through open lines (not behind walls)
 	{

@@ -212,7 +212,7 @@ void RenderModel(FModelRenderer *renderer, float x, float y, float z, FSpriteMod
 		// the radius its map shadow collapses to the flat shadow straight below it, which then takes over
 		// (the projected flat shadow of the sun / the nearest lamp stays: it is the exact, sharp shadow on the floor, the map shadow
 		// leaves the floor to it; only the plain blob straight below the model goes)
-		if (mapWeight > 0.f && !lit && !sunLit)
+		if (mapWeight > 0.f && !sunLit)
 			shadowScale = 0.f;
 		if (shadowScale > 0.05f)
 		{

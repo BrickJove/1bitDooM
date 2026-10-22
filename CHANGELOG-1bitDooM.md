@@ -326,3 +326,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Boden: exakter flacher Schatten, Waende/Modelle: Tiefenkarte
 - Auf Boeden zeichnet jetzt der projizierte flache Schatten des Modells (`models.cpp`, exakte Silhouette, scharf wie der Sonnenschatten) den Schatten der Sonne und der naechsten Lampe; die Tiefenkarten (`modelshadow.fp`) schatten Boeden nur noch, wenn sie hoeher liegen als der Boden unter dem Modell (Stufe, erhoehter Sektor). Waende, Decken und Modelle bekommen weiter den Schatten aus den Karten. Der einfache Fleck direkt unter dem Modell bleibt aus, wenn eine Karte das Modell beschattet und kein Sonnen-/Lampenschatten projiziert wird. Ungetestet.
+
+## Bodenschatten indoor wieder von den Karten
+- Zurueckgenommen: Lampen-Bodenschatten aus der flachen Projektion (war indoor komplett weg, weil die flache Projektion nur mit einer Lampe aus der Sektorliste des Modells laeuft, die Karten aber alle Lampen kennen). Boeden bekommen den Lampenschatten wieder aus den Tiefenkarten; der flache exakte Schatten bleibt nur bei der Sonne (unter freiem Himmel), wie vorher. Ungetestet.
