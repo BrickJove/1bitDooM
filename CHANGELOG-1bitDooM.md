@@ -308,3 +308,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Diagnose Schattenpass
 - `gl_model_shadow_info` zeigt jetzt zusätzlich Sonnen-Cvars, SunPos/SunDist, Lampenzahl und welche Texturen des Schattenpasses vorhanden sind (zur Fehlersuche: Geometrieschatten fehlen im Outdoor-Bereich).
+
+## Modelle rein 1-Bit
+- `main.fp`: 3D-Modelle (TEXF_Model) werden nach der Beleuchtung hart auf Weiss/Schwarz geschwellt (Helligkeit >= 0.5 = weiss). Vorher ergab ein mittleres Grau bei bestimmten Lichtwinkeln das Dither-Muster auf Modellen. Ungetestet.

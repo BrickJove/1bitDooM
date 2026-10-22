@@ -925,6 +925,9 @@ void main()
 	// flat colour for the model outline pass
 	if (uAlphaThreshold <= -1.0)
 		frag.rgb = uObjectColor.rgb;
+	// Jupiter3D: 3D models are pure 1-bit: lit = white, shaded = black (no gray, the final dither would turn it into a pattern)
+	else if ((uTextureMode & TEXF_Model) != 0)
+		frag.rgb = vec3(dot(frag.rgb, vec3(0.299, 0.587, 0.114)) >= 0.5 ? 1.0 : 0.0);
 	FragColor = frag;
 
 #ifdef DITHERTRANS
