@@ -180,20 +180,32 @@ int InSunMap(vec3 P, vec3 n, vec4 L, vec2 nf, float T, vec3 F, sampler2D map, in
 	int face = qx + 3 * qy;
 	ivec2 tp = ivec2(face % 3, face / 3) * size + clamp(ivec2((ndc * 0.5 + 0.5) * float(size)), ivec2(0), ivec2(size - 1));
 	float texel = T * m / float(size);	// world size of one texel at this distance
-	float stored = texelFetch(map, tp, 0).x;
-	gSunDbg = 1;
-	if (stored >= 1.0)
-		return 0;	// no model here
-	gSunDbg = 2;
-	float occluder = LinearLightDepth(stored, nf.x, nf.y);
-	// the tolerance hides the start of a shadow: a wall or floor (it has a normal) only needs a small one (no model casts onto itself
-	// there), models and sprites (no normal) need more against self-shadowing
-	// models and sprites have no normal: a model must not shadow itself (dotted shading), so a pixel of a model is only
-	// shadowed by something that is nearer to the sun by more than the thickness of a model; another model standing in
-	// front of it casts its shadow on it
+	// the edge of the shadow is smooth: the occupancy of the 4 nearest texels is interpolated and cut at 50 % (a single texel gave
+	// a jagged staircase edge, one step per texel of the depth map)
 	float bias = hasN ? min(texel / max(cosT, 0.2), 3.0) + 0.3 : 64.0 + 2.0 * texel;
-	if (m <= occluder + bias)
-		return 0;	// the model is not nearer to the sun than the pixel
+	vec2 fp = (ndc * 0.5 + 0.5) * float(size) - 0.5;
+	ivec2 b0 = ivec2(floor(fp));
+	vec2 w = fp - vec2(b0);
+	ivec2 org = ivec2(face % 3, face / 3) * size;
+	float cov = 0.0, occluder = 1.0e30;
+	bool anyModel = false;
+	for (int j = 0; j < 2; j++)
+		for (int i = 0; i < 2; i++)
+		{
+			float st = texelFetch(map, org + clamp(b0 + ivec2(i, j), ivec2(0), ivec2(size - 1)), 0).x;
+			if (st >= 1.0)
+				continue;
+			anyModel = true;
+			float oc = LinearLightDepth(st, nf.x, nf.y);
+			if (m > oc + bias)
+			{
+				cov += (i == 0 ? 1.0 - w.x : w.x) * (j == 0 ? 1.0 - w.y : w.y);
+				occluder = min(occluder, oc);
+			}
+		}
+	gSunDbg = anyModel ? 2 : 1;
+	if (cov < 0.5)
+		return 0;
 	gOcc[mi] = L.xyz + d * (occluder / m);
 	return 1;
 }
@@ -253,12 +265,27 @@ int InModelShadow(vec3 P, vec3 n, vec4 L, vec2 nf, bool haveWorld, sampler2D map
 		}
 	}
 
-	float stored = texelFetch(map, tp, 0).x;
-	if (stored >= 1.0)
-		return 0;	// no model here
-	float occluder = LinearLightDepth(stored, nf.x, nf.y);
-	if (m <= occluder + 2.0 * texel + 1.0)
-		return 0;	// the model is not nearer to the light than the pixel
+	// smooth edge: the occupancy of the 4 nearest texels is interpolated and cut at 50 % (no staircase of single texels)
+	vec2 fp = (ndc * 0.5 + 0.5) * float(size) - 0.5;
+	ivec2 b0 = ivec2(floor(fp));
+	vec2 w = fp - vec2(b0);
+	ivec2 org = ivec2(face % 3, face / 3) * size;
+	float cov = 0.0, occluder = 1.0e30;
+	for (int j = 0; j < 2; j++)
+		for (int i = 0; i < 2; i++)
+		{
+			float st = texelFetch(map, org + clamp(b0 + ivec2(i, j), ivec2(0), ivec2(size - 1)), 0).x;
+			if (st >= 1.0)
+				continue;
+			float oc = LinearLightDepth(st, nf.x, nf.y);
+			if (m > oc + 2.0 * texel + 1.0)
+			{
+				cov += (i == 0 ? 1.0 - w.x : w.x) * (j == 0 ? 1.0 - w.y : w.y);
+				occluder = min(occluder, oc);
+			}
+		}
+	if (cov < 0.5)
+		return 0;	// no model here, or the model is not nearer to the light than the pixel
 	gOcc[mi] = L.xyz + d * (occluder / m);
 	return hidden ? 2 : 1;
 }

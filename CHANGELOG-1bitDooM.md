@@ -317,3 +317,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 
 ## Modelle: Raster statt Schwellwert
 - `main.fp`: der harte Weiss/Schwarz-Schwellwert fuer Modelle ist wieder entfernt; die Uebergaenge zwischen hell und dunkel auf Modellen zeichnet wieder die Rasterung des 1-Bit-Shaders (`present.fp`). Das Muster war der Zaunschatten (siehe oben). Ungetestet.
+
+## Glatte Kanten der Modellschatten
+- `modelshadow.fp` (Lampenkarten und Sonnenkarte): die Karte wurde pro Pixel nur mit dem naechsten Texel abgefragt, dadurch hatte jeder projizierte Modellschatten eine Treppenkante (ein Schritt je Texel der Tiefenkarte). Jetzt wird die Belegung der 4 naechsten Texel bilinear gemischt und bei 50 % abgeschnitten: gleiche Schattenform, glatte Kanten. Ungetestet.
