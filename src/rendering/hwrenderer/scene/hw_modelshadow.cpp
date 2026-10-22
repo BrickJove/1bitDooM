@@ -120,7 +120,8 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 	if (gl_model_shadow_map_sun && gl_scene_shadow_sun && f.SunPosValid)
 	{
 		// reach: the height of the sun plus the extent of a level (a sun at 8192 is further away than 8192 from everything)
-		Lt lt = { f.SunPos[0], f.SunPos[1], f.SunPos[2], 16384.f + f.SunPos[1], f.SunPos[1] + 16384.f, nullptr };
+		const float sunR = f.SunDist > 0.f ? f.SunDist + 60000.f : 16384.f + f.SunPos[1];
+		Lt lt = { f.SunPos[0], f.SunPos[1], f.SunPos[2], sunR, sunR, nullptr };
 		sunLight = (int)lights.Size();
 		lights.Push(lt);
 	}
@@ -327,7 +328,7 @@ static void RenderModelShadowMapsImpl(HWDrawInfo *di, FRenderState &state)
 			{ const float rl = sqrtf(rx * rx + ry * ry + rz * rz); rx /= rl; ry /= rl; rz /= rl; }	// unit length, as lookAt() and the shader
 			const float u2x = ry * fz - rz * fy, u2y = rz * fx - rx * fz, u2z = rx * fy - ry * fx;
 			// half edge of the whole mosaic as a tangent (covers the corners of the square area)
-			const float T = clamp(H * 1.45f / dist, 0.02f, 1.2f);
+			const float T = clamp(H * 1.45f / dist, 0.0005f, 1.2f);
 			const float sunNear = max(1.f, dist - 3000.f), sunFar = dist + 3000.f;
 
 			if (!screen->BeginModelShadowMap(usedMaps))

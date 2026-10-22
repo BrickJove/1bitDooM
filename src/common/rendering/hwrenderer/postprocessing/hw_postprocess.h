@@ -826,6 +826,7 @@ struct SceneShadowFrame
 	bool Valid = false;
 	float InvView[3][4] = {};	// rows of the eye -> world (render space) transform, translation in column 3
 	float SunPos[3] = { 0, 0, 0 };	// position of the sun (render space: x = X, y = Z up, z = Y): centre of the level, height from the cvar
+	float SunDist = 0.f;			// directional sun: distance of the (far) sun point from the centre of the level, 0 = point sun
 	bool SunPosValid = false;		// kept between frames (model shadows use it)
 	int LightCount = 0;			// number of used entries of Light
 	float Light[SceneShadowMaxLamps][4] = {};		// render space position + radius of the nearest dynamic lights, radius 0 = unused

@@ -1088,10 +1088,26 @@ void HWDrawInfo::PrepareSceneShadow()
 	}
 
 	hw_UpdateShadowHeightMap(Level, f);
-	// the sun is a point light above the map origin (0, 0), the cross of the map editor
-	f.SunPos[0] = (float)gl_scene_shadow_sun_x;
-	f.SunPos[1] = (float)gl_scene_shadow_sun_height;
-	f.SunPos[2] = (float)gl_scene_shadow_sun_y;
+	if (gl_scene_shadow_sun_directional)
+	{
+		// directional sun: a point very far away in the chosen direction (the rays are parallel to within a few degrees on the
+		// whole map): the same shadows everywhere, wherever the map is placed
+		const double d = 250000.0;
+		const double az = (double)gl_scene_shadow_sun_azimuth * M_PI / 180.0;
+		const double el = clamp((double)gl_scene_shadow_sun_elevation, 3.0, 89.0) * M_PI / 180.0;
+		f.SunPos[0] = (float)(f.MidX + d * cos(el) * cos(az));
+		f.SunPos[1] = (float)(d * sin(el));
+		f.SunPos[2] = (float)(f.MidY + d * cos(el) * sin(az));
+		f.SunDist = (float)d;
+	}
+	else
+	{
+		// the sun is a point light above the map origin (0, 0), the cross of the map editor
+		f.SunPos[0] = (float)gl_scene_shadow_sun_x;
+		f.SunPos[1] = (float)gl_scene_shadow_sun_height;
+		f.SunPos[2] = (float)gl_scene_shadow_sun_y;
+		f.SunDist = 0.f;
+	}
 	f.SunPosValid = f.CellTex != nullptr;
 	if (gl_model_shadow_map_debug)
 	{
