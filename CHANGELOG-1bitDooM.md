@@ -305,3 +305,6 @@ Basis: UZDoom trunk 907448a. Alles unten ist der aktuelle Endzustand.
 - Sonne mit fester Richtung, Modellschatten-Karte: Die Kamera der Sonnenkarte steht nicht mehr 250000 Einheiten entfernt (Matrizen und Tiefenwerte sind dort zu ungenau, die Modellschatten blieben flach), sondern in derselben Richtung `max(6000, 6 * gl_model_shadow_sun_size)` Einheiten vom Bereich um den Spieler entfernt. Die Szenenschatten (Geometrie) benutzen weiter die ferne Sonne.
 
 - Sonne mit fester Richtung, Szenenschatten: Der Shader bekommt jetzt direkt den Einheitsvektor zur Sonne (Sun.w + 2 = gerichtet) statt eines Punktes 250000 Einheiten entfernt, und verfolgt den Strahl bis zu 60000 Einheiten (begrenzt durch die Höhe der Karte). Keine Genauigkeitsprobleme mehr mit großen Zahlen.
+
+## Diagnose Schattenpass
+- `gl_model_shadow_info` zeigt jetzt zusätzlich Sonnen-Cvars, SunPos/SunDist, Lampenzahl und welche Texturen des Schattenpasses vorhanden sind (zur Fehlersuche: Geometrieschatten fehlen im Outdoor-Bereich).

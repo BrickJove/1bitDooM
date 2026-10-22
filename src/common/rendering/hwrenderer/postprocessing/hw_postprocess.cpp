@@ -926,6 +926,12 @@ CCMD(gl_model_shadow_info)
 	Printf("1bitDooM model shadow build %s %s\n", __DATE__, __TIME__);
 	Printf("world depth maps: yes, shader calls: %d\n", g_ModelShadowRenderCalls);
 	Printf("gl_scene_shadow=%d gl_model_shadow_map=%d frame valid=%d models active=%d world maps=%d%d%d%d\n", (int)gl_scene_shadow, (int)gl_model_shadow_map, (int)f.Valid, (int)f.ModelShadowActive, (int)f.ModelWorld[0], (int)f.ModelWorld[1], (int)f.ModelWorld[2], (int)f.ModelWorld[3]);
+	Printf("scene: sun=%d directional=%d az=%.0f el=%.0f | point sun x=%.0f y=%.0f h=%.0f | SunPosValid=%d SunDist=%.0f SunPos=%.0f %.0f %.0f mid=%.0f %.0f\n",
+		(int)gl_scene_shadow_sun, (int)gl_scene_shadow_sun_directional, (float)gl_scene_shadow_sun_azimuth, (float)gl_scene_shadow_sun_elevation,
+		(float)gl_scene_shadow_sun_x, (float)gl_scene_shadow_sun_y, (float)gl_scene_shadow_sun_height, (int)f.SunPosValid, f.SunDist, f.SunPos[0], f.SunPos[1], f.SunPos[2], f.MidX, f.MidY);
+	Printf("scene: lamps cvar=%d frame lamps=%d debug=%d strength=%.2f ambient=%.2f caster=%.0f textures: cell=%d list=%d line=%d fence=%d/%d light=%d sector=%d lamp=%d top=%.0f\n",
+		(int)gl_scene_shadow_lamps, f.LightCount, (int)gl_scene_shadow_debug, (float)gl_scene_shadow_strength, (float)gl_scene_shadow_ambient, (float)gl_scene_shadow_caster_height,
+		f.CellTex != nullptr, f.ListTex != nullptr, f.LineTex != nullptr, f.FenceParamTex != nullptr, f.FenceAtlasTex != nullptr, f.LightTex != nullptr, f.SectorLightTex != nullptr, f.SectorLampTex != nullptr, f.TopLimit);
 	for (int i = 0; i < 4; i++)
 		if (f.ModelLight[i][3] > 0.f)
 			Printf("map %d (debug_light %d): light at x=%.0f y=%.0f height=%.0f, reach %.0f\n", i, i + 1, f.ModelLight[i][0], f.ModelLight[i][2], f.ModelLight[i][1], f.ModelLight[i][3]);
